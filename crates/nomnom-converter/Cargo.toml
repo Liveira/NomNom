@@ -1,0 +1,27 @@
+[package]
+name = "nomnom-converter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nomnom-core = { path = "../nomnom-core" }
+nomnom-tools = { path = "../nomnom-tools" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "tiff", "webp", "ico"] }
+webp = "0.3"
+img-parts = "0.3"
+flate2 = "1"
+lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+blake3 = "1"
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
