@@ -75,20 +75,36 @@ impl ModuleRegistry {
 
     pub fn register(&mut self, module: Arc<dyn Module>) {
         let id = module.manifest().id;
-        self.modules.insert(id, Entry { module, started: OnceCell::new() });
+        self.modules.insert(
+            id,
+            Entry {
+                module,
+                started: OnceCell::new(),
+            },
+        );
     }
 
     /// Manifests ordered by navigation order (modules without nav come last).
     pub fn manifests(&self) -> Vec<ModuleManifest> {
-        let mut list: Vec<_> = self.modules.values().map(|e| e.module.manifest().clone()).collect();
+        let mut list: Vec<_> = self
+            .modules
+            .values()
+            .map(|e| e.module.manifest().clone())
+            .collect();
         list.sort_by_key(|m| m.nav.map_or(u16::MAX, |n| n.order));
         list
     }
 
     /// Starts the module on first use. Concurrent callers wait for the same start.
     pub async fn ensure_started(&self, id: &str) -> Result<()> {
-        let entry = self.modules.get(id).ok_or_else(|| Error::UnknownModule(id.to_string()))?;
-        entry.started.get_or_try_init(|| entry.module.start()).await?;
+        let entry = self
+            .modules
+            .get(id)
+            .ok_or_else(|| Error::UnknownModule(id.to_string()))?;
+        entry
+            .started
+            .get_or_try_init(|| entry.module.start())
+            .await?;
         Ok(())
     }
 
@@ -111,7 +127,10 @@ mod tests {
     static MANIFEST_B: ModuleManifest = ModuleManifest {
         id: "b",
         name: "B",
-        nav: Some(NavEntry { order: 20, icon: "b" }),
+        nav: Some(NavEntry {
+            order: 20,
+            icon: "b",
+        }),
         commands: &[],
         context_actions: &[],
         settings_key: None,
@@ -120,7 +139,10 @@ mod tests {
     static MANIFEST_A: ModuleManifest = ModuleManifest {
         id: "a",
         name: "A",
-        nav: Some(NavEntry { order: 10, icon: "a" }),
+        nav: Some(NavEntry {
+            order: 10,
+            icon: "a",
+        }),
         commands: &[],
         context_actions: &[],
         settings_key: None,
@@ -148,12 +170,19 @@ mod tests {
 
         let ids: Vec<_> = reg.manifests().iter().map(|m| m.id).collect();
         assert_eq!(ids, ["a", "b"]);
-        assert_eq!(starts.load(Ordering::SeqCst), 0, "nothing starts at registration");
+        assert_eq!(
+            starts.load(Ordering::SeqCst),
+            0,
+            "nothing starts at registration"
+        );
 
         let (r1, r2) = tokio::join!(reg.ensure_started("a"), reg.ensure_started("a"));
         r1.unwrap();
         r2.unwrap();
         assert_eq!(starts.load(Ordering::SeqCst), 1);
-        assert!(matches!(reg.ensure_started("zzz").await, Err(Error::UnknownModule(_))));
+        assert!(matches!(
+            reg.ensure_started("zzz").await,
+            Err(Error::UnknownModule(_))
+        ));
     }
 }

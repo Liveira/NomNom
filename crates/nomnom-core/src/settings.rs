@@ -26,7 +26,10 @@ pub struct General {
 }
 impl Default for General {
     fn default() -> Self {
-        General { close_to_tray: true, tray_notice_shown: false }
+        General {
+            close_to_tray: true,
+            tray_notice_shown: false,
+        }
     }
 }
 
@@ -136,7 +139,9 @@ mod tests {
         .unwrap();
         let store = SettingsStore::load(&path).unwrap();
         assert_eq!(store.get().appearance.theme, Theme::Dark);
-        store.update("general", |s| s.general.close_to_tray = false).unwrap();
+        store
+            .update("general", |s| s.general.close_to_tray = false)
+            .unwrap();
 
         let again = SettingsStore::load(&path).unwrap().get();
         assert!(!again.general.close_to_tray);
@@ -158,7 +163,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let store = SettingsStore::load(&dir.path().join("s.json")).unwrap();
         let mut rx = store.subscribe();
-        store.update("appearance", |s| s.appearance.theme = Theme::Light).unwrap();
+        store
+            .update("appearance", |s| s.appearance.theme = Theme::Light)
+            .unwrap();
         assert_eq!(rx.try_recv().unwrap(), "appearance");
     }
 }

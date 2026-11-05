@@ -104,11 +104,22 @@ impl TaskManager {
     }
 
     pub fn list(&self) -> Vec<Task> {
-        self.inner.tasks.lock().unwrap().values().map(|(t, _)| t.clone()).collect()
+        self.inner
+            .tasks
+            .lock()
+            .unwrap()
+            .values()
+            .map(|(t, _)| t.clone())
+            .collect()
     }
 
     pub fn get(&self, id: TaskId) -> Option<Task> {
-        self.inner.tasks.lock().unwrap().get(&id).map(|(t, _)| t.clone())
+        self.inner
+            .tasks
+            .lock()
+            .unwrap()
+            .get(&id)
+            .map(|(t, _)| t.clone())
     }
 
     pub fn cancel(&self, id: TaskId) {
@@ -119,9 +130,11 @@ impl TaskManager {
 
     /// Removes finished tasks from the in-memory list (history lives in the database).
     pub fn clear_finished(&self) {
-        self.inner.tasks.lock().unwrap().retain(|_, (t, _)| {
-            matches!(t.state, TaskState::Queued | TaskState::Running)
-        });
+        self.inner
+            .tasks
+            .lock()
+            .unwrap()
+            .retain(|_, (t, _)| matches!(t.state, TaskState::Queued | TaskState::Running));
     }
 
     fn modify(&self, id: TaskId, f: impl FnOnce(&mut Task)) {
@@ -157,7 +170,11 @@ impl TaskManager {
             eta_secs: None,
             detail: None,
         };
-        self.inner.tasks.lock().unwrap().insert(id, (task.clone(), cancel.clone()));
+        self.inner
+            .tasks
+            .lock()
+            .unwrap()
+            .insert(id, (task.clone(), cancel.clone()));
         let _ = self.inner.events.send(task);
 
         let sem = self
@@ -169,7 +186,11 @@ impl TaskManager {
             .or_insert_with(|| Arc::new(Semaphore::new(2)))
             .clone();
         let manager = self.clone();
-        let handle = TaskHandle { id, manager: manager.clone(), cancel: cancel.clone() };
+        let handle = TaskHandle {
+            id,
+            manager: manager.clone(),
+            cancel: cancel.clone(),
+        };
 
         tokio::spawn(async move {
             let permit = tokio::select! {
@@ -216,7 +237,10 @@ mod tests {
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-        panic!("task never reached {want:?}; is {:?}", m.get(id).map(|t| t.state));
+        panic!(
+            "task never reached {want:?}; is {:?}",
+            m.get(id).map(|t| t.state)
+        );
     }
 
     #[tokio::test]

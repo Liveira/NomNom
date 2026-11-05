@@ -54,7 +54,9 @@ impl Db {
             tx.execute_batch(&format!("PRAGMA user_version = {}", i + 1))?;
             tx.commit()?;
         }
-        Ok(Db { conn: Mutex::new(conn) })
+        Ok(Db {
+            conn: Mutex::new(conn),
+        })
     }
 
     pub fn with<T>(&self, f: impl FnOnce(&Connection) -> rusqlite::Result<T>) -> Result<T> {
@@ -75,7 +77,10 @@ mod tests {
     fn migrations_apply_once_and_are_idempotent() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("t.db");
-        assert_eq!(Db::open(&path).unwrap().schema_version().unwrap(), MIGRATIONS.len());
+        assert_eq!(
+            Db::open(&path).unwrap().schema_version().unwrap(),
+            MIGRATIONS.len()
+        );
         let db = Db::open(&path).unwrap();
         assert_eq!(db.schema_version().unwrap(), MIGRATIONS.len());
         let n: i64 = db

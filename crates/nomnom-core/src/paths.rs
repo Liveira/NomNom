@@ -36,12 +36,12 @@ impl Paths {
 
     #[cfg(windows)]
     pub fn resolve() -> crate::Result<Self> {
+        use windows::core::GUID;
         use windows::Win32::System::Com::CoTaskMemFree;
         use windows::Win32::UI::Shell::{
             FOLDERID_Documents, FOLDERID_Downloads, FOLDERID_LocalAppData, SHGetKnownFolderPath,
             KF_FLAG_DEFAULT,
         };
-        use windows::core::GUID;
 
         fn known(id: &GUID) -> crate::Result<PathBuf> {
             use std::os::windows::ffi::OsStringExt;
@@ -65,6 +65,8 @@ impl Paths {
 
     #[cfg(not(windows))]
     pub fn resolve() -> crate::Result<Self> {
-        Err(crate::Error::Other("NOMNOM currently supports Windows only".into()))
+        Err(crate::Error::Other(
+            "NOMNOM currently supports Windows only".into(),
+        ))
     }
 }

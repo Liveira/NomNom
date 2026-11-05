@@ -66,7 +66,10 @@ impl ManagedChild {
     /// Kills the process and everything it started, then reaps it.
     pub async fn kill_tree(mut self) {
         #[cfg(windows)]
-        drop(std::mem::replace(&mut self._job, job::Job::new().expect("job object")));
+        drop(std::mem::replace(
+            &mut self._job,
+            job::Job::new().expect("job object"),
+        ));
         let _ = self.child.kill().await;
     }
 }
@@ -132,7 +135,10 @@ mod tests {
             .output()
             .unwrap();
         let text = String::from_utf8_lossy(&out.stdout);
-        assert!(!text.contains("ping.exe"), "grandchild survived (cmd pid {pid}): {text}");
+        assert!(
+            !text.contains("ping.exe"),
+            "grandchild survived (cmd pid {pid}): {text}"
+        );
     }
 
     #[tokio::test]
