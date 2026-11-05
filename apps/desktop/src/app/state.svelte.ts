@@ -1,4 +1,4 @@
-import { ipc, type Settings, type TaskInfo, type Theme } from '../lib/ipc';
+import { ipc, type Settings, type SettingsPatch, type TaskInfo, type Theme } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
 import { discoverModules } from './discover';
 
@@ -37,6 +37,11 @@ class AppState {
   async setTheme(theme: Theme) {
     this.settings = await ipc.updateSettings({ theme });
     this.applyTheme(theme);
+  }
+
+  /** Applies a settings change and keeps the local copy in sync with what was saved. */
+  async update(patch: SettingsPatch) {
+    this.settings = await ipc.updateSettings(patch);
   }
 
   async setCloseToTray(value: boolean) {

@@ -1,7 +1,10 @@
-use crate::{commands, events, modules, state::AppState, tray, windows};
+use crate::modules::downloads;
+use crate::{commands, events, modules, notifier, state::AppState, tray, windows};
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
 };
+use nomnom_downloads::{DownloadManager, YtDlpBackend};
+use nomnom_tools::Tools;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::RunEvent;
@@ -46,12 +49,30 @@ pub fn run() {
     let mut registry = ModuleRegistry::new();
     modules::register_all(&mut registry);
 
+    // Tasks run on Tauri's runtime so synchronous commands on the main thread can queue work.
+    let tauri::async_runtime::RuntimeHandle::Tokio(runtime) = tauri::async_runtime::handle();
+    let tasks = TaskManager::with_runtime(runtime);
+    tasks.set_limit(
+        "downloads",
+        settings.get().downloads.max_concurrent as usize,
+    );
+    let tools = Tools::new(paths.tools_dir());
+    let downloads = DownloadManager::new(
+        Arc::new(YtDlpBackend::new(tools.clone())),
+        tasks.clone(),
+        db.clone(),
+    );
+    downloads.recover();
+
     let state = AppState {
         paths,
         settings: settings.clone(),
         db,
-        tasks: TaskManager::new(),
+        tasks,
         modules: Arc::new(registry),
+        tools,
+        downloads,
+        analysis_cache: Default::default(),
         started,
     };
 
@@ -63,6 +84,8 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
@@ -70,10 +93,25 @@ pub fn run() {
             commands::update_settings,
             commands::list_tasks,
             commands::app_ready,
+            commands::default_download_dir,
+            downloads::dl_analyze,
+            downloads::dl_enqueue,
+            downloads::dl_list,
+            downloads::dl_cancel,
+            downloads::dl_pause,
+            downloads::dl_resume,
+            downloads::dl_retry,
+            downloads::dl_remove,
+            downloads::dl_clear_history,
+            downloads::dl_open,
+            downloads::tools_status,
+            downloads::tools_install,
+            downloads::tools_update_ytdlp,
         ])
         .setup(move |app| {
             tray::create(app.handle())?;
             events::spawn_forwarder(app.handle().clone());
+            notifier::spawn(app.handle().clone());
             if !background {
                 windows::open_main(app.handle());
             }

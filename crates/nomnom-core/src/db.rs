@@ -24,6 +24,8 @@ const MIGRATIONS: &[&str] = &[
         fp_size INTEGER, fp_mtime INTEGER, fp_file_id TEXT, fp_volume INTEGER,
         state TEXT NOT NULL, reason TEXT, updated_at INTEGER NOT NULL);
      CREATE INDEX org_ops_batch ON org_ops(batch_id, seq);",
+    // v2: what a download needs to be retried or resumed after a restart
+    "ALTER TABLE downloads ADD COLUMN dest_dir TEXT; ALTER TABLE downloads ADD COLUMN cookies INTEGER NOT NULL DEFAULT 0;",
 ];
 
 pub struct Db {

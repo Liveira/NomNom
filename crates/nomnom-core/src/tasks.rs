@@ -26,6 +26,8 @@ pub struct Task {
     pub module: String,
     pub category: String,
     pub title: String,
+    /// Lets a module tie a task to its own record (for example a download job id).
+    pub ref_id: Option<String>,
     pub state: TaskState,
     /// 0.0..=1.0 when known.
     pub progress: Option<f32>,
@@ -65,6 +67,8 @@ struct Inner {
     tasks: Mutex<HashMap<TaskId, (Task, CancellationToken)>>,
     limits: Mutex<HashMap<String, Arc<Semaphore>>>,
     events: broadcast::Sender<Task>,
+    /// Where tasks run. Without it, `submit` must be called from inside a Tokio runtime.
+    runtime: Option<tokio::runtime::Handle>,
 }
 
 #[derive(Clone)]
@@ -80,12 +84,23 @@ impl Default for TaskManager {
 
 impl TaskManager {
     pub fn new() -> Self {
+        Self::build(None)
+    }
+
+    /// Runs tasks on `runtime`, so `submit` can be called from any thread (for example from a
+    /// synchronous UI command on the main thread).
+    pub fn with_runtime(runtime: tokio::runtime::Handle) -> Self {
+        Self::build(Some(runtime))
+    }
+
+    fn build(runtime: Option<tokio::runtime::Handle>) -> Self {
         let (events, _) = broadcast::channel(256);
         TaskManager {
             inner: Arc::new(Inner {
                 tasks: Mutex::new(HashMap::new()),
                 limits: Mutex::new(HashMap::new()),
                 events,
+                runtime,
             }),
         }
     }
@@ -157,6 +172,22 @@ impl TaskManager {
         F: FnOnce(TaskHandle) -> Fut + Send + 'static,
         Fut: Future<Output = std::result::Result<(), String>> + Send + 'static,
     {
+        self.submit_ref(module, category, title, None, work)
+    }
+
+    /// Like [`submit`](Self::submit), but tags the task with a module-owned reference id.
+    pub fn submit_ref<F, Fut>(
+        &self,
+        module: &str,
+        category: &str,
+        title: &str,
+        ref_id: Option<String>,
+        work: F,
+    ) -> TaskId
+    where
+        F: FnOnce(TaskHandle) -> Fut + Send + 'static,
+        Fut: Future<Output = std::result::Result<(), String>> + Send + 'static,
+    {
         let id = Uuid::new_v4();
         let cancel = CancellationToken::new();
         let task = Task {
@@ -164,6 +195,7 @@ impl TaskManager {
             module: module.to_string(),
             category: category.to_string(),
             title: title.to_string(),
+            ref_id,
             state: TaskState::Queued,
             progress: None,
             speed_bps: None,
@@ -192,7 +224,7 @@ impl TaskManager {
             cancel: cancel.clone(),
         };
 
-        tokio::spawn(async move {
+        let runner = async move {
             let permit = tokio::select! {
                 p = sem.acquire_owned() => p.ok(),
                 _ = cancel.cancelled() => None,
@@ -219,7 +251,15 @@ impl TaskManager {
                 }),
                 None => manager.modify(id, |t| t.state = TaskState::Cancelled),
             }
-        });
+        };
+        match &self.inner.runtime {
+            Some(rt) => {
+                rt.spawn(runner);
+            }
+            None => {
+                tokio::spawn(runner);
+            }
+        }
         id
     }
 }
@@ -280,6 +320,24 @@ mod tests {
         wait_for(&m, queued, TaskState::Cancelled).await;
         m.cancel(running);
         wait_for(&m, running, TaskState::Cancelled).await;
+    }
+
+    /// Regression: a synchronous UI command runs on the main thread, outside any runtime.
+    /// Submitting from there used to panic with "there is no reactor running".
+    #[test]
+    fn submit_works_from_a_thread_without_a_runtime() {
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let m = TaskManager::with_runtime(rt.handle().clone());
+        let id = std::thread::spawn({
+            let m = m.clone();
+            move || m.submit("t", "x", "from plain thread", |_| async { Ok(()) })
+        })
+        .join()
+        .unwrap();
+        rt.block_on(wait_for(&m, id, TaskState::Done));
     }
 
     #[tokio::test]

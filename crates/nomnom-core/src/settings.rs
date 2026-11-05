@@ -42,10 +42,34 @@ pub struct Appearance {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct Downloads {
+    pub max_concurrent: u8,
+    /// `None` means the user's Downloads folder.
+    pub output_dir: Option<std::path::PathBuf>,
+    pub allow_duplicates: bool,
+    /// Lets yt-dlp read Firefox cookies. Off unless the user turns it on.
+    pub use_firefox_cookies: bool,
+    pub notify: bool,
+}
+impl Default for Downloads {
+    fn default() -> Self {
+        Downloads {
+            max_concurrent: 3,
+            output_dir: None,
+            allow_duplicates: false,
+            use_firefox_cookies: false,
+            notify: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub version: u32,
     pub general: General,
     pub appearance: Appearance,
+    pub downloads: Downloads,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -56,6 +80,7 @@ impl Default for Settings {
             version: 1,
             general: General::default(),
             appearance: Appearance::default(),
+            downloads: Downloads::default(),
             extra: Map::new(),
         }
     }
@@ -134,7 +159,7 @@ mod tests {
         let path = dir.path().join("settings.json");
         std::fs::write(
             &path,
-            r#"{"version":1,"downloads":{"max_concurrent":5},"appearance":{"theme":"dark"}}"#,
+            r#"{"version":1,"futuretool":{"level":5},"appearance":{"theme":"dark"}}"#,
         )
         .unwrap();
         let store = SettingsStore::load(&path).unwrap();
@@ -145,7 +170,7 @@ mod tests {
 
         let again = SettingsStore::load(&path).unwrap().get();
         assert!(!again.general.close_to_tray);
-        assert_eq!(again.extra["downloads"]["max_concurrent"], 5);
+        assert_eq!(again.extra["futuretool"]["level"], 5);
     }
 
     #[test]

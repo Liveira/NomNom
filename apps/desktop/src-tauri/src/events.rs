@@ -73,6 +73,7 @@ mod tests {
             module: "t".into(),
             category: "c".into(),
             title: "x".into(),
+            ref_id: None,
             state,
             progress,
             speed_bps: None,

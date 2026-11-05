@@ -11,12 +11,23 @@ pub fn open_main(app: &AppHandle) {
         let _ = win.set_focus();
         return;
     }
-    let result = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
+    let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
         .title("NOMNOM")
         .inner_size(1040.0, 700.0)
         .min_inner_size(760.0, 520.0)
-        .center()
-        .build();
+        .center();
+
+    // Debug builds only: lets automated UI checks attach to the WebView on a local port.
+    // Compiled out of release builds, so shipped NOMNOM never opens a debugging port.
+    #[cfg(debug_assertions)]
+    let builder = match std::env::var("NOMNOM_DEBUG_PORT") {
+        Ok(port) if port.chars().all(|c| c.is_ascii_digit()) => builder.additional_browser_args(
+            &format!("--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"),
+        ),
+        _ => builder,
+    };
+
+    let result = builder.build();
     if let Err(e) = result {
         tracing::error!("couldn't create the main window: {e}");
     }

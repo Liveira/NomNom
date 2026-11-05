@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/nomnom-core", "apps/desktop/src-tauri"]
+members = ["crates/nomnom-core", "crates/nomnom-tools", "crates/nomnom-downloads", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"

@@ -5,6 +5,7 @@ mod app;
 mod commands;
 mod events;
 mod modules;
+mod notifier;
 mod state;
 mod tray;
 mod windows;

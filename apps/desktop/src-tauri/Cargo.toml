@@ -9,6 +9,10 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 nomnom-core = { path = "../../../crates/nomnom-core" }
+nomnom-tools = { path = "../../../crates/nomnom-tools" }
+nomnom-downloads = { path = "../../../crates/nomnom-downloads" }
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-single-instance = "2"
 tauri-plugin-opener = "2"

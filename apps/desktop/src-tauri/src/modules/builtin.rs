@@ -49,3 +49,31 @@ impl Module for Settings {
         Ok(())
     }
 }
+
+static DOWNLOADS: ModuleManifest = ModuleManifest {
+    id: "downloads",
+    name: "Downloads",
+    nav: Some(NavEntry {
+        order: 10,
+        icon: "download",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: Some("downloads"),
+    capabilities: &[
+        nomnom_core::module::Capability::Network,
+        nomnom_core::module::Capability::WriteFs,
+        nomnom_core::module::Capability::Spawn,
+    ],
+};
+
+pub struct Downloads;
+#[async_trait]
+impl Module for Downloads {
+    fn manifest(&self) -> &ModuleManifest {
+        &DOWNLOADS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}

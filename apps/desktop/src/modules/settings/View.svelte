@@ -1,6 +1,8 @@
 <script lang="ts">
   import { app } from '../../app/state.svelte';
-  import type { Theme } from '../../lib/ipc';
+  import { open } from '@tauri-apps/plugin-dialog';
+  import { ipc, type SettingsPatch, type Theme } from '../../lib/ipc';
+  import { downloads } from '../downloads/store.svelte';
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -9,6 +11,41 @@
   ];
   const theme = $derived(app.settings?.appearance.theme ?? 'system');
   const closeToTray = $derived(app.settings?.general.close_to_tray ?? true);
+  const dl = $derived(app.settings?.downloads);
+
+  let defaultDir = $state('');
+  let message = $state('');
+  let updating = $state(false);
+  void ipc.defaultDownloadDir().then((d) => (defaultDir = d));
+  void downloads.refreshTools();
+
+  async function chooseFolder() {
+    const picked = await open({ directory: true, multiple: false, defaultPath: dl?.output_dir ?? defaultDir });
+    if (typeof picked === 'string') await save({ outputDir: picked });
+  }
+
+  async function save(patch: SettingsPatch) {
+    message = '';
+    try {
+      await app.update(patch);
+    } catch (e) {
+      message = String(e);
+    }
+  }
+
+  async function updateYtdlp() {
+    updating = true;
+    message = '';
+    try {
+      const v = await ipc.updateYtdlp();
+      message = v ? `yt-dlp is up to date (${v}).` : 'Checked for updates.';
+    } catch (e) {
+      message = String(e);
+    } finally {
+      updating = false;
+      await downloads.refreshTools();
+    }
+  }
 </script>
 
 <h1>Settings</h1>
@@ -50,7 +87,81 @@
   </div>
 </section>
 
+<section class="group">
+  <h3>Downloads</h3>
+  <div class="row">
+    <div>
+      <div class="label">Save to</div>
+      <div class="hint path">{dl?.output_dir ?? defaultDir}</div>
+    </div>
+    <div class="buttons">
+      <button class="plain" onclick={chooseFolder}>Choose folder</button>
+      {#if dl?.output_dir}<button class="plain" onclick={() => save({ outputDir: '' })}>Use Downloads</button>{/if}
+    </div>
+  </div>
+  <div class="row">
+    <div class="label">Downloads at the same time</div>
+    <select
+      aria-label="Downloads at the same time"
+      value={dl?.max_concurrent ?? 3}
+      onchange={(e) => save({ maxConcurrent: Number(e.currentTarget.value) })}
+    >
+      {#each [1, 2, 3, 4, 5, 6, 8] as n (n)}<option value={n}>{n}</option>{/each}
+    </select>
+  </div>
+  <div class="row">
+    <div>
+      <div class="label">Allow downloading the same link again</div>
+      <div class="hint">When off, NOMNOM asks before downloading something you already have.</div>
+    </div>
+    <button class="switch" role="switch" aria-label="Allow downloading the same link again" aria-checked={dl?.allow_duplicates ?? false} class:on={dl?.allow_duplicates} onclick={() => save({ allowDuplicates: !dl?.allow_duplicates })}><span></span></button>
+  </div>
+  <div class="row">
+    <div class="label">Show a notification when downloads finish</div>
+    <button class="switch" role="switch" aria-label="Show a notification when downloads finish" aria-checked={dl?.notify ?? true} class:on={dl?.notify} onclick={() => save({ notifyDownloads: !dl?.notify })}><span></span></button>
+  </div>
+  <div class="row">
+    <div>
+      <div class="label">Use Firefox cookies for sites that need a sign-in</div>
+      <div class="hint">NOMNOM reads your Firefox cookies only while downloading, and only on this computer. Off by default.</div>
+    </div>
+    <button class="switch" role="switch" aria-label="Use Firefox cookies" aria-checked={dl?.use_firefox_cookies ?? false} class:on={dl?.use_firefox_cookies} onclick={() => save({ firefoxCookies: !dl?.use_firefox_cookies })}><span></span></button>
+  </div>
+
+  <h3 class="sub">Tools</h3>
+  {#if downloads.tools}
+    {#each [['yt-dlp', downloads.tools.ytdlp, 'ytdlp'], ['FFmpeg', downloads.tools.ffmpeg, 'ffmpeg']] as const as [name, tool, id] (id)}
+      <div class="row">
+        <div>
+          <div class="label">{name}</div>
+          <div class="hint">
+            {#if tool.path}{tool.version ?? 'Installed'}{tool.managed ? '' : ' · found on this computer'}{:else}Not installed{/if}
+          </div>
+        </div>
+        <div class="buttons">
+          {#if !tool.path}
+            <button class="plain" disabled={downloads.installing != null} onclick={() => downloads.install(id)}>Get {name}</button>
+          {:else if id === 'ytdlp' && tool.managed}
+            <button class="plain" disabled={updating} onclick={updateYtdlp}>{updating ? 'Checking…' : 'Update'}</button>
+          {/if}
+        </div>
+      </div>
+    {/each}
+  {/if}
+  {#if message}<p class="hint" role="status">{message}</p>{/if}
+</section>
+
 <style>
+  .path { font-variant-numeric: tabular-nums; word-break: break-all; }
+  .buttons { display: flex; gap: 8px; flex: none; }
+  .plain, select {
+    padding: 6px 12px; border-radius: var(--radius-s); border: 1px solid var(--border-strong);
+    background: var(--surface-2); cursor: pointer;
+  }
+  .plain:hover:not(:disabled) { background: var(--surface-3); }
+  .plain:disabled { opacity: 0.5; cursor: default; }
+  .group .row + .row { margin-top: 14px; }
+  h3.sub { margin-top: 22px; }
   h1 { margin-bottom: 20px; }
   .group {
     max-width: 640px;
