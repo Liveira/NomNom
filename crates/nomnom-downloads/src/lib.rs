@@ -2,6 +2,7 @@
 
 pub mod analyze;
 pub mod backend;
+pub mod direct;
 pub mod error;
 pub mod files;
 pub mod format;
@@ -12,4 +13,6 @@ pub mod url_check;
 pub use backend::{MediaBackend, YtDlpBackend};
 pub use error::DlError;
 pub use format::{Choice, Container, Kind};
-pub use manager::{DownloadManager, EnqueueOutcome, EnqueueRequest, JobEvent, JobRow};
+pub use manager::{
+    DirectRequest, DownloadManager, EnqueueOutcome, EnqueueRequest, JobEvent, JobRow,
+};

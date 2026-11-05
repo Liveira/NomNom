@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "NomNom",
+  "version": "0.1.0",
+  "description": "Adds a download button to videos and posts. Sends links to the NomNom app on this computer.",
+  "icons": { "48": "icons/48.png", "96": "icons/96.png" },
+  "browser_specific_settings": {
+    "gecko": { "id": "nomnom@nomnom.local", "strict_min_version": "140.0", "data_collection_permissions": { "required": ["none"] } }
+  },
+  "permissions": ["nativeMessaging"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://www.instagram.com/*",
+    "https://www.reddit.com/*"
+  ],
+  "background": { "scripts": ["background.js"] },
+  "content_scripts": [
+    { "matches": ["https://www.youtube.com/*"], "js": ["content-youtube.js"], "run_at": "document_idle" },
+    { "matches": ["https://x.com/*", "https://twitter.com/*"], "js": ["content-x.js"], "run_at": "document_idle" },
+    { "matches": ["https://www.instagram.com/*"], "js": ["content-instagram.js"], "run_at": "document_idle" },
+    { "matches": ["https://www.reddit.com/*"], "js": ["content-reddit.js"], "run_at": "document_idle" }
+  ],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "action": { "default_title": "NomNom", "default_popup": "options.html" }
+}

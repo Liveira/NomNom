@@ -3,6 +3,7 @@
   import type { Theme } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
   import DownloaderSettings from './DownloaderSettings.svelte';
+  import BrowserSettings from './BrowserSettings.svelte';
   import Shortcuts from './Shortcuts.svelte';
 
   const themes: { value: Theme; label: string }[] = [
@@ -45,6 +46,8 @@
 </section>
 
 <DownloaderSettings />
+
+<BrowserSettings />
 
 <Shortcuts />
 

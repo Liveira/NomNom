@@ -1,6 +1,7 @@
 use crate::modules::downloads;
 use crate::{
-    commands, events, modules, notifier, quick, shortcuts, state::AppState, tray, windows,
+    browser, commands, events, modules, notifier, pipe_server, quick, shortcuts, state::AppState,
+    tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -9,6 +10,7 @@ use nomnom_downloads::{DownloadManager, YtDlpBackend};
 use nomnom_tools::Tools;
 use std::sync::Arc;
 use std::time::Instant;
+use tauri::Manager;
 use tauri::RunEvent;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
@@ -79,8 +81,21 @@ pub fn run() {
         quick_shown: Default::default(),
         shortcuts_registered: Default::default(),
         shortcut_errors: Default::default(),
+        rate_limiter: crate::browser::RateLimiter::new(),
         started,
     };
+
+    // Command-line setup, used by the installer and for repairs. These run and exit; no window.
+    if args.iter().any(|a| a == "--install-integrations") {
+        let result = browser::connect(&state);
+        tracing::info!(ok = result.is_ok(), "install integrations");
+        std::process::exit(if result.is_ok() { 0 } else { 1 });
+    }
+    if args.iter().any(|a| a == "--uninstall-integrations") {
+        let result = browser::disconnect(&state);
+        tracing::info!(ok = result.is_ok(), "uninstall integrations");
+        std::process::exit(if result.is_ok() { 0 } else { 1 });
+    }
 
     let app = tauri::Builder::default()
         // A second launch (shortcut, shell action, browser host) is forwarded to this instance.
@@ -103,6 +118,9 @@ pub fn run() {
             commands::app_ready,
             commands::default_download_dir,
             commands::shortcuts_status,
+            browser::browser_status,
+            browser::browser_connect,
+            browser::browser_disconnect,
             commands::set_shortcut,
             quick::quick_context,
             quick::quick_ready,
@@ -127,6 +145,8 @@ pub fn run() {
             events::spawn_forwarder(app.handle().clone());
             notifier::spawn(app.handle().clone());
             shortcuts::register_all(app.handle());
+            browser::write_integration(&app.state::<AppState>());
+            pipe_server::spawn(app.handle().clone());
             quick::apply_keep_ready(app.handle());
             if !background {
                 windows::open_main(app.handle());

@@ -2,6 +2,7 @@
 //! running work goes through the shared `TaskManager` for concurrency limits and cancellation.
 
 use crate::backend::{DownloadJob, MediaBackend};
+use crate::direct::{media_key, validate_media_url, FileFetcher, HttpFetcher};
 use crate::error::DlError;
 use crate::files::finalize;
 use crate::format::{Choice, Container, Kind};
@@ -33,6 +34,17 @@ pub struct EnqueueRequest {
     /// Known from analysis; shown until the real file name is known.
     pub title: Option<String>,
     pub firefox_cookies: bool,
+    pub allow_duplicates: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct DirectRequest {
+    /// The post the media belongs to, used for naming.
+    pub source: String,
+    pub media: Vec<String>,
+    pub dest_dir: PathBuf,
+    /// Sort into Images or Videos inside `dest_dir`.
+    pub sort: bool,
     pub allow_duplicates: bool,
 }
 
@@ -71,6 +83,7 @@ pub struct JobEvent {
 
 struct Inner {
     backend: Arc<dyn MediaBackend>,
+    fetcher: Arc<dyn FileFetcher>,
     tasks: TaskManager,
     db: Arc<Db>,
     running: Mutex<HashMap<String, TaskId>>,
@@ -115,6 +128,8 @@ struct Spec {
     choice: Choice,
     dest_dir: PathBuf,
     subdir: Option<String>,
+    /// A plain file fetched directly (kind "file"), not a yt-dlp download.
+    direct: bool,
     cookies: bool,
     title: String,
 }
@@ -140,10 +155,26 @@ impl DownloadManager {
         DownloadManager {
             inner: Arc::new(Inner {
                 backend,
+                fetcher: Arc::new(HttpFetcher),
                 tasks,
                 db,
                 running: Mutex::new(HashMap::new()),
                 events,
+            }),
+        }
+    }
+
+    /// Replaces how plain files are fetched. Tests use this; the app keeps the default.
+    pub fn with_fetcher(self, fetcher: Arc<dyn FileFetcher>) -> Self {
+        let inner = &self.inner;
+        DownloadManager {
+            inner: Arc::new(Inner {
+                backend: inner.backend.clone(),
+                fetcher,
+                tasks: inner.tasks.clone(),
+                db: inner.db.clone(),
+                running: Mutex::new(HashMap::new()),
+                events: inner.events.clone(),
             }),
         }
     }
@@ -208,31 +239,8 @@ impl DownloadManager {
         }
         let key = canonical_key(&url);
 
-        let existing: Option<(String, String, Option<String>)> = self
-            .inner
-            .db
-            .with(|c| {
-                c.query_row(
-                    "SELECT id,status,dest_path FROM downloads WHERE canonical_key=?1 AND status IN ('queued','running','paused','done') \
-                     ORDER BY created_at DESC, rowid DESC LIMIT 1",
-                    params![key],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-                )
-                .optional()
-            })
-            .map_err(|e| DlError::Io(e.to_string()))?;
-        if let Some((id, status, path)) = existing {
-            if is_active(&status) {
-                return Ok(EnqueueOutcome::AlreadyActive { job_id: id });
-            }
-            if !req.allow_duplicates {
-                if let Some(p) = path.filter(|p| Path::new(p).is_file()) {
-                    return Ok(EnqueueOutcome::AlreadyDownloaded {
-                        job_id: id,
-                        path: p,
-                    });
-                }
-            }
+        if let Some(found) = self.duplicate_of(&key, req.allow_duplicates)? {
+            return Ok(found);
         }
 
         let id = Uuid::new_v4().to_string();
@@ -273,6 +281,133 @@ impl DownloadManager {
         Ok(EnqueueOutcome::Queued { job_id: id })
     }
 
+    /// An active job, or a finished one whose file still exists, for the same item.
+    fn duplicate_of(
+        &self,
+        key: &str,
+        allow_duplicates: bool,
+    ) -> Result<Option<EnqueueOutcome>, DlError> {
+        let existing: Option<(String, String, Option<String>)> = self
+            .inner
+            .db
+            .with(|c| {
+                c.query_row(
+                    "SELECT id,status,dest_path FROM downloads WHERE canonical_key=?1 AND status IN ('queued','running','paused','done')                      ORDER BY created_at DESC, rowid DESC LIMIT 1",
+                    params![key],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+                .optional()
+            })
+            .map_err(|e| DlError::Io(e.to_string()))?;
+        let Some((id, status, path)) = existing else {
+            return Ok(None);
+        };
+        if is_active(&status) {
+            return Ok(Some(EnqueueOutcome::AlreadyActive { job_id: id }));
+        }
+        if !allow_duplicates {
+            if let Some(p) = path.filter(|p| Path::new(p).is_file()) {
+                return Ok(Some(EnqueueOutcome::AlreadyDownloaded {
+                    job_id: id,
+                    path: p,
+                }));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Queues pictures or clips that a post serves as plain files. Each media link is checked
+    /// against the list of known media hosts.
+    pub fn enqueue_direct(&self, req: DirectRequest) -> Result<Vec<EnqueueOutcome>, DlError> {
+        let source = validate_url(&req.source)?;
+        let site = site_label(&source);
+        let post_id = source
+            .path_segments()
+            .and_then(|mut s| s.rfind(|p| !p.is_empty()).map(str::to_string))
+            .unwrap_or_default();
+        // Check everything first so a bad link in the list queues nothing.
+        let media: Vec<_> = req
+            .media
+            .iter()
+            .map(|m| validate_media_url(m))
+            .collect::<Result<_, _>>()?;
+
+        let mut outcomes = Vec::new();
+        for (i, url) in media.iter().enumerate() {
+            let key = media_key(url);
+            if let Some(found) = self.duplicate_of(&key, req.allow_duplicates)? {
+                outcomes.push(found);
+                continue;
+            }
+            let id = Uuid::new_v4().to_string();
+            let title = if media.len() > 1 {
+                format!("{site} post {post_id} - {}", i + 1)
+            } else {
+                format!("{site} post {post_id}")
+            };
+            self.inner
+                .db
+                .with(|c| {
+                    c.execute(
+                        "INSERT INTO downloads(id,url,canonical_key,title,source,kind,format,quality,status,dest_dir,cookies,created_at,subdir)                          VALUES(?1,?2,?3,?4,?5,'file','file','best','queued',?6,0,?7,?8)",
+                        params![
+                            id,
+                            url.as_str(),
+                            key,
+                            title,
+                            site,
+                            req.dest_dir.to_string_lossy(),
+                            now(),
+                            req.sort.then_some("auto")
+                        ],
+                    )
+                })
+                .map_err(|e| DlError::Io(e.to_string()))?;
+            self.emit(&id);
+            self.start(&id);
+            outcomes.push(EnqueueOutcome::Queued { job_id: id });
+        }
+        Ok(outcomes)
+    }
+
+    /// The download itself for a plain file. Returns an error message for the history row.
+    async fn run_direct(
+        &self,
+        id: &str,
+        spec: &Spec,
+        staging: &Path,
+        handle: &nomnom_core::tasks::TaskHandle,
+    ) -> Result<(), String> {
+        let url = validate_media_url(&spec.url).map_err(|e| e.to_string())?;
+        let stem = crate::files::sanitize_filename(&spec.title);
+        let stem = stem
+            .rsplit_once('.')
+            .map_or(stem.clone(), |(s, _)| s.to_string());
+        let progress = |done: u64, total: Option<u64>| {
+            handle.progress(
+                total.map(|t| (done as f32 / t.max(1) as f32).min(0.99)),
+                None,
+                None,
+            );
+        };
+        let fetched = self
+            .inner
+            .fetcher
+            .fetch(&url, staging, &stem, &progress)
+            .await
+            .map_err(|e| e.to_string())?;
+        let final_dir = match spec.subdir.as_deref() {
+            Some("auto") => spec.dest_dir.join(if fetched.is_video() {
+                "Videos"
+            } else {
+                "Images"
+            }),
+            Some(sub) if is_safe_subfolder(sub) => spec.dest_dir.join(sub),
+            _ => spec.dest_dir.clone(),
+        };
+        self.place(id, &fetched.path, &final_dir)
+    }
+
     fn load_spec(&self, id: &str) -> Option<Spec> {
         self.inner
             .db
@@ -294,6 +429,7 @@ impl DownloadManager {
                             },
                             dest_dir: PathBuf::from(dest.unwrap_or_default()),
                             subdir: r.get(7)?,
+                            direct: kind == "file",
                             cookies: r.get::<_, i64>(5)? != 0,
                             title: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
                         })
@@ -362,6 +498,19 @@ impl DownloadManager {
                     }
                     if let Some(parent) = staging.parent() {
                         nomnom_core::fs::hide(parent);
+                    }
+
+                    if spec.direct {
+                        let result = this2.run_direct(&job_id, &spec, &staging, &handle).await;
+                        let _ = std::fs::remove_dir_all(&staging);
+                        this2.remove_staging_root_if_empty(&spec.dest_dir);
+                        return match result {
+                            Ok(()) => Ok(()),
+                            Err(msg) => {
+                                this2.set_status(&job_id, "failed", Some(&msg));
+                                Err(msg)
+                            }
+                        };
                     }
 
                     let finished_streams = AtomicU32::new(0);

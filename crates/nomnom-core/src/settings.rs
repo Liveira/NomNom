@@ -103,12 +103,28 @@ impl Default for Shortcuts {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct Browser {
+    /// When Firefox sends a download and NOMNOM isn't running, start it in the background
+    /// (without a window).
+    pub launch_from_browser: bool,
+}
+impl Default for Browser {
+    fn default() -> Self {
+        Browser {
+            launch_from_browser: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub version: u32,
     pub general: General,
     pub appearance: Appearance,
     pub downloads: Downloads,
     pub shortcuts: Shortcuts,
+    pub browser: Browser,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -121,6 +137,7 @@ impl Default for Settings {
             appearance: Appearance::default(),
             downloads: Downloads::default(),
             shortcuts: Shortcuts::default(),
+            browser: Browser::default(),
             extra: Map::new(),
         }
     }

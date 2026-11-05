@@ -8,6 +8,7 @@ export interface Settings {
   general: { close_to_tray: boolean; tray_notice_shown: boolean };
   appearance: { theme: Theme; sidebar_collapsed: boolean };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
+  browser: { launch_from_browser: boolean };
   downloads: {
     max_concurrent: number;
     output_dir: string | null;
@@ -31,6 +32,7 @@ export interface SettingsPatch {
   firefoxCookies?: boolean;
   notifyDownloads?: boolean;
   quickKeepReady?: boolean;
+  launchFromBrowser?: boolean;
   defaultKind?: Kind;
   defaultVideo?: Container;
   defaultAudio?: Container;
@@ -164,6 +166,22 @@ export interface ShortcutInfo {
   id: 'quick_download' | 'open_app';
   accelerator: string;
   error: string | null;
+}
+
+export interface BrowserStatus {
+  state: 'not_connected' | 'needs_repair' | 'connected';
+  detail: string | null;
+  helper_found: boolean;
+  launch_from_browser: boolean;
+}
+
+export const browserIpc = {
+  status: () => invoke<BrowserStatus>('browser_status'),
+  connect: () => invoke<void>('browser_connect'),
+  disconnect: () => invoke<void>('browser_disconnect'),
+};
+export function onBrowserOpen(handler: (url: string) => void): Promise<UnlistenFn> {
+  return listen<string>('browser://open', (e) => handler(e.payload));
 }
 
 export const quickIpc = {

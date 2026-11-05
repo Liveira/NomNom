@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/nomnom-core", "crates/nomnom-tools", "crates/nomnom-downloads", "apps/desktop/src-tauri"]
+members = ["crates/nomnom-core", "crates/nomnom-tools", "crates/nomnom-downloads", "crates/nomnom-ipc", "crates/nomnom-native-host", "crates/nomnom-win", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,7 +13,7 @@ thiserror = "2"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "process", "io-util"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "process", "io-util", "net"] }
 tokio-util = "0.7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -28,3 +28,12 @@ codegen-units = 1
 opt-level = "s"
 strip = true
 panic = "abort"
+
+# Debug builds were growing past 12 GB (full debug info for every dependency and every test
+# binary). Line tables are enough for backtraces, and skipping incremental caches saves more.
+[profile.dev]
+debug = "line-tables-only"
+incremental = false
+
+[profile.dev.package."*"]
+debug = false

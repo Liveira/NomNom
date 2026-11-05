@@ -1,0 +1,21 @@
+{
+  "name": "@nomnom/firefox-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "web-ext lint --source-dir dist",
+    "package": "npm run build && web-ext build --source-dir dist --artifacts-dir ../../dist/extension --overwrite-dest"
+  },
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^143.0.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0",
+    "web-ext": "^10.8.0"
+  }
+}

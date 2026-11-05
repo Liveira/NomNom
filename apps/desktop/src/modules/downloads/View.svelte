@@ -126,6 +126,16 @@
     void downloads.refresh();
   }
 
+  // A link sent from Firefox: put it in the box and look it up.
+  $effect(() => {
+    const incoming = downloads.pendingUrl;
+    if (incoming) {
+      downloads.pendingUrl = null;
+      url = incoming;
+      void lookUp();
+    }
+  });
+
   const sizeFor = (h: number) => formatBytes(info?.size_by_height[String(h)]);
   const needsYtdlp = $derived(downloads.tools != null && downloads.tools.ytdlp.path == null);
   const needsFfmpeg = $derived(downloads.tools != null && downloads.tools.ffmpeg.path == null);

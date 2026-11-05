@@ -26,5 +26,6 @@ pub struct AppState {
     pub quick_shown: Mutex<Option<Instant>>,
     pub shortcuts_registered: Mutex<HashMap<&'static str, tauri_plugin_global_shortcut::Shortcut>>,
     pub shortcut_errors: Mutex<HashMap<&'static str, String>>,
+    pub rate_limiter: crate::browser::RateLimiter,
     pub started: Instant,
 }

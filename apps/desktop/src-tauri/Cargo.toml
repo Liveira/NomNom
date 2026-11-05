@@ -11,6 +11,8 @@ tauri-build = { version = "2", features = [] }
 nomnom-core = { path = "../../../crates/nomnom-core" }
 nomnom-tools = { path = "../../../crates/nomnom-tools" }
 nomnom-downloads = { path = "../../../crates/nomnom-downloads" }
+nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
+nomnom-win = { path = "../../../crates/nomnom-win" }
 tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
@@ -27,3 +29,6 @@ tracing-appender.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true
 uuid.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization"] }

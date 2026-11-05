@@ -22,6 +22,8 @@ class DownloadsStore {
   tools = $state<{ ytdlp: ToolStatus; ffmpeg: ToolStatus } | null>(null);
   installing = $state<{ tool: string; done: number; total: number | null } | null>(null);
   installError = $state<string | null>(null);
+  /** A link sent from the browser's "Choose in NomNom" menu, waiting to be looked up. */
+  pendingUrl = $state<string | null>(null);
 
   private firstSeen = new Map<string, number>();
   private timer: ReturnType<typeof setTimeout> | undefined;

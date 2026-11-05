@@ -30,6 +30,7 @@ pub struct SettingsPatch {
     firefox_cookies: Option<bool>,
     notify_downloads: Option<bool>,
     quick_keep_ready: Option<bool>,
+    launch_from_browser: Option<bool>,
     default_kind: Option<nomnom_core::settings::DefaultKind>,
     default_video: Option<String>,
     default_audio: Option<String>,
@@ -89,6 +90,9 @@ pub fn update_settings(
             if let Some(v) = patch.sort_into_folders {
                 s.downloads.sort_into_folders = v;
             }
+            if let Some(v) = patch.launch_from_browser {
+                s.browser.launch_from_browser = v;
+            }
             if let Some(v) = patch.quick_keep_ready {
                 s.shortcuts.keep_ready = v;
             }
@@ -106,6 +110,9 @@ pub fn update_settings(
             }
         })
         .map_err(|e| e.to_string());
+    if patch.launch_from_browser.is_some() {
+        crate::browser::write_integration(&state);
+    }
     if patch.quick_keep_ready.is_some() {
         crate::quick::apply_keep_ready(&app);
     }

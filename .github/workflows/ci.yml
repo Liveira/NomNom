@@ -24,3 +24,8 @@ jobs:
       - run: cargo test --workspace
       - run: npm run check
       - run: npm test
+      - run: npm run build -w @nomnom/firefox-extension
+      - run: npm run check -w @nomnom/firefox-extension
+      - run: npm test -w @nomnom/firefox-extension
+      - run: npx web-ext lint --source-dir apps/firefox-extension/dist
+        continue-on-error: true # the only warning is about Firefox for Android, which isn't supported

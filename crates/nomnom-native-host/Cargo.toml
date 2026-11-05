@@ -1,0 +1,16 @@
+[package]
+name = "nomnom-native-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+nomnom-ipc = { path = "../nomnom-ipc" }
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "time"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_System_Console"] }
