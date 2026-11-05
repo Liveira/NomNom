@@ -77,3 +77,31 @@ impl Module for Downloads {
         Ok(())
     }
 }
+
+static ORGANIZER: ModuleManifest = ModuleManifest {
+    id: "organizer",
+    name: "File Organizer",
+    nav: Some(NavEntry {
+        order: 20,
+        icon: "organizer",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: Some("organizer"),
+    capabilities: &[
+        nomnom_core::module::Capability::ReadFs,
+        nomnom_core::module::Capability::WriteFs,
+        nomnom_core::module::Capability::Watch,
+    ],
+};
+
+pub struct Organizer;
+#[async_trait]
+impl Module for Organizer {
+    fn manifest(&self) -> &ModuleManifest {
+        &ORGANIZER
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}

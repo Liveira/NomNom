@@ -7,6 +7,7 @@ mod commands;
 mod events;
 mod modules;
 mod notifier;
+mod organizer;
 mod pipe_server;
 mod quick;
 mod shortcuts;

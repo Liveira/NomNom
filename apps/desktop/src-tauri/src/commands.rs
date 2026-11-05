@@ -31,6 +31,11 @@ pub struct SettingsPatch {
     notify_downloads: Option<bool>,
     quick_keep_ready: Option<bool>,
     launch_from_browser: Option<bool>,
+    organizer_dest: Option<String>,
+    look_inside_folders: Option<u8>,
+    organizer_conflict: Option<String>,
+    auto_organize: Option<bool>,
+    link_downloads: Option<bool>,
     default_kind: Option<nomnom_core::settings::DefaultKind>,
     default_video: Option<String>,
     default_audio: Option<String>,
@@ -48,6 +53,19 @@ pub fn update_settings(
     state: State<'_, AppState>,
     patch: SettingsPatch,
 ) -> CmdResult<Settings> {
+    if let Some(c) = patch.organizer_conflict.as_deref() {
+        if c != "skip" && c != "keep_both" {
+            return Err("Pick Skip or Keep both.".into());
+        }
+    }
+    if let Some(dir) = patch.organizer_dest.as_deref().filter(|d| !d.is_empty()) {
+        let (zones, _) = state.paths.protected_folders();
+        if !crate::organizer::dest_is_acceptable(std::path::Path::new(dir), &zones) {
+            return Err(
+                "Pick a folder that isn't a whole drive or a system or program folder.".into(),
+            );
+        }
+    }
     if let Some(v) = patch.default_video.as_deref() {
         if !crate::modules::downloads::VIDEO_FORMATS.contains(&v) {
             return Err("That isn't a video format NOMNOM can save.".into());
@@ -90,6 +108,21 @@ pub fn update_settings(
             if let Some(v) = patch.sort_into_folders {
                 s.downloads.sort_into_folders = v;
             }
+            if let Some(v) = &patch.organizer_dest {
+                s.organizer.dest_root = (!v.is_empty()).then(|| v.into());
+            }
+            if let Some(v) = patch.look_inside_folders {
+                s.organizer.look_inside_folders = v.min(3);
+            }
+            if let Some(v) = &patch.organizer_conflict {
+                s.organizer.conflict = v.clone();
+            }
+            if let Some(v) = patch.auto_organize {
+                s.organizer.auto_enabled = v;
+            }
+            if let Some(v) = patch.link_downloads {
+                s.organizer.link_downloads = v;
+            }
             if let Some(v) = patch.launch_from_browser {
                 s.browser.launch_from_browser = v;
             }
@@ -110,6 +143,9 @@ pub fn update_settings(
             }
         })
         .map_err(|e| e.to_string());
+    if patch.auto_organize.is_some() {
+        crate::organizer::apply_auto(&app);
+    }
     if patch.launch_from_browser.is_some() {
         crate::browser::write_integration(&state);
     }

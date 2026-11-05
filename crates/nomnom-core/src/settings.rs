@@ -118,6 +118,32 @@ impl Default for Browser {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct Organizer {
+    /// `None` means DocumentsFiles.
+    pub dest_root: Option<std::path::PathBuf>,
+    /// 0 looks only at files directly in the folder; 1 to 3 also opens plain-media folders.
+    pub look_inside_folders: u8,
+    /// "skip" or "keep_both".
+    pub conflict: String,
+    /// Move new downloads automatically once they have finished.
+    pub auto_enabled: bool,
+    /// Save NomNom Downloader's files straight into the organizer's folders.
+    pub link_downloads: bool,
+}
+impl Default for Organizer {
+    fn default() -> Self {
+        Organizer {
+            dest_root: None,
+            look_inside_folders: 0,
+            conflict: "skip".into(),
+            auto_enabled: false,
+            link_downloads: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub version: u32,
     pub general: General,
@@ -125,6 +151,7 @@ pub struct Settings {
     pub downloads: Downloads,
     pub shortcuts: Shortcuts,
     pub browser: Browser,
+    pub organizer: Organizer,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -138,6 +165,7 @@ impl Default for Settings {
             downloads: Downloads::default(),
             shortcuts: Shortcuts::default(),
             browser: Browser::default(),
+            organizer: Organizer::default(),
             extra: Map::new(),
         }
     }

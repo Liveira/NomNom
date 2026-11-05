@@ -28,6 +28,8 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE downloads ADD COLUMN dest_dir TEXT; ALTER TABLE downloads ADD COLUMN cookies INTEGER NOT NULL DEFAULT 0;",
     // v3: optional folder (inside the save folder) that a finished download is sorted into
     "ALTER TABLE downloads ADD COLUMN subdir TEXT;",
+    // v4: where a moved file ended up, so undo can tell whether it was touched since
+    "ALTER TABLE org_ops ADD COLUMN dst_size INTEGER; ALTER TABLE org_ops ADD COLUMN dst_mtime INTEGER; ALTER TABLE org_ops ADD COLUMN dst_file_id TEXT;",
 ];
 
 pub struct Db {

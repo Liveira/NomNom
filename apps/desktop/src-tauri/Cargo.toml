@@ -13,6 +13,8 @@ nomnom-tools = { path = "../../../crates/nomnom-tools" }
 nomnom-downloads = { path = "../../../crates/nomnom-downloads" }
 nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
 nomnom-win = { path = "../../../crates/nomnom-win" }
+nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
+notify = "8"
 tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"

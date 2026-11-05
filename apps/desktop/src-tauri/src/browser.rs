@@ -139,15 +139,12 @@ pub fn handle(app: &AppHandle, request: Request) -> Response {
         }
         Body::EnqueueDirect { source, media } => {
             let d = state.settings.get().downloads;
-            let dest_dir = d
-                .output_dir
-                .clone()
-                .unwrap_or_else(|| state.paths.downloads.clone());
+            let (dest_dir, sort) = crate::organizer::download_target(&state);
             let req = DirectRequest {
                 source,
                 media,
                 dest_dir,
-                sort: d.sort_into_folders,
+                sort,
                 allow_duplicates: d.allow_duplicates,
             };
             match state.downloads.enqueue_direct(req) {

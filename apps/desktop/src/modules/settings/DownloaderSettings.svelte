@@ -96,6 +96,9 @@
   <div class="row">
     <div>
       <div class="label">Save to</div>
+      {#if app.settings?.organizer.link_downloads}
+        <div class="hint">Right now NomNom Downloader saves into the File Organizer's folders (see File Organizer settings). This folder is used if you turn that off.</div>
+      {/if}
       <div class="hint path">{saveTo}</div>
     </div>
     <div class="buttons">

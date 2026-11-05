@@ -9,6 +9,13 @@ export interface Settings {
   appearance: { theme: Theme; sidebar_collapsed: boolean };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
+  organizer: {
+    dest_root: string | null;
+    look_inside_folders: number;
+    conflict: 'skip' | 'keep_both';
+    auto_enabled: boolean;
+    link_downloads: boolean;
+  };
   downloads: {
     max_concurrent: number;
     output_dir: string | null;
@@ -33,6 +40,11 @@ export interface SettingsPatch {
   notifyDownloads?: boolean;
   quickKeepReady?: boolean;
   launchFromBrowser?: boolean;
+  organizerDest?: string;
+  lookInsideFolders?: number;
+  organizerConflict?: 'skip' | 'keep_both';
+  autoOrganize?: boolean;
+  linkDownloads?: boolean;
   defaultKind?: Kind;
   defaultVideo?: Container;
   defaultAudio?: Container;
@@ -173,6 +185,72 @@ export interface BrowserStatus {
   detail: string | null;
   helper_found: boolean;
   launch_from_browser: boolean;
+}
+
+export interface OrgMove {
+  src: string;
+  dst: string;
+  category: string;
+  cross_volume: boolean;
+}
+export type SkipCode =
+  | 'link' | 'hidden' | 'cloud' | 'in_progress' | 'recently_changed' | 'locked' | 'unknown' | 'mismatch'
+  | 'program' | 'archive' | 'empty' | 'software_folder' | 'folder_not_opened' | 'protected' | 'conflict'
+  | 'cross_volume' | 'already_organized' | 'unreadable' | 'excluded' | 'too_many';
+export interface OrgSkip {
+  path: string;
+  is_dir: boolean;
+  code: SkipCode;
+  message: string;
+}
+export interface OrgScan {
+  plan_id: string;
+  source: string;
+  dest_root: string;
+  moves: OrgMove[];
+  skips: OrgSkip[];
+  total_moves: number;
+  total_skips: number;
+  cross_volume_count: number;
+}
+export interface OrgProblem {
+  path: string;
+  message: string;
+}
+export interface OrgReport {
+  batch_id: string;
+  moved: number;
+  failed: OrgProblem[];
+  stopped: string | null;
+}
+export interface OrgUndoReport {
+  restored: number;
+  skipped: OrgProblem[];
+}
+export interface OrgBatch {
+  id: string;
+  mode: string;
+  source_root: string;
+  dest_root: string;
+  created_at: number;
+  state: string;
+  moved: number;
+  undone: number;
+  failed: number;
+}
+
+export const orgIpc = {
+  defaults: () => invoke<{ source: string; dest_root: string; look_inside_folders: number }>('org_defaults'),
+  scan: (source: string | null, depth: number | null) => invoke<OrgScan>('org_scan', { source, depth }),
+  execute: (planId: string, allowCrossVolume: boolean) =>
+    invoke<OrgReport>('org_execute', { planId, allowCrossVolume }),
+  cancel: () => invoke<void>('org_cancel'),
+  undo: (batchId: string, allowCrossVolume: boolean) =>
+    invoke<OrgUndoReport>('org_undo', { batchId, allowCrossVolume }),
+  history: () => invoke<OrgBatch[]>('org_history'),
+};
+export function onOrganizerChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('organizer://changed', () => handler());
 }
 
 export const browserIpc = {

@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
-    browser, commands, events, modules, notifier, pipe_server, quick, shortcuts, state::AppState,
-    tray, windows,
+    browser, commands, events, modules, notifier, organizer, pipe_server, quick, shortcuts,
+    state::AppState, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -16,6 +16,8 @@ use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 
 fn init_logging(paths: &Paths) -> Option<WorkerGuard> {
+    // The first run has no logs folder yet; the rolling appender wants it to exist.
+    let _ = std::fs::create_dir_all(paths.logs_dir());
     let appender = RollingFileAppender::builder()
         .rotation(Rotation::DAILY)
         .filename_prefix("nomnom")
@@ -71,7 +73,7 @@ pub fn run() {
     let state = AppState {
         paths,
         settings: settings.clone(),
-        db,
+        db: db.clone(),
         tasks,
         modules: Arc::new(registry),
         tools,
@@ -82,6 +84,8 @@ pub fn run() {
         shortcuts_registered: Default::default(),
         shortcut_errors: Default::default(),
         rate_limiter: crate::browser::RateLimiter::new(),
+        journal: nomnom_organizer::journal::Journal::new(db.clone()),
+        organizer: Default::default(),
         started,
     };
 
@@ -118,6 +122,12 @@ pub fn run() {
             commands::app_ready,
             commands::default_download_dir,
             commands::shortcuts_status,
+            organizer::org_defaults,
+            organizer::org_scan,
+            organizer::org_execute,
+            organizer::org_cancel,
+            organizer::org_undo,
+            organizer::org_history,
             browser::browser_status,
             browser::browser_connect,
             browser::browser_disconnect,
@@ -148,6 +158,8 @@ pub fn run() {
             browser::write_integration(&app.state::<AppState>());
             pipe_server::spawn(app.handle().clone());
             quick::apply_keep_ready(app.handle());
+            organizer::recover_at_startup(&app.state::<AppState>().journal);
+            organizer::apply_auto(app.handle());
             if !background {
                 windows::open_main(app.handle());
             }

@@ -10,6 +10,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
     let modules: Vec<Arc<dyn Module>> = vec![
         Arc::new(builtin::Home),
         Arc::new(builtin::Downloads),
+        Arc::new(builtin::Organizer),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

@@ -110,11 +110,15 @@ pub fn enqueue_with_defaults(
     allow_duplicate_once: bool,
 ) -> CmdResult<EnqueueOutcome> {
     let s = state.settings.get().downloads;
-    let dest_dir = s
-        .output_dir
-        .clone()
-        .unwrap_or_else(|| state.paths.downloads.clone());
-    let subfolder = subfolder_for(&s, &choice);
+    // With the organizer linked, files go straight into its folders (Videos, Audio, ...).
+    let (dest_dir, sort) = crate::organizer::download_target(state);
+    let subfolder = subfolder_for(
+        &Downloads {
+            sort_into_folders: sort,
+            ..s.clone()
+        },
+        &choice,
+    );
     state
         .downloads
         .enqueue(EnqueueRequest {
