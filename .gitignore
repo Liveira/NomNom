@@ -1,0 +1,11 @@
+target/
+node_modules/
+dist/
+*.pfx
+*.msix
+.DS_Store
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/target/
+*.log
+.vscode/
+.idea/
