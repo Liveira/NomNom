@@ -1,6 +1,30 @@
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 pub const MAIN: &str = "main";
+
+/// Debug builds only: lets automated UI checks attach to the WebView on a local port.
+/// Compiled out of release builds, so shipped NOMNOM never opens a debugging port.
+///
+/// Every window must get the same arguments: WebView2 refuses to create a second window in a
+/// shared profile with different browser arguments.
+#[cfg(debug_assertions)]
+pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    match std::env::var("NOMNOM_DEBUG_PORT") {
+        Ok(port) if port.chars().all(|c| c.is_ascii_digit()) => builder.additional_browser_args(&format!(
+            "--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
+        )),
+        _ => builder,
+    }
+}
+
+#[cfg(not(debug_assertions))]
+pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    builder
+}
 
 /// Shows the main window, creating it if needed. The window is destroyed when closed (not
 /// hidden), so a background-only NOMNOM carries no WebView at all.
@@ -17,18 +41,7 @@ pub fn open_main(app: &AppHandle) {
         .min_inner_size(760.0, 520.0)
         .center();
 
-    // Debug builds only: lets automated UI checks attach to the WebView on a local port.
-    // Compiled out of release builds, so shipped NOMNOM never opens a debugging port.
-    #[cfg(debug_assertions)]
-    let builder = match std::env::var("NOMNOM_DEBUG_PORT") {
-        Ok(port) if port.chars().all(|c| c.is_ascii_digit()) => builder.additional_browser_args(
-            &format!("--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"),
-        ),
-        _ => builder,
-    };
-
-    let result = builder.build();
-    if let Err(e) = result {
+    if let Err(e) = shared_webview_args(builder).build() {
         tracing::error!("couldn't create the main window: {e}");
     }
 }

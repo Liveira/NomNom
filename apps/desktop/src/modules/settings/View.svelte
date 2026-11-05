@@ -3,6 +3,7 @@
   import { open } from '@tauri-apps/plugin-dialog';
   import { ipc, type SettingsPatch, type Theme } from '../../lib/ipc';
   import { downloads } from '../downloads/store.svelte';
+  import Shortcuts from './Shortcuts.svelte';
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -86,6 +87,8 @@
     >
   </div>
 </section>
+
+<Shortcuts />
 
 <section class="group">
   <h3>Downloads</h3>

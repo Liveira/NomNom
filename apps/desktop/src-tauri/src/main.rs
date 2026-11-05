@@ -6,6 +6,8 @@ mod commands;
 mod events;
 mod modules;
 mod notifier;
+mod quick;
+mod shortcuts;
 mod state;
 mod tray;
 mod windows;

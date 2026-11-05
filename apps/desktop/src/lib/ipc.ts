@@ -7,6 +7,7 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean };
   appearance: { theme: Theme; sidebar_collapsed: boolean };
+  shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   downloads: {
     max_concurrent: number;
     output_dir: string | null;
@@ -25,6 +26,7 @@ export interface SettingsPatch {
   allowDuplicates?: boolean;
   firefoxCookies?: boolean;
   notifyDownloads?: boolean;
+  quickKeepReady?: boolean;
 }
 
 export interface ModuleManifest {
@@ -143,4 +145,28 @@ export function onToolProgress(
   handler: (p: { tool: string; done: number; total: number | null }) => void,
 ): Promise<UnlistenFn> {
   return listen('tools://progress', (e) => handler(e.payload as never));
+}
+
+export interface QuickContext {
+  url: string;
+  site: string;
+}
+export interface ShortcutInfo {
+  id: 'quick_download' | 'open_app';
+  accelerator: string;
+  error: string | null;
+}
+
+export const quickIpc = {
+  context: () => invoke<QuickContext | null>('quick_context'),
+  ready: () => invoke<void>('quick_ready'),
+  close: () => invoke<void>('quick_close'),
+};
+export const shortcutsIpc = {
+  status: () => invoke<ShortcutInfo[]>('shortcuts_status'),
+  set: (id: ShortcutInfo['id'], accelerator: string) =>
+    invoke<void>('set_shortcut', { id, accelerator }),
+};
+export function onQuickContext(handler: () => void): Promise<UnlistenFn> {
+  return listen('quick://context', () => handler());
 }

@@ -29,6 +29,7 @@ pub struct SettingsPatch {
     allow_duplicates: Option<bool>,
     firefox_cookies: Option<bool>,
     notify_downloads: Option<bool>,
+    quick_keep_ready: Option<bool>,
 }
 
 #[tauri::command]
@@ -37,7 +38,11 @@ pub fn default_download_dir(state: State<'_, AppState>) -> String {
 }
 
 #[tauri::command]
-pub fn update_settings(state: State<'_, AppState>, patch: SettingsPatch) -> CmdResult<Settings> {
+pub fn update_settings(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    patch: SettingsPatch,
+) -> CmdResult<Settings> {
     if let Some(dir) = patch.output_dir.as_deref().filter(|d| !d.is_empty()) {
         if !std::path::Path::new(dir).is_dir() {
             return Err("That folder doesn't exist.".into());
@@ -58,6 +63,9 @@ pub fn update_settings(state: State<'_, AppState>, patch: SettingsPatch) -> CmdR
             if let Some(v) = patch.firefox_cookies {
                 s.downloads.use_firefox_cookies = v;
             }
+            if let Some(v) = patch.quick_keep_ready {
+                s.shortcuts.keep_ready = v;
+            }
             if let Some(v) = patch.notify_downloads {
                 s.downloads.notify = v;
             }
@@ -72,6 +80,9 @@ pub fn update_settings(state: State<'_, AppState>, patch: SettingsPatch) -> CmdR
             }
         })
         .map_err(|e| e.to_string());
+    if patch.quick_keep_ready.is_some() {
+        crate::quick::apply_keep_ready(&app);
+    }
     if patch.max_concurrent.is_some() {
         let max = state.settings.get().downloads.max_concurrent as usize;
         state.tasks.set_limit("downloads", max);
@@ -92,4 +103,34 @@ pub fn app_ready(state: State<'_, AppState>, ms: f64) {
         since_process_start_ms = state.started.elapsed().as_millis() as u64,
         "main window ready"
     );
+}
+
+#[derive(serde::Serialize)]
+pub struct ShortcutInfo {
+    id: &'static str,
+    accelerator: String,
+    /// Why it isn't active, when it isn't.
+    error: Option<String>,
+}
+
+#[tauri::command]
+pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
+    let s = state.settings.get().shortcuts;
+    let errors = state.shortcut_errors.lock().unwrap();
+    [
+        (crate::shortcuts::QUICK, s.quick_download),
+        (crate::shortcuts::OPEN, s.open_app),
+    ]
+    .into_iter()
+    .map(|(id, accelerator)| ShortcutInfo {
+        id,
+        accelerator,
+        error: errors.get(id).cloned(),
+    })
+    .collect()
+}
+
+#[tauri::command]
+pub fn set_shortcut(app: tauri::AppHandle, id: String, accelerator: String) -> CmdResult<()> {
+    crate::shortcuts::change(&app, &id, &accelerator)
 }

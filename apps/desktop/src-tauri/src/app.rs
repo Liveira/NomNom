@@ -1,5 +1,7 @@
 use crate::modules::downloads;
-use crate::{commands, events, modules, notifier, state::AppState, tray, windows};
+use crate::{
+    commands, events, modules, notifier, quick, shortcuts, state::AppState, tray, windows,
+};
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
 };
@@ -73,6 +75,10 @@ pub fn run() {
         tools,
         downloads,
         analysis_cache: Default::default(),
+        quick: Default::default(),
+        quick_shown: Default::default(),
+        shortcuts_registered: Default::default(),
+        shortcut_errors: Default::default(),
         started,
     };
 
@@ -86,6 +92,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
@@ -94,6 +102,11 @@ pub fn run() {
             commands::list_tasks,
             commands::app_ready,
             commands::default_download_dir,
+            commands::shortcuts_status,
+            commands::set_shortcut,
+            quick::quick_context,
+            quick::quick_ready,
+            quick::quick_close,
             downloads::dl_analyze,
             downloads::dl_enqueue,
             downloads::dl_list,
@@ -112,6 +125,8 @@ pub fn run() {
             tray::create(app.handle())?;
             events::spawn_forwarder(app.handle().clone());
             notifier::spawn(app.handle().clone());
+            shortcuts::register_all(app.handle());
+            quick::apply_keep_ready(app.handle());
             if !background {
                 windows::open_main(app.handle());
             }

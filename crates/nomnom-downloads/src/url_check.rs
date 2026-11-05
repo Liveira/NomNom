@@ -180,6 +180,42 @@ pub fn canonical_key(url: &Url) -> String {
     }
 }
 
+/// Why the clipboard text can't start a quick download.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClipboardReject {
+    Empty,
+    NotALink,
+    UnknownSite,
+}
+
+impl ClipboardReject {
+    pub fn message(self) -> &'static str {
+        match self {
+            ClipboardReject::Empty => "The clipboard is empty.",
+            ClipboardReject::NotALink => "There's no link on the clipboard.",
+            ClipboardReject::UnknownSite => "This link isn't from a site NOMNOM recognises.",
+        }
+    }
+}
+
+/// Decides whether clipboard text should open the quick-download popup. Only a single, valid
+/// link to a known media site passes; anything else is ignored so the shortcut stays quiet.
+pub fn check_clipboard(text: &str) -> Result<Url, ClipboardReject> {
+    let text = text.trim();
+    if text.is_empty() {
+        return Err(ClipboardReject::Empty);
+    }
+    if text.contains(char::is_whitespace) {
+        return Err(ClipboardReject::NotALink);
+    }
+    let url = validate_url(text).map_err(|_| ClipboardReject::NotALink)?;
+    if is_probably_supported(&url) {
+        Ok(url)
+    } else {
+        Err(ClipboardReject::UnknownSite)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,5 +285,54 @@ mod tests {
         let b = canonical_key(&ok("https://www.x.com/u/status/1/"));
         assert_eq!(a, b);
         assert_ne!(a, canonical_key(&ok("https://x.com/u/status/2")));
+    }
+}
+
+#[cfg(test)]
+mod clipboard_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_a_single_known_link() {
+        assert!(check_clipboard("  https://youtu.be/abc\r\n").is_ok());
+        assert!(check_clipboard("https://x.com/a/status/1").is_ok());
+    }
+
+    #[test]
+    fn rejects_everything_else_quietly() {
+        assert_eq!(check_clipboard(""), Err(ClipboardReject::Empty));
+        assert_eq!(check_clipboard("   \n"), Err(ClipboardReject::Empty));
+        assert_eq!(
+            check_clipboard("hello world"),
+            Err(ClipboardReject::NotALink)
+        );
+        assert_eq!(
+            check_clipboard("see https://youtu.be/abc"),
+            Err(ClipboardReject::NotALink)
+        );
+        assert_eq!(
+            check_clipboard(r"C:\Users\me\file.txt"),
+            Err(ClipboardReject::NotALink)
+        );
+        assert_eq!(
+            check_clipboard("file:///C:/x.mp4"),
+            Err(ClipboardReject::NotALink)
+        );
+        assert_eq!(
+            check_clipboard("http://localhost/x"),
+            Err(ClipboardReject::NotALink)
+        );
+        assert_eq!(
+            check_clipboard("https://example.com/video"),
+            Err(ClipboardReject::UnknownSite)
+        );
+    }
+
+    #[test]
+    fn multiple_lines_are_not_a_link() {
+        assert_eq!(
+            check_clipboard("https://youtu.be/a\nhttps://youtu.be/b"),
+            Err(ClipboardReject::NotALink)
+        );
     }
 }

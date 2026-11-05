@@ -20,5 +20,11 @@ pub struct AppState {
     pub downloads: DownloadManager,
     /// Recent link analyses, so reopening the same link is instant.
     pub analysis_cache: Mutex<HashMap<String, (Instant, serde_json::Value)>>,
+    /// What the quick popup is showing, and when its shortcut was pressed.
+    pub quick: Mutex<Option<(crate::quick::QuickContext, Instant)>>,
+    /// When the popup became visible (for the focus-loss grace period).
+    pub quick_shown: Mutex<Option<Instant>>,
+    pub shortcuts_registered: Mutex<HashMap<&'static str, tauri_plugin_global_shortcut::Shortcut>>,
+    pub shortcut_errors: Mutex<HashMap<&'static str, String>>,
     pub started: Instant,
 }

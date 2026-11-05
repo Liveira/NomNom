@@ -25,7 +25,13 @@ pub struct Analysis {
 
 #[tauri::command]
 pub async fn dl_analyze(state: State<'_, AppState>, url: String) -> CmdResult<serde_json::Value> {
-    let parsed = validate_url(&url).map_err(|e| e.to_string())?;
+    analyze_cached(&state, &url).await
+}
+
+/// Looks a link up with yt-dlp, reusing a recent result when there is one. The quick popup warms
+/// this cache the moment the shortcut fires, so its own lookup is usually instant.
+pub async fn analyze_cached(state: &AppState, url: &str) -> CmdResult<serde_json::Value> {
+    let parsed = validate_url(url).map_err(|e| e.to_string())?;
     let key = parsed.as_str().to_string();
     if let Some((at, v)) = state.analysis_cache.lock().unwrap().get(&key) {
         if at.elapsed() < CACHE_TTL {

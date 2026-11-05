@@ -65,11 +65,30 @@ impl Default for Downloads {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct Shortcuts {
+    pub quick_download: String,
+    pub open_app: String,
+    /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
+    pub keep_ready: bool,
+}
+impl Default for Shortcuts {
+    fn default() -> Self {
+        Shortcuts {
+            quick_download: "Ctrl+Alt+D".into(),
+            open_app: "Ctrl+Alt+N".into(),
+            keep_ready: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub version: u32,
     pub general: General,
     pub appearance: Appearance,
     pub downloads: Downloads,
+    pub shortcuts: Shortcuts,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -81,6 +100,7 @@ impl Default for Settings {
             general: General::default(),
             appearance: Appearance::default(),
             downloads: Downloads::default(),
+            shortcuts: Shortcuts::default(),
             extra: Map::new(),
         }
     }
@@ -97,7 +117,9 @@ impl SettingsStore {
     /// moved aside as `settings.json.bad` and defaults are used.
     pub fn load(path: &Path) -> Result<Self> {
         let settings = match std::fs::read_to_string(path) {
-            Ok(text) => match serde_json::from_str::<Settings>(&text) {
+            // Editors such as Notepad save a UTF-8 byte order mark; don't treat that as corruption.
+            Ok(text) => match serde_json::from_str::<Settings>(text.trim_start_matches('\u{feff}'))
+            {
                 Ok(s) => s,
                 Err(e) => {
                     tracing::warn!("settings file is corrupt ({e}); starting from defaults");
@@ -171,6 +193,19 @@ mod tests {
         let again = SettingsStore::load(&path).unwrap().get();
         assert!(!again.general.close_to_tray);
         assert_eq!(again.extra["futuretool"]["level"], 5);
+    }
+
+    #[test]
+    fn file_saved_with_a_byte_order_mark_still_loads() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        std::fs::write(&path, "\u{feff}{\"general\":{\"close_to_tray\":false}}").unwrap();
+        let store = SettingsStore::load(&path).unwrap();
+        assert!(
+            !store.get().general.close_to_tray,
+            "BOM must not discard the user's settings"
+        );
+        assert!(!dir.path().join("settings.json.bad").exists());
     }
 
     #[test]
