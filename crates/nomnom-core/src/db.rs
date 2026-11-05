@@ -26,6 +26,8 @@ const MIGRATIONS: &[&str] = &[
      CREATE INDEX org_ops_batch ON org_ops(batch_id, seq);",
     // v2: what a download needs to be retried or resumed after a restart
     "ALTER TABLE downloads ADD COLUMN dest_dir TEXT; ALTER TABLE downloads ADD COLUMN cookies INTEGER NOT NULL DEFAULT 0;",
+    // v3: optional folder (inside the save folder) that a finished download is sorted into
+    "ALTER TABLE downloads ADD COLUMN subdir TEXT;",
 ];
 
 pub struct Db {

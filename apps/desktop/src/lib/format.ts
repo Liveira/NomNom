@@ -34,3 +34,18 @@ export function formatEta(secs: number | null | undefined): string {
 export function heightLabel(h: number): string {
   return `${h}p`;
 }
+
+/** "62% · 2.3 MB/s · 4 s left": only the parts that are known, joined with a middle dot. */
+export function progressLine(p: {
+  fraction: number | null;
+  speedBps: number | null;
+  etaSecs: number | null;
+  etaReliable: boolean;
+}): string {
+  const parts = [
+    p.fraction != null ? `${Math.round(p.fraction * 100)}%` : 'Starting',
+    formatSpeed(p.speedBps),
+    p.etaReliable ? formatEta(p.etaSecs) : '',
+  ];
+  return parts.filter(Boolean).join(' · ');
+}

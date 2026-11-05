@@ -12,7 +12,7 @@
 <nav class="sidebar" class:collapsed aria-label="Main">
   <div class="brand">
     <Logo size={28} />
-    {#if !collapsed}<span class="wordmark">NOMNOM</span>{/if}
+    {#if !collapsed}<span class="wordmark">NomNom</span>{/if}
   </div>
 
   <ul>
@@ -76,7 +76,7 @@
   }
   .sidebar.collapsed { width: 64px; }
   .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 18px; height: 44px; }
-  .wordmark { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.04em; font-size: 15px; }
+  .wordmark { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.01em; font-size: 16px; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
   .spacer { flex: 1; }
   .item {

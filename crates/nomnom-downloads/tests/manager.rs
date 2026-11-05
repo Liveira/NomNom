@@ -117,6 +117,7 @@ fn req(h: &Harness, url: &str) -> EnqueueRequest {
         url: url.into(),
         choice: Choice::BEST_VIDEO,
         dest_dir: h.dest.path().to_path_buf(),
+        subfolder: None,
         title: None,
         firefox_cookies: false,
         allow_duplicates: false,
@@ -331,4 +332,70 @@ async fn removing_history_never_touches_the_downloaded_file() {
     h.mgr.remove(&id);
     assert!(h.mgr.list(10).is_empty());
     assert!(h.dest.path().join("Video.mp4").exists());
+}
+
+#[tokio::test]
+async fn finished_file_is_sorted_into_the_chosen_folder() {
+    let h = harness(Behavior::Succeed, 2);
+    let mut r = req(&h, "https://example.com/sorted");
+    r.subfolder = Some("Videos".into());
+    let id = queued(h.mgr.enqueue(r).unwrap());
+    wait_status(&h, &id, "done").await;
+    assert_eq!(
+        std::fs::read_to_string(h.dest.path().join("Videos").join("Video.mp4")).unwrap(),
+        "data"
+    );
+    assert!(
+        !h.dest.path().join("Video.mp4").exists(),
+        "nothing is left loose in the save folder"
+    );
+    let row = h.mgr.list(10).remove(0);
+    assert!(row.dest_path.unwrap().contains("Videos"));
+    assert!(!staging_exists(&h));
+}
+
+#[tokio::test]
+async fn sorted_folder_is_remembered_across_pause_and_resume() {
+    let h = harness(Behavior::NeedsPartial, 2);
+    let mut r = req(&h, "https://example.com/sorted-resume");
+    r.subfolder = Some("Audio".into());
+    let id = queued(h.mgr.enqueue(r).unwrap());
+    wait_status(&h, &id, "running").await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    h.mgr.pause(&id).await;
+    wait_status(&h, &id, "paused").await;
+    h.mgr.resume(&id);
+    wait_status(&h, &id, "done").await;
+    assert!(h.dest.path().join("Audio").join("Video.mp4").exists());
+}
+
+#[tokio::test]
+async fn folder_names_cannot_escape_the_save_folder() {
+    let h = harness(Behavior::Succeed, 2);
+    let long = "x".repeat(60);
+    let bad_names = [
+        "..",
+        "../x",
+        "a/b",
+        r"a\b",
+        r"C:\Windows",
+        "",
+        " lead",
+        "trail ",
+        ".hidden",
+        long.as_str(),
+    ];
+    for (i, bad) in bad_names.iter().enumerate() {
+        let mut r = req(&h, &format!("https://example.com/escape{i}"));
+        r.subfolder = Some(bad.to_string());
+        assert!(h.mgr.enqueue(r).is_err(), "{bad:?} must be rejected");
+    }
+    assert!(h.mgr.list(10).is_empty(), "nothing was queued");
+
+    for good in ["Videos", "Audio", "My Music", "2026-clips", "a_b"] {
+        assert!(
+            nomnom_downloads::manager::is_safe_subfolder(good),
+            "{good:?}"
+        );
+    }
 }

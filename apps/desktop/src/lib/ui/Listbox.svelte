@@ -133,6 +133,6 @@
   }
   li { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
   li.active { background: var(--surface-3); }
-  li[aria-selected='true'] { color: var(--accent); }
+  li[aria-selected='true'] { color: var(--accent-text); }
   @keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 </style>

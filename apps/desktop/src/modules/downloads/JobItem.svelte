@@ -1,6 +1,6 @@
 <script lang="ts">
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
-  import { formatBytes, formatEta, formatSpeed } from '../../lib/format';
+  import { formatBytes, progressLine } from '../../lib/format';
   import { ipc, type JobRow } from '../../lib/ipc';
   import { downloads } from './store.svelte';
 
@@ -55,11 +55,7 @@
     <ProgressBar value={live?.fraction ?? null} label={`Progress for ${job.title}`} />
     <div class="sub tabular">
       <span>{label}</span>
-      <span>
-        {live?.fraction != null ? `${Math.round(live.fraction * 100)}%` : 'Starting'}
-        {#if formatSpeed(live?.speedBps)} · {formatSpeed(live?.speedBps)}{/if}
-        {#if live?.etaReliable} · {formatEta(live?.etaSecs)}{/if}
-      </span>
+      <span>{live ? progressLine(live) : 'Starting'}</span>
     </div>
   {:else}
     <div class="sub">

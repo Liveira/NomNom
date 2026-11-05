@@ -108,6 +108,7 @@ pub fn run() {
             quick::quick_ready,
             quick::quick_close,
             downloads::dl_analyze,
+            downloads::dl_default_choice,
             downloads::dl_enqueue,
             downloads::dl_list,
             downloads::dl_cancel,

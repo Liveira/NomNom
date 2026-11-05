@@ -4,13 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   analyze: vi.fn(),
   enqueue: vi.fn(),
+  getSettings: vi.fn(),
   context: vi.fn(),
   ready: vi.fn(),
   close: vi.fn(),
 }));
 
 vi.mock('../lib/ipc', () => ({
-  ipc: { analyze: mocks.analyze, enqueue: mocks.enqueue },
+  ipc: { analyze: mocks.analyze, enqueue: mocks.enqueue, getSettings: mocks.getSettings },
   quickIpc: { context: mocks.context, ready: mocks.ready, close: mocks.close },
   onQuickContext: vi.fn(() => Promise.resolve(() => {})),
 }));
@@ -31,9 +32,14 @@ const analysis = {
   },
 };
 
+const settingsWith = (d: Partial<Record<string, string>>) => ({
+  downloads: { default_kind: 'video', default_video: 'original', default_audio: 'original', ...d },
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers({ toFake: ['setTimeout'] });
+  mocks.getSettings.mockResolvedValue(settingsWith({}));
   mocks.context.mockResolvedValue({ url: 'https://youtu.be/abc', site: 'YouTube' });
   mocks.enqueue.mockResolvedValue({ outcome: 'queued', job_id: '1' });
   mocks.close.mockResolvedValue(undefined);
@@ -124,12 +130,11 @@ describe('quick popup', () => {
 
     const format = screen.getByRole('combobox', { name: 'Format' });
     await fireEvent.keyDown(format, { key: 'ArrowDown' });
-    await fireEvent.keyDown(format, { key: 'ArrowDown' }); // Audio · M4A
-    await fireEvent.keyDown(format, { key: 'ArrowDown' }); // Audio · MP3
+    await fireEvent.keyDown(format, { key: 'ArrowDown' }); // Audio
     await fireEvent.keyDown(format, { key: 'Enter' });
     await press('Enter');
     await flush();
-    expect(mocks.enqueue.mock.calls[0][1]).toEqual({ kind: 'audio', container: 'mp3', height: null });
+    expect(mocks.enqueue.mock.calls[0][1]).toEqual({ kind: 'audio', container: 'original', height: null });
   });
 
   it('Escape closes the popup, but only closes the list first when a list is open', async () => {
@@ -200,5 +205,38 @@ describe('quick popup', () => {
     await press('Enter');
     await flush();
     expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('follows the type and formats chosen in Settings', async () => {
+    mocks.getSettings.mockResolvedValue(settingsWith({ default_kind: 'audio', default_audio: 'mp3', default_video: 'mp4' }));
+    mocks.analyze.mockReturnValue(new Promise(() => {}));
+    render(Popup);
+    await flush();
+    // Starts on Audio with the saved audio format, and a bare Enter downloads exactly that.
+    expect(screen.getByRole('combobox', { name: 'Format' }).textContent).toContain('Audio · MP3');
+    await press('Enter');
+    await flush();
+    expect(mocks.enqueue.mock.calls[0][1]).toEqual({ kind: 'audio', container: 'mp3', height: null });
+  });
+
+  it('uses the saved video format when downloading video', async () => {
+    mocks.getSettings.mockResolvedValue(settingsWith({ default_video: 'mp4' }));
+    mocks.analyze.mockReturnValue(new Promise(() => {}));
+    render(Popup);
+    await flush();
+    expect(screen.getByRole('combobox', { name: 'Format' }).textContent).toContain('Video · MP4');
+    await press('Enter');
+    await flush();
+    expect(mocks.enqueue.mock.calls[0][1]).toEqual({ kind: 'video', container: 'mp4', height: null });
+  });
+
+  it('still works if Settings cannot be read', async () => {
+    mocks.getSettings.mockRejectedValue(new Error('offline'));
+    mocks.analyze.mockReturnValue(new Promise(() => {}));
+    render(Popup);
+    await flush();
+    await press('Enter');
+    await flush();
+    expect(mocks.enqueue.mock.calls[0][1]).toEqual({ kind: 'video', container: 'original', height: null });
   });
 });

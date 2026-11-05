@@ -14,6 +14,10 @@ export interface Settings {
     allow_duplicates: boolean;
     use_firefox_cookies: boolean;
     notify: boolean;
+    default_kind: Kind;
+    default_video: Container;
+    default_audio: Container;
+    sort_into_folders: boolean;
   };
 }
 
@@ -27,6 +31,10 @@ export interface SettingsPatch {
   firefoxCookies?: boolean;
   notifyDownloads?: boolean;
   quickKeepReady?: boolean;
+  defaultKind?: Kind;
+  defaultVideo?: Container;
+  defaultAudio?: Container;
+  sortIntoFolders?: boolean;
 }
 
 export interface ModuleManifest {
@@ -119,6 +127,7 @@ export const ipc = {
   appReady: (ms: number) => invoke<void>('app_ready', { ms }),
   defaultDownloadDir: () => invoke<string>('default_download_dir'),
 
+  defaultChoice: () => invoke<Choice>('dl_default_choice'),
   analyze: (url: string) => invoke<Analysis>('dl_analyze', { url }),
   enqueue: (url: string, choice: Choice, title?: string, again?: boolean) =>
     invoke<EnqueueOutcome>('dl_enqueue', { url, choice, title, again }),

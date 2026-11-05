@@ -27,6 +27,9 @@ pub struct EnqueueRequest {
     pub url: String,
     pub choice: Choice,
     pub dest_dir: PathBuf,
+    /// Finished files go into this folder inside `dest_dir` (for example "Videos"). Working
+    /// files stay in `dest_dir` itself so the final move is a same-drive rename.
+    pub subfolder: Option<String>,
     /// Known from analysis; shown until the real file name is known.
     pub title: Option<String>,
     pub firefox_cookies: bool,
@@ -111,8 +114,20 @@ struct Spec {
     url: String,
     choice: Choice,
     dest_dir: PathBuf,
+    subdir: Option<String>,
     cookies: bool,
     title: String,
+}
+
+/// Only plain folder names are accepted, so a subfolder can never point outside the save folder.
+pub fn is_safe_subfolder(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 40
+        && name.trim() == name
+        && !name.starts_with('.')
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == ' ' || c == '-' || c == '_')
 }
 
 fn is_active(status: &str) -> bool {
@@ -186,6 +201,11 @@ impl DownloadManager {
     pub fn enqueue(&self, req: EnqueueRequest) -> Result<EnqueueOutcome, DlError> {
         let url = validate_url(&req.url)?;
         req.choice.validate().map_err(DlError::InvalidUrl)?;
+        if let Some(sub) = &req.subfolder {
+            if !is_safe_subfolder(sub) {
+                return Err(DlError::Io("That folder name isn't allowed.".into()));
+            }
+        }
         let key = canonical_key(&url);
 
         let existing: Option<(String, String, Option<String>)> = self
@@ -229,8 +249,8 @@ impl DownloadManager {
             .db
             .with(|c| {
                 c.execute(
-                    "INSERT INTO downloads(id,url,canonical_key,title,source,kind,format,quality,status,dest_dir,cookies,created_at) \
-                     VALUES(?1,?2,?3,?4,?5,?6,?7,?8,'queued',?9,?10,?11)",
+                    "INSERT INTO downloads(id,url,canonical_key,title,source,kind,format,quality,status,dest_dir,cookies,created_at,subdir) \
+                     VALUES(?1,?2,?3,?4,?5,?6,?7,?8,'queued',?9,?10,?11,?12)",
                     params![
                         id,
                         url.as_str(),
@@ -242,7 +262,8 @@ impl DownloadManager {
                         height,
                         req.dest_dir.to_string_lossy(),
                         req.firefox_cookies as i64,
-                        now()
+                        now(),
+                        req.subfolder
                     ],
                 )
             })
@@ -257,7 +278,7 @@ impl DownloadManager {
             .db
             .with(|c| {
                 c.query_row(
-                    "SELECT url,kind,format,quality,dest_dir,cookies,title FROM downloads WHERE id=?1",
+                    "SELECT url,kind,format,quality,dest_dir,cookies,title,subdir FROM downloads WHERE id=?1",
                     params![id],
                     |r| {
                         let kind: String = r.get(1)?;
@@ -272,6 +293,7 @@ impl DownloadManager {
                                 height: quality.parse().ok(),
                             },
                             dest_dir: PathBuf::from(dest.unwrap_or_default()),
+                            subdir: r.get(7)?,
                             cookies: r.get::<_, i64>(5)? != 0,
                             title: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
                         })
@@ -366,7 +388,14 @@ impl DownloadManager {
                     };
 
                     let outcome = match this2.inner.backend.download(&job, &on_progress).await {
-                        Ok(staged) => this2.place(&job_id, &staged, &spec.dest_dir),
+                        Ok(staged) => {
+                            let final_dir =
+                                match spec.subdir.as_deref().filter(|s| is_safe_subfolder(s)) {
+                                    Some(sub) => spec.dest_dir.join(sub),
+                                    None => spec.dest_dir.clone(),
+                                };
+                            this2.place(&job_id, &staged, &final_dir)
+                        }
                         Err(e) => Err(e.to_string()),
                     };
                     let _ = std::fs::remove_dir_all(&staging);

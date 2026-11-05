@@ -2,6 +2,6 @@ import { defineModule } from '../../lib/module-def';
 
 export default defineModule({
   id: 'downloads',
-  name: 'Downloads',
+  name: 'NomNom Downloader',
   view: () => import('./View.svelte'),
 });

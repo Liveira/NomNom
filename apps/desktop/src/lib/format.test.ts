@@ -25,3 +25,18 @@ describe('format helpers', () => {
     expect(formatEta(7500)).toBe('2 h 5 min left');
   });
 });
+
+import { progressLine } from './format';
+
+describe('progressLine', () => {
+  it('joins the known parts with a spaced middle dot', () => {
+    expect(progressLine({ fraction: 0.62, speedBps: 2.4e6, etaSecs: 4, etaReliable: true })).toBe('62% · 2.3 MB/s · 4 s left');
+    expect(progressLine({ fraction: 0.62, speedBps: 2.4e6, etaSecs: 4, etaReliable: false })).toBe('62% · 2.3 MB/s');
+  });
+  it('says Starting when nothing is known yet', () => {
+    expect(progressLine({ fraction: null, speedBps: null, etaSecs: null, etaReliable: false })).toBe('Starting');
+  });
+  it('never leaves a dangling separator', () => {
+    expect(progressLine({ fraction: 0.5, speedBps: null, etaSecs: null, etaReliable: false })).toBe('50%');
+  });
+});

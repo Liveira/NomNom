@@ -1,24 +1,28 @@
+/* NomNom: a warm, soft dark theme by default. Cream and peach in light mode. */
 :root {
   color-scheme: dark;
-  --bg: #111113;
-  --surface-1: #18181b;
-  --surface-2: #1f1f23;
-  --surface-3: #27272c;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --text: #ededef;
-  --text-2: #a1a1aa;
-  --text-3: #8a8a94;
-  --accent: #ffb547;
-  --accent-hover: #ffc46b;
-  --on-accent: #1a1206;
-  --ok: #5bd6a2;
-  --danger: #ff6b6b;
-  --info: #7aa7ff;
+  --bg: #16131a;
+  --surface-1: #1e1a24;
+  --surface-2: #28232f;
+  --surface-3: #342d3c;
+  --border: rgba(255, 228, 240, 0.08);
+  --border-strong: rgba(255, 228, 240, 0.15);
+  --text: #f6eff3;
+  --text-2: #bdb1bb;
+  --text-3: #a094a0;
+  --accent: #ffb070;
+  --accent-hover: #ffc291;
+  /* Accent used as text colour (links); it needs more contrast than a button fill. */
+  --accent-text: #ffb070;
+  --on-accent: #2b1608;
+  --blush: #ff9fbd;
+  --ok: #8be0b4;
+  --danger: #ff808c;
+  --info: #8fb4ff;
 
-  --radius-s: 6px;
-  --radius-m: 10px;
-  --radius-l: 14px;
+  --radius-s: 8px;
+  --radius-m: 14px;
+  --radius-l: 20px;
 
   --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
@@ -32,20 +36,22 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: #faf9f6;
-  --surface-1: #ffffff;
-  --surface-2: #f3f2ee;
-  --surface-3: #e9e7e1;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --text: #1b1b1f;
-  --text-2: #55555d;
-  --text-3: #6b6b75;
-  --accent: #e08e0b;
-  --accent-hover: #c97d05;
-  --on-accent: #ffffff;
-  --ok: #138a5b;
-  --danger: #d33f3f;
+  --bg: #fff7f0;
+  --surface-1: #fffdfb;
+  --surface-2: #fbeee3;
+  --surface-3: #f4e0d0;
+  --border: rgba(80, 40, 20, 0.1);
+  --border-strong: rgba(80, 40, 20, 0.18);
+  --text: #2b2128;
+  --text-2: #62535c;
+  --text-3: #75646e;
+  --accent: #f09a55;
+  --accent-hover: #e88b42;
+  --accent-text: #a8490f;
+  --on-accent: #2b1608;
+  --blush: #e8708f;
+  --ok: #137a50;
+  --danger: #c93a47;
   --info: #2f62c9;
 }
 

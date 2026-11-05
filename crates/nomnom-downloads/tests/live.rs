@@ -58,6 +58,7 @@ fn request(dest: &std::path::Path, choice: Choice) -> EnqueueRequest {
         url: URL.into(),
         choice,
         dest_dir: dest.to_path_buf(),
+        subfolder: None,
         title: None,
         firefox_cookies: false,
         allow_duplicates: true,

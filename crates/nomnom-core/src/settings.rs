@@ -40,6 +40,15 @@ pub struct Appearance {
     pub sidebar_collapsed: bool,
 }
 
+/// Whether links from the shortcut, the browser and the popup download video or audio by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum DefaultKind {
+    #[default]
+    Video,
+    Audio,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Downloads {
@@ -50,6 +59,13 @@ pub struct Downloads {
     /// Lets yt-dlp read Firefox cookies. Off unless the user turns it on.
     pub use_firefox_cookies: bool,
     pub notify: bool,
+    pub default_kind: DefaultKind,
+    /// One of: original, mp4, webm, mkv. Checked by the app before it is saved.
+    pub default_video: String,
+    /// One of: original, m4a, mp3, opus, ogg, flac, wav. Checked by the app before it is saved.
+    pub default_audio: String,
+    /// Put finished downloads in a Videos or Audio folder inside the save folder.
+    pub sort_into_folders: bool,
 }
 impl Default for Downloads {
     fn default() -> Self {
@@ -59,6 +75,10 @@ impl Default for Downloads {
             allow_duplicates: false,
             use_firefox_cookies: false,
             notify: true,
+            default_kind: DefaultKind::Video,
+            default_video: "original".into(),
+            default_audio: "original".into(),
+            sort_into_folders: true,
         }
     }
 }

@@ -80,10 +80,14 @@ impl Choice {
     };
 
     pub fn validate(&self) -> Result<(), String> {
-        match (self.kind, self.container.is_audio()) {
-            (Kind::Video, true) => Err("Pick a video format such as MP4 or WebM.".into()),
-            (Kind::Audio, false) => Err("Pick an audio format such as MP3 or M4A.".into()),
-            (Kind::Audio, true) if self.height.is_some() => Err("Audio has no resolution.".into()),
+        match (self.kind, self.container) {
+            (Kind::Video, c) if c.is_audio() => {
+                Err("Pick a video format such as MP4 or WebM.".into())
+            }
+            (Kind::Audio, Container::Mp4 | Container::Webm | Container::Mkv) => {
+                Err("Pick an audio format such as MP3 or M4A.".into())
+            }
+            (Kind::Audio, _) if self.height.is_some() => Err("Audio has no resolution.".into()),
             _ => Ok(()),
         }
     }
@@ -182,6 +186,10 @@ pub fn build_download_args(choice: &Choice, ctx: &ArgsContext<'_>, url: &str) ->
                 Container::Mkv => a.extend(["--merge-output-format", "mkv"].map(os)),
                 _ => {}
             }
+        }
+        Kind::Audio if choice.container == Container::Original => {
+            // Keep the best audio exactly as the site provides it: no extraction, no conversion.
+            a.extend(["-f", "ba/b"].map(os));
         }
         Kind::Audio => {
             // Prefer a source that is already in the target codec so nothing is re-encoded.
@@ -347,6 +355,28 @@ mod tests {
             .map(|s| s.to_string_lossy().into_owned())
             .collect();
         assert!(has_pair(&a, "--cookies-from-browser", "firefox"));
+    }
+
+    #[test]
+    fn original_audio_keeps_the_source_without_converting() {
+        let a = args(Choice {
+            kind: Kind::Audio,
+            container: Container::Original,
+            height: None,
+        });
+        assert!(has_pair(&a, "-f", "ba/b"));
+        for flag in ["-x", "--audio-format", "--audio-quality"] {
+            assert!(
+                !a.iter().any(|x| x == flag),
+                "{flag} would convert the audio"
+            );
+        }
+        let choice = Choice {
+            kind: Kind::Audio,
+            container: Container::Original,
+            height: None,
+        };
+        assert!(choice.validate().is_ok());
     }
 
     #[test]

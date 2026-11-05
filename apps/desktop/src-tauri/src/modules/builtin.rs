@@ -52,10 +52,10 @@ impl Module for Settings {
 
 static DOWNLOADS: ModuleManifest = ModuleManifest {
     id: "downloads",
-    name: "Downloads",
+    name: "NomNom Downloader",
     nav: Some(NavEntry {
         order: 10,
-        icon: "download",
+        icon: "cat",
     }),
     commands: &[],
     context_actions: &[],

@@ -4,12 +4,13 @@
   import Listbox from '../lib/ui/Listbox.svelte';
   import { formatDuration } from '../lib/format';
   import { ipc, onQuickContext, quickIpc, type Analysis, type QuickContext } from '../lib/ipc';
-  import { buildChoice, FORMAT_OPTIONS, qualityOptions, type QuickFormat } from './choice';
+  import { buildChoice, defaultsFrom, FALLBACK_DEFAULTS, formatOptions, qualityOptions, type QuickFormat } from './choice';
 
   let ctx = $state<QuickContext | null>(null);
   let analysis = $state<Analysis | null>(null);
   let phase = $state<'loading' | 'ready' | 'error'>('loading');
   let error = $state('');
+  let defaults = $state(FALLBACK_DEFAULTS);
   let format = $state<QuickFormat>('video');
   let quality = $state<number | 'best'>('best');
   let sending = $state(false);
@@ -23,6 +24,7 @@
 
   const info = $derived(analysis?.info ?? null);
   const qualities = $derived(qualityOptions(format, info));
+  const formats = $derived(formatOptions(defaults));
   const listOpen = $derived(formatOpen || qualityOpen);
 
   /** Leave a neutral state behind, so a popup kept hidden never shows the previous link. */
@@ -34,7 +36,7 @@
     message = '';
     duplicate = false;
     sending = false;
-    format = 'video';
+    format = defaults.kind;
     quality = 'best';
     void quickIpc.close();
   }
@@ -45,12 +47,20 @@
     sending = false;
     duplicate = false;
     message = '';
-    format = 'video';
+    format = defaults.kind;
     quality = 'best';
     analysis = null;
     phase = 'loading';
-    ctx = await quickIpc.context();
-    if (!ctx || mine !== run) return;
+    // The type and formats from Settings; if they can't be read, plain video as-is still works.
+    const [settings, context] = await Promise.all([
+      ipc.getSettings().catch(() => null),
+      quickIpc.context(),
+    ]);
+    if (mine !== run) return;
+    defaults = defaultsFrom(settings);
+    format = defaults.kind;
+    ctx = context;
+    if (!ctx) return;
     // Don't wait for the lookup: the popup is useful (Enter works) before it finishes.
     void analyze(ctx.url, mine);
   }
@@ -61,7 +71,7 @@
       if (mine !== run) return;
       analysis = result;
       phase = 'ready';
-      if (result.info.heights.length === 0) format = 'm4a'; // audio-only source
+      if (result.info.heights.length === 0) format = 'audio'; // nothing to see, only sound
     } catch (e) {
       if (mine !== run) return;
       error = String(e);
@@ -78,7 +88,7 @@
     if (sending || !ctx || phase === 'error') return;
     sending = true;
     try {
-      const out = await ipc.enqueue(ctx.url, buildChoice(format, quality), info?.title, again);
+      const out = await ipc.enqueue(ctx.url, buildChoice(format, quality, defaults), info?.title, again);
       if (out.outcome === 'queued') {
         message = 'Downloading';
         setTimeout(() => closePopup(), 450);
@@ -125,7 +135,7 @@
   <div class="card" role="dialog" aria-label="Quick download">
     <header>
       <Logo size={20} />
-      <span class="brand">NOMNOM</span>
+      <span class="brand">NomNom</span>
       <span class="site">{ctx?.site ?? ''}</span>
     </header>
 
@@ -147,7 +157,7 @@
     <div class="fields">
       <div class="field">
         <span class="label">Format</span>
-        <Listbox label="Format" options={FORMAT_OPTIONS} value={format} onchange={setFormat} bind:open={formatOpen} />
+        <Listbox label="Format" options={formats} value={format} onchange={setFormat} bind:open={formatOpen} />
       </div>
       <div class="field">
         <span class="label">Quality</span>

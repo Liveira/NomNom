@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from '../../lib/icons/Icon.svelte';
+  import CatNap from '../../lib/ui/CatNap.svelte';
   import {
     ipc,
     type Analysis,
@@ -7,7 +8,9 @@
     type Container,
     type Kind,
   } from '../../lib/ipc';
+  import { app } from '../../app/state.svelte';
   import { formatBytes, formatDuration, heightLabel } from '../../lib/format';
+  import { AUDIO_FORMATS, VIDEO_FORMATS, formatNote } from '../../lib/formats';
   import { downloads } from './store.svelte';
   import JobItem from './JobItem.svelte';
   import ToolBanner from './ToolBanner.svelte';
@@ -24,25 +27,11 @@
   let height = $state<number | null>(null);
   let seq = 0;
 
-  const videoContainers: { value: Container; label: string }[] = [
-    { value: 'original', label: 'Original' },
-    { value: 'mp4', label: 'MP4' },
-    { value: 'webm', label: 'WebM' },
-    { value: 'mkv', label: 'MKV' },
-  ];
-  const audioContainers: { value: Container; label: string }[] = [
-    { value: 'm4a', label: 'M4A' },
-    { value: 'mp3', label: 'MP3' },
-    { value: 'opus', label: 'Opus' },
-    { value: 'ogg', label: 'OGG' },
-    { value: 'flac', label: 'FLAC' },
-    { value: 'wav', label: 'WAV' },
-  ];
-  const containers = $derived(kind === 'video' ? videoContainers : audioContainers);
+  const containers = $derived(kind === 'video' ? VIDEO_FORMATS : AUDIO_FORMATS);
   const info = $derived(analysis?.info ?? null);
   const hasVideo = $derived((info?.heights.length ?? 0) > 0);
   const choice = $derived<Choice>({ kind, container, height: kind === 'video' ? height : null });
-  const losslessNote = $derived(kind === 'audio' && (container === 'wav' || container === 'flac'));
+  const note = $derived(formatNote(kind, container));
   const bestAudio = $derived(
     info?.audio_formats.reduce<(typeof info.audio_formats)[number] | null>(
       (best, f) => ((f.bitrate_kbps ?? 0) > (best?.bitrate_kbps ?? -1) ? f : best),
@@ -50,9 +39,15 @@
     ) ?? null,
   );
 
+  /** The format chosen in Settings for this kind, or Original. */
+  function defaultContainer(k: Kind): Container {
+    const d = app.settings?.downloads;
+    return (k === 'video' ? d?.default_video : d?.default_audio) ?? 'original';
+  }
+
   function setKind(k: Kind) {
     kind = k;
-    container = k === 'video' ? 'original' : 'm4a';
+    container = defaultContainer(k);
     height = null;
   }
 
@@ -72,9 +67,10 @@
       if (mine !== seq) return;
       analysis = result;
       phase = 'idle';
-      kind = result.info.heights.length === 0 && !result.info.entries ? 'audio' : 'video';
-      container = kind === 'video' ? 'original' : 'm4a';
-      height = null;
+      // Start from the default type in Settings; a source with no picture can only be audio.
+      const wanted: Kind = app.settings?.downloads.default_kind ?? 'video';
+      const audioOnly = result.info.heights.length === 0 && !result.info.entries;
+      setKind(audioOnly ? 'audio' : wanted);
     } catch (e) {
       if (mine !== seq) return;
       analysis = null;
@@ -135,7 +131,7 @@
   const needsFfmpeg = $derived(downloads.tools != null && downloads.tools.ffmpeg.path == null);
 </script>
 
-<h1>Downloads</h1>
+<h1>NomNom Downloader</h1>
 
 {#if needsYtdlp}
   <ToolBanner tool="ytdlp" text="Downloads need yt-dlp (about 18 MB)." />
@@ -241,9 +237,7 @@
         {/if}
       </div>
 
-      {#if losslessNote}
-        <p class="hint">This won't improve quality. The source is already compressed.</p>
-      {/if}
+      <p class="hint">{note}</p>
       {#if needsFfmpeg && !needsYtdlp}
         <ToolBanner tool="ffmpeg" compact text="FFmpeg is needed to merge video with audio and to convert formats (about 150 MB)." />
       {/if}
@@ -262,7 +256,10 @@
 
 <h2>Queue</h2>
 {#if downloads.active.length === 0}
-  <p class="empty">Nothing downloading.</p>
+  <div class="nap">
+    <CatNap width={96} />
+    <p class="empty">Nothing downloading.</p>
+  </div>
 {:else}
   <ul class="list">
     {#each downloads.active as job (job.id)}<li><JobItem {job} /></li>{/each}
@@ -302,7 +299,7 @@
   button:disabled { opacity: 0.5; cursor: default; }
   button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
   button.primary:hover:not(:disabled) { background: var(--accent-hover); }
-  button.link { border: 0; background: none; padding: 0 4px; color: var(--accent); text-decoration: underline; }
+  button.link { border: 0; background: none; padding: 0 4px; color: var(--accent-text); text-decoration: underline; }
   .error { color: var(--danger); max-width: 760px; }
   .notice { color: var(--ok); max-width: 760px; }
   .card { margin-top: 16px; max-width: 760px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 14px; display: flex; gap: 14px; }
@@ -324,6 +321,7 @@
   .row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
   .hint { margin: 0; color: var(--text-2); font-size: 12.5px; }
   .empty { color: var(--text-3); margin: 0; }
+  .nap { display: flex; align-items: center; gap: 14px; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 760px; }
   .history-head { display: flex; align-items: baseline; justify-content: space-between; max-width: 760px; }
 </style>

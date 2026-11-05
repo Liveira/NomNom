@@ -2,6 +2,7 @@
   import { toAccelerator } from '../../lib/accelerator';
   import { app } from '../../app/state.svelte';
   import { shortcutsIpc, type ShortcutInfo } from '../../lib/ipc';
+  import Switch from '../../lib/ui/Switch.svelte';
 
   const labels: Record<ShortcutInfo['id'], string> = {
     quick_download: 'Quick download from the clipboard',
@@ -71,13 +72,11 @@
       <div class="label">Keep quick download ready</div>
       <div class="hint">Opens instantly. Without it, the window takes about a second to start. Uses about 200 MB of memory while NOMNOM is idle.</div>
     </div>
-    <button
-      class="switch"
-      role="switch"
-      aria-label="Keep quick download ready"
-      aria-checked={app.settings?.shortcuts.keep_ready ?? false}
-      class:on={app.settings?.shortcuts.keep_ready}
-      onclick={() => app.update({ quickKeepReady: !app.settings?.shortcuts.keep_ready })}><span></span></button>
+    <Switch
+      checked={app.settings?.shortcuts.keep_ready ?? false}
+      label="Keep quick download ready"
+      onchange={(v) => app.update({ quickKeepReady: v })}
+    />
   </div>
   {#if hint}<p class="hint" role="status">{hint}</p>{/if}
   <p class="hint">Press Esc while recording to cancel.</p>
@@ -96,9 +95,5 @@
     background: var(--surface-2); cursor: pointer; font-variant-numeric: tabular-nums;
   }
   .key:hover { background: var(--surface-3); }
-  .key.recording { border-color: var(--accent); color: var(--accent); }
-  .switch { flex: none; width: 38px; height: 22px; border-radius: 11px; border: 0; padding: 2px; background: var(--surface-3); cursor: pointer; transition: background var(--dur-2); }
-  .switch span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--text-2); transition: transform var(--dur-2) var(--ease-spring), background var(--dur-2); }
-  .switch.on { background: var(--accent); }
-  .switch.on span { transform: translateX(16px); background: var(--on-accent); }
+  .key.recording { border-color: var(--accent); color: var(--accent-text); }
 </style>

@@ -1,9 +1,10 @@
 //! Tauri commands for the Downloads module. All logic lives in `nomnom-downloads`.
 
 use crate::state::AppState;
+use nomnom_core::settings::{DefaultKind, Downloads};
 use nomnom_downloads::analyze::MediaInfo;
 use nomnom_downloads::url_check::{is_probably_supported, site_label, validate_url};
-use nomnom_downloads::{Choice, EnqueueOutcome, EnqueueRequest, JobRow};
+use nomnom_downloads::{Choice, Container, EnqueueOutcome, EnqueueRequest, JobRow, Kind};
 use nomnom_tools::{Tool, ToolStatus};
 use serde::Serialize;
 use std::path::PathBuf;
@@ -65,6 +66,41 @@ pub async fn analyze_cached(state: &AppState, url: &str) -> CmdResult<serde_json
     Ok(value)
 }
 
+pub const VIDEO_FORMATS: [&str; 4] = ["original", "mp4", "webm", "mkv"];
+pub const AUDIO_FORMATS: [&str; 7] = ["original", "m4a", "mp3", "opus", "ogg", "flac", "wav"];
+
+/// What a link downloads as when nobody picks anything: the shortcut, the browser button and the
+/// popup all start from this. Unknown saved values fall back to "original".
+pub fn default_choice(d: &Downloads) -> Choice {
+    let (kind, name, allowed): (_, &str, &[&str]) = match d.default_kind {
+        DefaultKind::Video => (Kind::Video, &d.default_video, &VIDEO_FORMATS),
+        DefaultKind::Audio => (Kind::Audio, &d.default_audio, &AUDIO_FORMATS),
+    };
+    let container = if allowed.contains(&name) {
+        Container::parse(name).unwrap_or(Container::Original)
+    } else {
+        Container::Original
+    };
+    Choice {
+        kind,
+        container,
+        height: None,
+    }
+}
+
+/// The folder (inside the save folder) a finished download is sorted into, if sorting is on.
+pub fn subfolder_for(d: &Downloads, choice: &Choice) -> Option<String> {
+    d.sort_into_folders.then(|| match choice.kind {
+        Kind::Video => "Videos".to_string(),
+        Kind::Audio => "Audio".to_string(),
+    })
+}
+
+#[tauri::command]
+pub fn dl_default_choice(state: State<'_, AppState>) -> Choice {
+    default_choice(&state.settings.get().downloads)
+}
+
 /// Shared by the app UI and, later, the popup and browser host.
 pub fn enqueue_with_defaults(
     state: &AppState,
@@ -78,12 +114,14 @@ pub fn enqueue_with_defaults(
         .output_dir
         .clone()
         .unwrap_or_else(|| state.paths.downloads.clone());
+    let subfolder = subfolder_for(&s, &choice);
     state
         .downloads
         .enqueue(EnqueueRequest {
             url,
             choice,
             dest_dir,
+            subfolder,
             title,
             firefox_cookies: s.use_firefox_cookies,
             allow_duplicates: s.allow_duplicates || allow_duplicate_once,
@@ -223,4 +261,87 @@ pub async fn tools_install(
 #[tauri::command]
 pub async fn tools_update_ytdlp(state: State<'_, AppState>) -> CmdResult<String> {
     state.tools.update_ytdlp().await.map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with(kind: DefaultKind, video: &str, audio: &str) -> Downloads {
+        Downloads {
+            default_kind: kind,
+            default_video: video.into(),
+            default_audio: audio.into(),
+            ..Downloads::default()
+        }
+    }
+
+    #[test]
+    fn out_of_the_box_everything_is_original_video() {
+        let c = default_choice(&Downloads::default());
+        assert_eq!(
+            (c.kind, c.container, c.height),
+            (Kind::Video, Container::Original, None)
+        );
+    }
+
+    #[test]
+    fn follows_the_saved_type_and_format() {
+        let v = default_choice(&with(DefaultKind::Video, "mp4", "mp3"));
+        assert_eq!((v.kind, v.container), (Kind::Video, Container::Mp4));
+        let a = default_choice(&with(DefaultKind::Audio, "mp4", "mp3"));
+        assert_eq!((a.kind, a.container), (Kind::Audio, Container::Mp3));
+        assert!(a.validate().is_ok() && v.validate().is_ok());
+    }
+
+    #[test]
+    fn a_format_from_the_wrong_list_falls_back_to_original() {
+        // An audio format saved as the video default (or vice versa) must never produce a
+        // choice that fails validation later.
+        let c = default_choice(&with(DefaultKind::Video, "mp3", "original"));
+        assert_eq!(c.container, Container::Original);
+        let c = default_choice(&with(DefaultKind::Audio, "original", "mkv"));
+        assert_eq!(c.container, Container::Original);
+        let c = default_choice(&with(DefaultKind::Video, "banana", "original"));
+        assert_eq!(c.container, Container::Original);
+        assert!(c.validate().is_ok());
+    }
+
+    #[test]
+    fn every_allowed_default_makes_a_valid_choice() {
+        for v in VIDEO_FORMATS {
+            assert!(
+                default_choice(&with(DefaultKind::Video, v, "original"))
+                    .validate()
+                    .is_ok(),
+                "{v}"
+            );
+        }
+        for a in AUDIO_FORMATS {
+            assert!(
+                default_choice(&with(DefaultKind::Audio, "original", a))
+                    .validate()
+                    .is_ok(),
+                "{a}"
+            );
+        }
+    }
+
+    #[test]
+    fn sorting_picks_the_folder_by_type_and_can_be_turned_off() {
+        let on = Downloads::default();
+        let video = Choice::BEST_VIDEO;
+        let audio = Choice {
+            kind: Kind::Audio,
+            container: Container::Mp3,
+            height: None,
+        };
+        assert_eq!(subfolder_for(&on, &video).as_deref(), Some("Videos"));
+        assert_eq!(subfolder_for(&on, &audio).as_deref(), Some("Audio"));
+        let off = Downloads {
+            sort_into_folders: false,
+            ..Downloads::default()
+        };
+        assert_eq!(subfolder_for(&off, &video), None);
+    }
 }

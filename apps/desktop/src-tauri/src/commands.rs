@@ -30,6 +30,10 @@ pub struct SettingsPatch {
     firefox_cookies: Option<bool>,
     notify_downloads: Option<bool>,
     quick_keep_ready: Option<bool>,
+    default_kind: Option<nomnom_core::settings::DefaultKind>,
+    default_video: Option<String>,
+    default_audio: Option<String>,
+    sort_into_folders: Option<bool>,
 }
 
 #[tauri::command]
@@ -43,6 +47,16 @@ pub fn update_settings(
     state: State<'_, AppState>,
     patch: SettingsPatch,
 ) -> CmdResult<Settings> {
+    if let Some(v) = patch.default_video.as_deref() {
+        if !crate::modules::downloads::VIDEO_FORMATS.contains(&v) {
+            return Err("That isn't a video format NOMNOM can save.".into());
+        }
+    }
+    if let Some(a) = patch.default_audio.as_deref() {
+        if !crate::modules::downloads::AUDIO_FORMATS.contains(&a) {
+            return Err("That isn't an audio format NOMNOM can save.".into());
+        }
+    }
     if let Some(dir) = patch.output_dir.as_deref().filter(|d| !d.is_empty()) {
         if !std::path::Path::new(dir).is_dir() {
             return Err("That folder doesn't exist.".into());
@@ -62,6 +76,18 @@ pub fn update_settings(
             }
             if let Some(v) = patch.firefox_cookies {
                 s.downloads.use_firefox_cookies = v;
+            }
+            if let Some(v) = patch.default_kind {
+                s.downloads.default_kind = v;
+            }
+            if let Some(v) = &patch.default_video {
+                s.downloads.default_video = v.clone();
+            }
+            if let Some(v) = &patch.default_audio {
+                s.downloads.default_audio = v.clone();
+            }
+            if let Some(v) = patch.sort_into_folders {
+                s.downloads.sort_into_folders = v;
             }
             if let Some(v) = patch.quick_keep_ready {
                 s.shortcuts.keep_ready = v;
