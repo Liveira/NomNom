@@ -105,3 +105,31 @@ impl Module for Organizer {
         Ok(())
     }
 }
+
+static FILETOOLS: ModuleManifest = ModuleManifest {
+    id: "filetools",
+    name: "File Tools",
+    nav: Some(NavEntry {
+        order: 30,
+        icon: "convert",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[
+        nomnom_core::module::Capability::ReadFs,
+        nomnom_core::module::Capability::WriteFs,
+        nomnom_core::module::Capability::Spawn,
+    ],
+};
+
+pub struct FileTools;
+#[async_trait]
+impl Module for FileTools {
+    fn manifest(&self) -> &ModuleManifest {
+        &FILETOOLS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}

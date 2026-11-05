@@ -2666,6 +2666,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "nomnom-converter",
  "nomnom-core",
  "nomnom-downloads",
  "nomnom-ipc",
@@ -2683,7 +2684,9 @@ dependencies = [
  "tauri-plugin-notification",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "tempfile",
  "tokio",
+ "tokio-util",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

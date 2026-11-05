@@ -275,3 +275,77 @@ export const shortcutsIpc = {
 export function onQuickContext(handler: () => void): Promise<UnlistenFn> {
   return listen('quick://context', () => handler());
 }
+
+// ---- File Tools ----------------------------------------------------------------------------
+export type FtKind = 'image' | 'video' | 'audio' | 'text' | 'office';
+export type FtTarget =
+  | 'png' | 'jpg' | 'webp' | 'bmp' | 'tiff' | 'gif' | 'ico' | 'pdf' | 'html'
+  | 'mp4' | 'webm' | 'mkv' | 'no_audio' | 'mp3' | 'flac' | 'wav' | 'ogg' | 'opus' | 'm4a';
+export interface FtOptions {
+  image_quality: number;
+  video_quality: 'small' | 'balanced' | 'high';
+  max_width: number | null;
+  max_height: number | null;
+  keep_metadata: boolean;
+  background: [number, number, number];
+  fps: number | null;
+  start_secs: number | null;
+  end_secs: number | null;
+  audio_kbps: number | null;
+  pdf_page: 'fit' | 'a4';
+  combine: boolean;
+}
+export interface FtConversion {
+  kind: FtKind;
+  target: FtTarget;
+  label: string;
+  backend: 'image' | 'pdf' | 'ffmpeg' | 'office';
+  lossiness: 'lossless' | 'lossy' | 'copy_when_possible';
+  available: boolean;
+  needs: string | null;
+}
+export interface FtPreset {
+  id: string;
+  name: string;
+  description: string;
+  kind: FtKind;
+  target: FtTarget;
+  options: FtOptions;
+}
+export interface FtFile {
+  path: string;
+  name: string;
+  kind: FtKind | null;
+  size: number;
+  problem: string | null;
+}
+export interface FtOutcome {
+  src: string;
+  status: 'done' | 'failed' | 'cancelled';
+  dst: string | null;
+  message: string | null;
+  notes: string[];
+  in_bytes: number;
+  out_bytes: number;
+  sources: number;
+}
+export type FtEvent =
+  | { type: 'started'; index: number; src: string }
+  | { type: 'progress'; index: number; fraction: number }
+  | { type: 'finished'; index: number; outcome: FtOutcome };
+
+export const ftIpc = {
+  info: () => invoke<{ conversions: FtConversion[]; presets: FtPreset[] }>('ft_info'),
+  inspect: (paths: string[]) => invoke<{ files: FtFile[]; conversions: FtConversion[] }>('ft_inspect', { paths }),
+  run: (args: { paths: string[]; target: FtTarget; options: FtOptions; out_dir: string | null }) =>
+    invoke<FtOutcome[]>('ft_run', { args }),
+  cancel: () => invoke<void>('ft_cancel'),
+  takeInbox: () => invoke<string[]>('ft_take_inbox'),
+  open: (path: string, reveal: boolean) => invoke<void>('ft_open', { path, reveal }),
+};
+export function onFileToolsEvent(handler: (e: FtEvent) => void): Promise<UnlistenFn> {
+  return listen<FtEvent>('filetools://event', (e) => handler(e.payload));
+}
+export function onFileToolsInbox(handler: () => void): Promise<UnlistenFn> {
+  return listen('filetools://inbox', () => handler());
+}

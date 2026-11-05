@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
-    browser, commands, events, modules, notifier, organizer, pipe_server, quick, shortcuts,
-    state::AppState, tray, windows,
+    browser, commands, events, filetools, modules, notifier, organizer, pipe_server, quick,
+    shortcuts, state::AppState, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -86,6 +86,7 @@ pub fn run() {
         rate_limiter: crate::browser::RateLimiter::new(),
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
         organizer: Default::default(),
+        filetools: Default::default(),
         started,
     };
 
@@ -104,7 +105,9 @@ pub fn run() {
     let app = tauri::Builder::default()
         // A second launch (shortcut, shell action, browser host) is forwarded to this instance.
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if !wants_background(&argv) {
+            if let Some(action) = filetools::parse_shell_args(&argv) {
+                filetools::handle_shell_action(app, action);
+            } else if !wants_background(&argv) {
                 windows::open_main(app);
             }
         }))
@@ -128,6 +131,12 @@ pub fn run() {
             organizer::org_cancel,
             organizer::org_undo,
             organizer::org_history,
+            filetools::ft_info,
+            filetools::ft_inspect,
+            filetools::ft_run,
+            filetools::ft_cancel,
+            filetools::ft_take_inbox,
+            filetools::ft_open,
             browser::browser_status,
             browser::browser_connect,
             browser::browser_disconnect,
@@ -160,7 +169,9 @@ pub fn run() {
             quick::apply_keep_ready(app.handle());
             organizer::recover_at_startup(&app.state::<AppState>().journal);
             organizer::apply_auto(app.handle());
-            if !background {
+            if let Some(action) = filetools::parse_shell_args(&args) {
+                filetools::handle_shell_action(app.handle(), action);
+            } else if !background {
                 windows::open_main(app.handle());
             }
             Ok(())

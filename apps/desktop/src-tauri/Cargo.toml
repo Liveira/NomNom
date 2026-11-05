@@ -14,6 +14,8 @@ nomnom-downloads = { path = "../../../crates/nomnom-downloads" }
 nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
 nomnom-win = { path = "../../../crates/nomnom-win" }
 nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
+nomnom-converter = { path = "../../../crates/nomnom-converter" }
+tokio-util.workspace = true
 notify = "8"
 tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
@@ -34,3 +36,6 @@ uuid.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization"] }
+
+[dev-dependencies]
+tempfile.workspace = true

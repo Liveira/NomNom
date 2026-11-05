@@ -5,6 +5,7 @@ mod app;
 mod browser;
 mod commands;
 mod events;
+mod filetools;
 mod modules;
 mod notifier;
 mod organizer;

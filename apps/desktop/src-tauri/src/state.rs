@@ -29,5 +29,6 @@ pub struct AppState {
     pub rate_limiter: crate::browser::RateLimiter,
     pub journal: nomnom_organizer::journal::Journal,
     pub organizer: crate::organizer::OrganizerState,
+    pub filetools: crate::filetools::FileToolsState,
     pub started: Instant,
 }

@@ -11,6 +11,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::Home),
         Arc::new(builtin::Downloads),
         Arc::new(builtin::Organizer),
+        Arc::new(builtin::FileTools),
         Arc::new(builtin::Settings),
     ];
     for m in modules {
