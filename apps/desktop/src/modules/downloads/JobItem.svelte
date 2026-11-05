@@ -1,13 +1,24 @@
 <script lang="ts">
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import { formatBytes, progressLine } from '../../lib/format';
+  import { formatLabel } from '../../lib/formats';
   import { ipc, type JobRow } from '../../lib/ipc';
   import { downloads } from './store.svelte';
 
   let { job }: { job: JobRow } = $props();
 
   const live = $derived(downloads.progressFor(job.id));
-  const label = $derived(`${job.source}${job.format && job.format !== 'original' ? ' · ' + job.format.toUpperCase() : ''}${job.quality && job.quality !== 'best' ? ' · ' + job.quality + 'p' : ''}`);
+  // "YouTube · Audio · MP3", "YouTube · Video · Original", plus the height if one was chosen.
+  const label = $derived(
+    [
+      job.source,
+      job.kind === 'audio' ? 'Audio' : 'Video',
+      formatLabel(job.kind === 'audio' ? 'audio' : 'video', job.format),
+      job.quality && job.quality !== 'best' ? `${job.quality}p` : '',
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  );
   let copied = $state(false);
   let problem = $state('');
 
