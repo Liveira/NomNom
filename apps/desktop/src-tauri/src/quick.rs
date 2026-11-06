@@ -87,7 +87,7 @@ fn open(app: &AppHandle, url: String, pressed: Instant) {
 
 fn build_window(app: &AppHandle) -> Option<WebviewWindow> {
     let builder = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("quick.html".into()))
-        .title("NOMNOM quick download")
+        .title("NomNom quick download")
         .inner_size(WIDTH, HEIGHT)
         .decorations(false)
         .transparent(true)

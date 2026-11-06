@@ -99,7 +99,7 @@ fn output_problem(
 ) -> Option<String> {
     let (zones, _) = state.paths.protected_folders();
     match out_dir {
-        Some(d) => (!dest_is_acceptable(d, &zones)).then(|| "NOMNOM won't save files there. Choose another folder.".to_string()),
+        Some(d) => (!dest_is_acceptable(d, &zones)).then(|| "NomNom won't save files there. Choose another folder.".to_string()),
         None => files
             .iter()
             .filter_map(|f| f.parent())
@@ -195,7 +195,7 @@ pub fn ft_open(
 ) -> Result<(), String> {
     let path = PathBuf::from(path);
     if !state.filetools.outputs.lock().unwrap().contains(&path) {
-        return Err("NOMNOM only opens files it just made.".into());
+        return Err("NomNom only opens files it just made.".into());
     }
     if !path.is_file() {
         return Err("The file has been moved or deleted.".into());
@@ -319,7 +319,7 @@ async fn run_silent(app: &AppHandle, action: &str, mut files: Vec<PathBuf>) {
         let _ = app.notification().builder().title(title).body(body).show();
     };
     let Some((target, mut options)) = resolve(action) else {
-        notify("File Tools", "That action isn't one NOMNOM knows.".into());
+        notify("File Tools", "That action isn't one NomNom knows.".into());
         return;
     };
     files.sort();

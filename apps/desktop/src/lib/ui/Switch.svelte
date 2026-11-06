@@ -21,6 +21,7 @@
     display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--text-2);
     transition: transform var(--dur-2) var(--ease-spring), background var(--dur-2);
   }
+  .switch:focus-visible { border-radius: 12px; }
   .switch.on { background: var(--accent); }
   .switch.on span { transform: translateX(16px); background: var(--on-accent); }
 </style>

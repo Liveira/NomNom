@@ -142,8 +142,9 @@ impl Default for Organizer {
     }
 }
 
-/// Windows integration: the right-click menu and starting with Windows.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Windows integration: the right-click menu and starting with Windows. Everything is off until the
+/// user answers the first-run screen (which offers the menu switched on).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct System {
     /// Show NOMNOM in the Explorer right-click menu.
@@ -152,15 +153,6 @@ pub struct System {
     pub autostart: bool,
     /// The first-run screen has been answered.
     pub first_run_done: bool,
-}
-impl Default for System {
-    fn default() -> Self {
-        System {
-            shell_menu: true,
-            autostart: false,
-            first_run_done: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

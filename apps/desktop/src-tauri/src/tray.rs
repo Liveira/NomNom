@@ -9,12 +9,12 @@ use tauri_plugin_opener::OpenerExt;
 pub struct TrayStatus(pub MenuItem<Wry>);
 
 pub fn create(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItemBuilder::with_id("open", "Open NOMNOM").build(app)?;
+    let open = MenuItemBuilder::with_id("open", "Open NomNom").build(app)?;
     let status = MenuItemBuilder::with_id("status", "Nothing downloading")
         .enabled(false)
         .build(app)?;
     let folder = MenuItemBuilder::with_id("folder", "Open Downloads folder").build(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "Quit NOMNOM").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit NomNom").build(app)?;
     let sep1 = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
     let menu = MenuBuilder::new(app)
@@ -22,7 +22,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .build()?;
 
     let mut builder = TrayIconBuilder::with_id("main")
-        .tooltip("NOMNOM")
+        .tooltip("NomNom")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
@@ -63,9 +63,9 @@ pub fn set_status(app: &AppHandle, text: &str) {
     }
     if let Some(tray) = app.tray_by_id("main") {
         let tip = if text.starts_with("Nothing") {
-            "NOMNOM".to_string()
+            "NomNom".to_string()
         } else {
-            format!("NOMNOM · {text}")
+            format!("NomNom · {text}")
         };
         let _ = tray.set_tooltip(Some(tip));
     }

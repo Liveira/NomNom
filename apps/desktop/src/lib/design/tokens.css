@@ -15,6 +15,8 @@
   /* Accent used as text colour (links); it needs more contrast than a button fill. */
   --accent-text: #ffb070;
   --on-accent: #2b1608;
+  /* Keyboard focus ring: must stand out from the page (3:1) in both themes. */
+  --focus: #ffb070;
   --blush: #ff9fbd;
   --ok: #8be0b4;
   --danger: #ff808c;
@@ -49,6 +51,7 @@
   --accent-hover: #e88b42;
   --accent-text: #a8490f;
   --on-accent: #2b1608;
+  --focus: #a8490f;
   --blush: #e8708f;
   --ok: #137a50;
   --danger: #c93a47;

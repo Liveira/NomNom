@@ -6,7 +6,7 @@
 
   const labels: Record<ShortcutInfo['id'], string> = {
     quick_download: 'Quick download from the clipboard',
-    open_app: 'Open NOMNOM',
+    open_app: 'Open NomNom',
   };
 
   let items = $state<ShortcutInfo[]>([]);
@@ -70,7 +70,7 @@
   <div class="row">
     <div>
       <div class="label">Keep quick download ready</div>
-      <div class="hint">Opens instantly. Without it, the window takes about a second to start. Uses about 200 MB of memory while NOMNOM is idle.</div>
+      <div class="hint">Opens instantly. Without it, the window takes about a second to start. Uses about 200 MB of memory while NomNom is idle.</div>
     </div>
     <Switch
       checked={app.settings?.shortcuts.keep_ready ?? false}

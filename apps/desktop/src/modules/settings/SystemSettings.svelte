@@ -13,7 +13,7 @@
   }
   void refresh();
 
-  const menuOn = $derived(app.settings?.system.shell_menu ?? true);
+  const menuOn = $derived(app.settings?.system.shell_menu ?? false);
 
   async function run(action: () => Promise<unknown>) {
     busy = true;

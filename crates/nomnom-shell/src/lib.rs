@@ -10,7 +10,7 @@ mod launch;
 
 pub use launch::{integration_path, read_integration, reset_cache, start_with, Integration};
 
-use nomnom_win::shell_menu::{entries_for, Entry, MENU_NAME, SHELL_CLSID};
+use nomnom_win::shell_menu::{entries_for, Entry, MENU_TITLE, SHELL_CLSID};
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::path::PathBuf;
@@ -80,7 +80,7 @@ struct Root {
 
 impl IExplorerCommand_Impl for Root_Impl {
     fn GetTitle(&self, _items: Option<&IShellItemArray>) -> Result<PWSTR> {
-        dup(MENU_NAME)
+        dup(MENU_TITLE)
     }
     fn GetIcon(&self, _items: Option<&IShellItemArray>) -> Result<PWSTR> {
         match launch::read_integration(&launch::integration_path()).exe {

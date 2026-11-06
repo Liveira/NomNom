@@ -142,7 +142,7 @@ fn the_menu_works_the_way_explorer_uses_it() {
     );
 
     let cmd: IExplorerCommand = unsafe { factory.CreateInstance(None).unwrap() };
-    assert_eq!(text(unsafe { cmd.GetTitle(None).unwrap() }), "NOMNOM");
+    assert_eq!(text(unsafe { cmd.GetTitle(None).unwrap() }), "NomNom");
 
     // One picture: its own conversions.
     let one = array(std::slice::from_ref(&png));

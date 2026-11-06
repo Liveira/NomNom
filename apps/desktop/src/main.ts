@@ -20,5 +20,5 @@ async function start() {
 }
 
 start().catch((e) => {
-  document.getElementById('app')!.textContent = `NOMNOM couldn't start: ${e}`;
+  document.getElementById('app')!.textContent = `NomNom couldn't start: ${e}`;
 });

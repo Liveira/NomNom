@@ -162,6 +162,7 @@ pub fn install_all(state: &AppState, defaults: bool) -> Result<(), String> {
     if defaults {
         let _ = state.settings.update("system", |s| {
             s.system = Default::default();
+            s.system.shell_menu = true;
             s.system.first_run_done = true;
         });
     }

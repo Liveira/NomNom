@@ -71,12 +71,12 @@ pub fn update_settings(
     }
     if let Some(v) = patch.default_video.as_deref() {
         if !crate::modules::downloads::VIDEO_FORMATS.contains(&v) {
-            return Err("That isn't a video format NOMNOM can save.".into());
+            return Err("That isn't a video format NomNom can save.".into());
         }
     }
     if let Some(a) = patch.default_audio.as_deref() {
         if !crate::modules::downloads::AUDIO_FORMATS.contains(&a) {
-            return Err("That isn't an audio format NOMNOM can save.".into());
+            return Err("That isn't an audio format NomNom can save.".into());
         }
     }
     if let Some(dir) = patch.output_dir.as_deref().filter(|d| !d.is_empty()) {

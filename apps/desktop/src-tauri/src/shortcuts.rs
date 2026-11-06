@@ -78,7 +78,7 @@ pub fn change(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
     let new = parse_accelerator(accel)?;
     let other = IDS.into_iter().find(|i| *i != id).unwrap_or(QUICK);
     if parse_accelerator(&configured(app, other)).is_ok_and(|o| o == new) {
-        return Err("That's already used by another NOMNOM shortcut.".into());
+        return Err("That's already used by another NomNom shortcut.".into());
     }
 
     let state = app.state::<AppState>();

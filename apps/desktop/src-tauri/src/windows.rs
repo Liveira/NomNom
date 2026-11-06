@@ -36,7 +36,7 @@ pub fn open_main(app: &AppHandle) {
         return;
     }
     let builder = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
-        .title("NOMNOM")
+        .title("NomNom")
         .inner_size(1040.0, 700.0)
         .min_inner_size(760.0, 520.0)
         .center();

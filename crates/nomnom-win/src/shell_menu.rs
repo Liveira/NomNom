@@ -10,7 +10,10 @@ use winreg::RegKey;
 
 /// Where per-user file associations live. Tests pass another root, never this one.
 pub const CLASSES_ROOT: &str = r"Software\Classes";
+/// Name of the registry key the classic menu lives under.
 pub const MENU_NAME: &str = "NOMNOM";
+/// What people read in the menu.
+pub const MENU_TITLE: &str = "NomNom";
 /// The COM class of the modern menu (`nomnom-shell`). The same value is in the sparse package.
 pub const SHELL_CLSID: &str = "7C2D5B1E-3A64-4F0B-9A6E-5D1C8B7F2E40";
 const OWNED_MARKER: &str = "NomNomManaged";
@@ -254,7 +257,7 @@ pub fn install_classic(
         }
         let top = top_key(root, ext);
         let (key, _) = hkcu.create_subkey(&top).map_err(reg)?;
-        key.set_value("MUIVerb", &MENU_NAME).map_err(reg)?;
+        key.set_value("MUIVerb", &MENU_TITLE).map_err(reg)?;
         key.set_value("SubCommands", &"").map_err(reg)?;
         key.set_value(OWNED_MARKER, &"1").map_err(reg)?;
         owned.push(top.clone());
