@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NomNom",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Adds a download button to videos and posts. Sends links to the NomNom app on this computer.",
   "icons": { "48": "icons/48.png", "96": "icons/96.png" },
   "browser_specific_settings": {
