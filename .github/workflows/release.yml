@@ -1,0 +1,105 @@
+name: Release
+
+# Runs when a version tag is pushed (for example v0.1.0). It builds everything, signs what it can,
+# and attaches it to a DRAFT release, so nothing is public until someone presses Publish.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # The same checks as CI, so a tag can't release something that doesn't pass.
+      - run: cargo test --workspace
+      - run: npm test
+      - run: npm run check
+
+      # Optional code-signing certificate. Without it the build still works; Windows just shows
+      # "unknown publisher" warnings.
+      - name: Write the signing certificate
+        id: cert
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.WINDOWS_PFX_BASE64 }}
+        run: |
+          if ($env:PFX_BASE64) {
+            [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\nomnom.pfx", [Convert]::FromBase64String($env:PFX_BASE64))
+            "have=true" >> $env:GITHUB_OUTPUT
+            "path=$env:RUNNER_TEMP\nomnom.pfx" >> $env:GITHUB_OUTPUT
+          } else {
+            "have=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Build (signed menu package)
+        if: steps.cert.outputs.have == 'true'
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+          PUBLISHER: ${{ secrets.WINDOWS_PUBLISHER }}
+        run: scripts/build-release.ps1 -PfxPath "${{ steps.cert.outputs.path }}" -PfxPassword $env:PFX_PASSWORD -Publisher $env:PUBLISHER
+
+      - name: Build (unsigned)
+        if: steps.cert.outputs.have != 'true'
+        shell: pwsh
+        run: scripts/build-release.ps1
+
+      - name: Sign the installer
+        if: steps.cert.outputs.have == 'true'
+        shell: pwsh
+        env:
+          PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: |
+          $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object FullName -match 'x64' | Select-Object -Last 1).FullName
+          Get-ChildItem target\release\bundle\nsis\*.exe | ForEach-Object {
+            & $signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f "${{ steps.cert.outputs.path }}" /p $env:PFX_PASSWORD $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "signing failed" }
+          }
+
+      # Firefox only runs add-ons Mozilla has signed. Needs a free account at addons.mozilla.org.
+      - name: Check for Mozilla keys
+        id: amo
+        shell: pwsh
+        env:
+          KEY: ${{ secrets.AMO_JWT_ISSUER }}
+        run: |
+          $have = if ($env:KEY) { "true" } else { "false" }
+          "have=$have" >> $env:GITHUB_OUTPUT
+
+      - name: Sign the Firefox extension (unlisted)
+        if: steps.amo.outputs.have == 'true'
+        shell: pwsh
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: npx web-ext sign --source-dir apps/firefox-extension/dist --channel unlisted --artifacts-dir dist/extension-signed --api-key $env:AMO_JWT_ISSUER --api-secret $env:AMO_JWT_SECRET
+        continue-on-error: true
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item target\release\bundle\nsis\*.exe release\
+          Copy-Item dist\extension\*.zip release\
+          Copy-Item target\sparse\nomnom-shell.msix release\
+          if (Test-Path dist\extension-signed) { Copy-Item dist\extension-signed\*.xpi release\ }
+          Get-ChildItem release | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content release\SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: release/*
+          fail_on_unmatched_files: true
