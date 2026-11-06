@@ -4,12 +4,17 @@
   import { app } from '../../app/state.svelte';
   import { progressLine } from '../../lib/format';
   import { downloads } from '../downloads/store.svelte';
+  import FirstRun from './FirstRun.svelte';
 
   const active = $derived(downloads.active.slice(0, 3));
   const more = $derived(Math.max(0, downloads.active.length - 3));
 </script>
 
 <h1>Home</h1>
+
+{#if app.settings && !app.settings.system.first_run_done}
+  <FirstRun />
+{/if}
 
 <section class="card">
   <div class="head">

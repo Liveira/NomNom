@@ -142,6 +142,27 @@ impl Default for Organizer {
     }
 }
 
+/// Windows integration: the right-click menu and starting with Windows.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct System {
+    /// Show NOMNOM in the Explorer right-click menu.
+    pub shell_menu: bool,
+    /// Start with Windows, in the tray without a window.
+    pub autostart: bool,
+    /// The first-run screen has been answered.
+    pub first_run_done: bool,
+}
+impl Default for System {
+    fn default() -> Self {
+        System {
+            shell_menu: true,
+            autostart: false,
+            first_run_done: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -152,6 +173,7 @@ pub struct Settings {
     pub shortcuts: Shortcuts,
     pub browser: Browser,
     pub organizer: Organizer,
+    pub system: System,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -166,6 +188,7 @@ impl Default for Settings {
             shortcuts: Shortcuts::default(),
             browser: Browser::default(),
             organizer: Organizer::default(),
+            system: System::default(),
             extra: Map::new(),
         }
     }

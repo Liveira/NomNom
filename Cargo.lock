@@ -2797,6 +2797,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nomnom-shell"
+version = "0.1.0"
+dependencies = [
+ "nomnom-win",
+ "serde_json",
+ "tempfile",
+ "windows 0.58.0",
+ "windows-core 0.58.0",
+]
+
+[[package]]
 name = "nomnom-tools"
 version = "0.1.0"
 dependencies = [
@@ -2815,9 +2826,11 @@ dependencies = [
 name = "nomnom-win"
 version = "0.1.0"
 dependencies = [
+ "nomnom-converter",
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
+ "windows 0.58.0",
  "winreg 0.55.0",
 ]
 

@@ -6,6 +6,7 @@
   import BrowserSettings from './BrowserSettings.svelte';
   import OrganizerSettings from './OrganizerSettings.svelte';
   import Shortcuts from './Shortcuts.svelte';
+  import SystemSettings from './SystemSettings.svelte';
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -53,6 +54,8 @@
 <BrowserSettings />
 
 <Shortcuts />
+
+<SystemSettings />
 
 <style>
   h1 { margin-bottom: 20px; }

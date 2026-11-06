@@ -9,6 +9,7 @@ export interface Settings {
   appearance: { theme: Theme; sidebar_collapsed: boolean };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
+  system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
   organizer: {
     dest_root: string | null;
     look_inside_folders: number;
@@ -49,6 +50,9 @@ export interface SettingsPatch {
   defaultVideo?: Container;
   defaultAudio?: Container;
   sortIntoFolders?: boolean;
+  shellMenu?: boolean;
+  autostart?: boolean;
+  firstRunDone?: boolean;
 }
 
 export interface ModuleManifest {
@@ -349,3 +353,14 @@ export function onFileToolsEvent(handler: (e: FtEvent) => void): Promise<Unliste
 export function onFileToolsInbox(handler: () => void): Promise<UnlistenFn> {
   return listen('filetools://inbox', () => handler());
 }
+
+// ---- Windows integration ---------------------------------------------------------------------
+export interface IntegrationStatus {
+  shell: { enabled: boolean; mode: 'modern' | 'classic' | 'none'; note: string | null };
+  autostart: boolean;
+  has_modern_package: boolean;
+}
+export const integrationIpc = {
+  status: () => invoke<IntegrationStatus>('integration_status'),
+  repair: () => invoke<IntegrationStatus>('integration_repair'),
+};

@@ -114,14 +114,15 @@ mod tests {
     impl TestRoot {
         fn new(tag: &str) -> Self {
             TestRoot(format!(
-                r"Software\NOMNOM-Test\{tag}-{}",
+                r"Software\NOMNOM-Test-host-{tag}-{}",
                 std::process::id()
             ))
         }
     }
     impl Drop for TestRoot {
         fn drop(&mut self) {
-            let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(r"Software\NOMNOM-Test");
+            // Every test has a whole key of its own, so tests running side by side never share one.
+            let _ = RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(&self.0);
         }
     }
 

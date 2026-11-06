@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
-    browser, commands, events, filetools, modules, notifier, organizer, pipe_server, quick,
-    shortcuts, state::AppState, tray, windows,
+    browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
+    quick, shortcuts, state::AppState, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -87,17 +87,18 @@ pub fn run() {
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
         organizer: Default::default(),
         filetools: Default::default(),
+        shell_note: Default::default(),
         started,
     };
 
     // Command-line setup, used by the installer and for repairs. These run and exit; no window.
     if args.iter().any(|a| a == "--install-integrations") {
-        let result = browser::connect(&state);
+        let result = integrations::install_all(&state, args.iter().any(|a| a == "--defaults"));
         tracing::info!(ok = result.is_ok(), "install integrations");
         std::process::exit(if result.is_ok() { 0 } else { 1 });
     }
     if args.iter().any(|a| a == "--uninstall-integrations") {
-        let result = browser::disconnect(&state);
+        let result = integrations::uninstall_all(&state);
         tracing::info!(ok = result.is_ok(), "uninstall integrations");
         std::process::exit(if result.is_ok() { 0 } else { 1 });
     }
@@ -137,6 +138,8 @@ pub fn run() {
             filetools::ft_cancel,
             filetools::ft_take_inbox,
             filetools::ft_open,
+            integrations::integration_status,
+            integrations::integration_repair,
             browser::browser_status,
             browser::browser_connect,
             browser::browser_disconnect,

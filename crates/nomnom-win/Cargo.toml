@@ -8,6 +8,8 @@ license.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 winreg = "0.55"
+windows = { version = "0.58", features = ["Management_Deployment", "Foundation", "Foundation_Collections", "ApplicationModel"] }
 
 [dev-dependencies]
 tempfile.workspace = true
+nomnom-converter = { path = "../nomnom-converter" }

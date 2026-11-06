@@ -30,5 +30,7 @@ pub struct AppState {
     pub journal: nomnom_organizer::journal::Journal,
     pub organizer: crate::organizer::OrganizerState,
     pub filetools: crate::filetools::FileToolsState,
+    /// Why the Windows 11 menu isn't in use, when it isn't (shown in Settings).
+    pub shell_note: Mutex<Option<String>>,
     pub started: Instant,
 }

@@ -180,13 +180,28 @@ pub fn integration_file(state: &AppState) -> PathBuf {
 pub fn write_integration(state: &AppState) {
     let launch = state.settings.get().browser.launch_from_browser;
     let exe = std::env::current_exe().ok();
-    let body = serde_json::json!({ "exe": exe, "launchFromBrowser": launch });
+    let shell_menu = state.settings.get().system.shell_menu;
+    let body =
+        serde_json::json!({ "exe": exe, "launchFromBrowser": launch, "shellMenu": shell_menu });
     let file = integration_file(state);
     let tmp = file.with_extension("json.tmp");
     let ok = std::fs::write(&tmp, body.to_string()).and_then(|_| std::fs::rename(&tmp, &file));
     if let Err(e) = ok {
         tracing::warn!("couldn't write integration.json: {e}");
     }
+}
+
+/// Where Firefox looks for native hosts. Debug builds can use a throwaway key instead
+/// (`NOMNOM_TEST_FIREFOX_ROOT`, only under `Software\NOMNOM-Test`), so testing never touches the
+/// real connection. Compiled out of release builds.
+fn firefox_root() -> String {
+    #[cfg(debug_assertions)]
+    if let Ok(r) = std::env::var("NOMNOM_TEST_FIREFOX_ROOT") {
+        if r.starts_with(r"Software\NOMNOM-Test") && !r.contains("..") {
+            return r;
+        }
+    }
+    nomnom_win::native_host::FIREFOX_ROOT.to_string()
 }
 
 fn host_exe() -> Option<PathBuf> {
@@ -212,8 +227,8 @@ pub struct BrowserStatus {
 
 #[tauri::command]
 pub fn browser_status(state: State<'_, AppState>) -> BrowserStatus {
-    use nomnom_win::native_host::{status, Status, FIREFOX_ROOT};
-    let (s, detail) = match status(FIREFOX_ROOT) {
+    use nomnom_win::native_host::{status, Status};
+    let (s, detail) = match status(&firefox_root()) {
         Status::NotRegistered => ("not_connected", None),
         Status::Broken(why) => ("needs_repair", Some(why)),
         Status::Ready => ("connected", None),
@@ -231,16 +246,12 @@ pub fn connect(state: &AppState) -> Result<(), String> {
     let host =
         host_exe().ok_or("The helper program (nomnom-native-host.exe) isn't next to NomNom.")?;
     write_integration(state);
-    nomnom_win::native_host::install(
-        &host,
-        &manifest_path(state),
-        nomnom_win::native_host::FIREFOX_ROOT,
-    )
-    .map_err(|e| e.to_string())
+    nomnom_win::native_host::install(&host, &manifest_path(state), &firefox_root())
+        .map_err(|e| e.to_string())
 }
 
 pub fn disconnect(state: &AppState) -> Result<(), String> {
-    nomnom_win::native_host::uninstall(&manifest_path(state), nomnom_win::native_host::FIREFOX_ROOT)
+    nomnom_win::native_host::uninstall(&manifest_path(state), &firefox_root())
         .map_err(|e| e.to_string())
 }
 

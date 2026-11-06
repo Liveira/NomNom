@@ -1,0 +1,31 @@
+[package]
+name = "nomnom-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "nomnom-argdump"
+path = "src/bin/argdump.rs"
+test = false
+
+[dependencies]
+nomnom-win = { path = "../nomnom-win" }
+serde_json.workspace = true
+windows-core = "0.58"
+
+[dependencies.windows]
+version = "0.58"
+features = [
+  "implement",
+  "Win32_Foundation",
+  "Win32_System_Com",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
+]
+
+[dev-dependencies]
+tempfile.workspace = true

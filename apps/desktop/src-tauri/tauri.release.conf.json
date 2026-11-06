@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "resources": {
+      "../../../target/release/nomnom-native-host.exe": "nomnom-native-host.exe",
+      "../../../target/release/nomnom_shell.dll": "nomnom_shell.dll",
+      "../../../target/sparse/nomnom-shell.msix": "nomnom-shell.msix"
+    }
+  }
+}

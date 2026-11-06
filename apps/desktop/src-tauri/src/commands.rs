@@ -40,6 +40,9 @@ pub struct SettingsPatch {
     default_video: Option<String>,
     default_audio: Option<String>,
     sort_into_folders: Option<bool>,
+    shell_menu: Option<bool>,
+    autostart: Option<bool>,
+    first_run_done: Option<bool>,
 }
 
 #[tauri::command]
@@ -132,6 +135,15 @@ pub fn update_settings(
             if let Some(v) = patch.notify_downloads {
                 s.downloads.notify = v;
             }
+            if let Some(v) = patch.shell_menu {
+                s.system.shell_menu = v;
+            }
+            if let Some(v) = patch.autostart {
+                s.system.autostart = v;
+            }
+            if let Some(v) = patch.first_run_done {
+                s.system.first_run_done = v;
+            }
             if let Some(v) = patch.close_to_tray {
                 s.general.close_to_tray = v;
             }
@@ -148,6 +160,12 @@ pub fn update_settings(
     }
     if patch.launch_from_browser.is_some() {
         crate::browser::write_integration(&state);
+    }
+    if patch.shell_menu.is_some() {
+        crate::integrations::apply_shell(&state);
+    }
+    if patch.autostart.is_some() {
+        crate::integrations::apply_autostart(&state);
     }
     if patch.quick_keep_ready.is_some() {
         crate::quick::apply_keep_ready(&app);
