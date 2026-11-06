@@ -23,7 +23,16 @@ jobs:
       - run: npm ci
 
       # The same checks as CI, so a tag can't release something that doesn't pass.
-      - run: cargo test --workspace
+      - name: cargo test
+        shell: pwsh
+        run: |
+          cargo test --workspace --no-fail-fast 2>&1 | Tee-Object -FilePath test.log
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            $bad = (Select-String -Path test.log -Pattern "FAILED|panicked at|error[|error:" | Select-Object -First 8 | ForEach-Object { $_.Line.Trim() }) -join " || "
+            Write-Output "::error::$bad"
+          }
+          exit $code
       - run: npm test
       - run: npm run check
 
