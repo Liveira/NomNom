@@ -27,7 +27,7 @@ jobs:
           cargo test --workspace --no-fail-fast 2>&1 | Tee-Object -FilePath test.log
           $code = $LASTEXITCODE
           if ($code -ne 0) {
-            $bad = (Select-String -Path test.log -Pattern "FAILED|panicked at|error[|error:" | Select-Object -First 8 | ForEach-Object { $_.Line.Trim() }) -join " || "
+            $bad = (Select-String -Path test.log -Pattern "FAILED|panicked at|error:" | Select-Object -First 8 | ForEach-Object { $_.Line.Trim() }) -join " || "
             Write-Output "::error::$bad"
           }
           exit $code
