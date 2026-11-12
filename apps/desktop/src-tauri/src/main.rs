@@ -14,6 +14,7 @@ mod pipe_server;
 mod quick;
 mod shortcuts;
 mod state;
+mod storage;
 mod tray;
 mod windows;
 

@@ -133,3 +133,30 @@ impl Module for FileTools {
         Ok(())
     }
 }
+
+static STORAGE: ModuleManifest = ModuleManifest {
+    id: "storage",
+    name: "Disk Analyzer",
+    nav: Some(NavEntry {
+        order: 25,
+        icon: "storage",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[
+        nomnom_core::module::Capability::ReadFs,
+        nomnom_core::module::Capability::WriteFs,
+    ],
+};
+
+pub struct Storage;
+#[async_trait]
+impl Module for Storage {
+    fn manifest(&self) -> &ModuleManifest {
+        &STORAGE
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}

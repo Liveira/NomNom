@@ -364,3 +364,102 @@ export const integrationIpc = {
   status: () => invoke<IntegrationStatus>('integration_status'),
   repair: () => invoke<IntegrationStatus>('integration_repair'),
 };
+
+// ---- Disk Analyzer ---------------------------------------------------------------------------
+export interface StDrive {
+  root: string;
+  letter: string;
+  label: string;
+  filesystem: string;
+  kind: 'fixed' | 'removable' | 'network' | 'optical' | 'ram' | 'unknown';
+  media: 'ssd' | 'hdd' | 'unknown';
+  total: number;
+  free: number;
+  used: number;
+  cluster: number;
+  serial: number;
+}
+export type StState = 'running' | 'paused' | 'done' | 'cancelled';
+export interface StProgress {
+  id: number;
+  root: string;
+  state: StState;
+  files: number;
+  dirs: number;
+  bytes: number;
+  errors: number;
+  elapsed_ms: number;
+  drive_used: number | null;
+  drive_total: number | null;
+}
+export interface StNode {
+  id: number;
+  name: string;
+  is_dir: boolean;
+  is_link: boolean;
+  size: number;
+  alloc: number;
+  files: number;
+  dirs: number;
+  mtime: number | null;
+  ctime: number | null;
+  atime: number | null;
+  attrs: number;
+  flags: number;
+  percent: number;
+  parent: number | null;
+}
+export interface StPage {
+  total: number;
+  items: StNode[];
+}
+export interface StDetail {
+  node: StNode;
+  path: string;
+  trail: StNode[];
+}
+export interface StError {
+  path: string;
+  code: number;
+  message: string;
+}
+export type StSort = 'name' | 'size' | 'alloc' | 'files' | 'dirs' | 'modified' | 'percent';
+export interface StFilter {
+  min_size?: number;
+  max_size?: number;
+  extensions?: string[];
+  category?: string;
+  modified_after?: number;
+  modified_before?: number;
+  name_contains?: string;
+}
+export interface StGroup {
+  key: string;
+  size: number;
+  alloc: number;
+  files: number;
+}
+
+export const stIpc = {
+  drives: () => invoke<StDrive[]>('st_drives'),
+  start: (root: string) => invoke<number>('st_scan_start', { root }),
+  pause: (id: number) => invoke<void>('st_scan_pause', { id }),
+  resume: (id: number) => invoke<void>('st_scan_resume', { id }),
+  cancel: (id: number) => invoke<void>('st_scan_cancel', { id }),
+  rescan: (id: number, node: number) => invoke<void>('st_rescan', { id, node }),
+  close: (id: number) => invoke<void>('st_close', { id }),
+  progress: (id: number) => invoke<StProgress>('st_progress', { id }),
+  errors: (id: number) => invoke<StError[]>('st_errors', { id }),
+  children: (id: number, node: number, sort: StSort, desc: boolean, offset: number, limit: number, text?: string) =>
+    invoke<StPage>('st_children', { id, node, sort, desc, offset, limit, text }),
+  node: (id: number, node: number) => invoke<StDetail>('st_node', { id, node }),
+  topFiles: (id: number, node: number, n: number, filter: StFilter) =>
+    invoke<StNode[]>('st_top_files', { id, node, n, filter }),
+  topFolders: (id: number, node: number, n: number, mode: 'inclusive' | 'exclusive', minSize?: number) =>
+    invoke<StNode[]>('st_top_folders', { id, node, n, mode, minSize }),
+  paths: (id: number, nodes: number[]) => invoke<string[]>('st_paths', { id, nodes }),
+  stats: (id: number, node: number) => invoke<{ extensions: StGroup[]; categories: StGroup[] }>('st_stats', { id, node }),
+};
+export function onStorageProgress(handler: (p: StProgress) => void): Promise<UnlistenFn> {
+  return listen<StProgress>('storage://progress', (e) => handler(e.payload));
+}

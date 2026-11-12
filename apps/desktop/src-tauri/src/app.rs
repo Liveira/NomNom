@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
     browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
-    quick, shortcuts, state::AppState, tray, windows,
+    quick, shortcuts, state::AppState, storage, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -87,6 +87,7 @@ pub fn run() {
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
         organizer: Default::default(),
         filetools: Default::default(),
+        storage: Default::default(),
         shell_note: Default::default(),
         started,
     };
@@ -138,6 +139,22 @@ pub fn run() {
             filetools::ft_cancel,
             filetools::ft_take_inbox,
             filetools::ft_open,
+            storage::st_drives,
+            storage::st_scan_start,
+            storage::st_scan_pause,
+            storage::st_scan_resume,
+            storage::st_scan_cancel,
+            storage::st_rescan,
+            storage::st_close,
+            storage::st_sessions,
+            storage::st_progress,
+            storage::st_errors,
+            storage::st_children,
+            storage::st_node,
+            storage::st_top_files,
+            storage::st_top_folders,
+            storage::st_stats,
+            storage::st_paths,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,

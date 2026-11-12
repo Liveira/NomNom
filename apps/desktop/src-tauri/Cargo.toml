@@ -15,6 +15,7 @@ nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
 nomnom-win = { path = "../../../crates/nomnom-win" }
 nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
 nomnom-converter = { path = "../../../crates/nomnom-converter" }
+nomnom-storage = { path = "../../../crates/nomnom-storage" }
 tokio-util.workspace = true
 notify = "8"
 tauri-plugin-notification = "2"

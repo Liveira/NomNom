@@ -2671,6 +2671,7 @@ dependencies = [
  "nomnom-downloads",
  "nomnom-ipc",
  "nomnom-organizer",
+ "nomnom-storage",
  "nomnom-tools",
  "nomnom-win",
  "notify",
@@ -2805,6 +2806,20 @@ dependencies = [
  "tempfile",
  "windows 0.58.0",
  "windows-core 0.58.0",
+]
+
+[[package]]
+name = "nomnom-storage"
+version = "0.1.0"
+dependencies = [
+ "junction",
+ "nomnom-core",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+ "windows 0.58.0",
 ]
 
 [[package]]
