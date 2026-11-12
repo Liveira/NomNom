@@ -6,6 +6,9 @@ license.workspace = true
 
 [dependencies]
 nomnom-core = { path = "../nomnom-core" }
+nomnom-organizer = { path = "../nomnom-organizer" }
+blake3 = "1"
+winreg = "0.55"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -17,6 +20,7 @@ windows = { version = "0.58", features = [
   "Win32_Storage_FileSystem",
   "Win32_System_IO",
   "Win32_System_Ioctl",
+  "Win32_UI_Shell",
 ] }
 
 [dev-dependencies]

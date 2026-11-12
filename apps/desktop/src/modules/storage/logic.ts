@@ -184,3 +184,40 @@ export function parseSize(text: string, unit: string): number | null | 'bad' {
   const mult = SIZE_UNITS[unit] ?? 1;
   return Math.round(Number(t) * mult);
 }
+
+export type Action = 'recycle' | 'delete' | 'copy' | 'cut' | 'paste' | 'rename' | 'refresh' | 'properties' | 'selectAll';
+
+/** The keyboard shortcuts of the file list. Returns what a key press means, or null. */
+export function shortcutAction(k: { key: string; ctrl: boolean; shift: boolean; alt: boolean }): Action | null {
+  const key = k.key.length === 1 ? k.key.toLowerCase() : k.key;
+  if (key === 'Delete') return k.shift && !k.ctrl && !k.alt ? 'delete' : !k.shift && !k.ctrl && !k.alt ? 'recycle' : null;
+  if (key === 'F2' && !k.ctrl && !k.shift && !k.alt) return 'rename';
+  if (key === 'F5' && !k.ctrl && !k.shift && !k.alt) return 'refresh';
+  if (key === 'Enter' && k.alt && !k.ctrl && !k.shift) return 'properties';
+  if (k.ctrl && !k.alt && !k.shift) {
+    if (key === 'c') return 'copy';
+    if (key === 'x') return 'cut';
+    if (key === 'v') return 'paste';
+    if (key === 'a') return 'selectAll';
+  }
+  return null;
+}
+
+/** Shortcuts only work when the person is looking at the file list and isn't typing or in a dialog. */
+export function shortcutsActive(ctx: { dialogOpen: boolean; menuOpen: boolean; targetIsField: boolean; tab: string; hasSession: boolean; busy: boolean }): boolean {
+  return ctx.hasSession && ctx.tab === 'explorer' && !ctx.dialogOpen && !ctx.menuOpen && !ctx.targetIsField && !ctx.busy;
+}
+
+export function attributeLabels(attrs: number, flags: number): string[] {
+  const out: string[] = [];
+  if (attrs & 0x1) out.push('Read-only');
+  if (attrs & 0x2) out.push('Hidden');
+  if (attrs & 0x4) out.push('System');
+  if (attrs & 0x20) out.push('Ready to archive');
+  if (attrs & 0x800 || flags & 64) out.push('Compressed');
+  if (attrs & 0x200 || flags & 32) out.push('Sparse');
+  if (flags & 2) out.push('Link (not followed)');
+  if (flags & 4) out.push('Same data as another name');
+  if (flags & 16) out.push('Partly unreadable');
+  return out;
+}

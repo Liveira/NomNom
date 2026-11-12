@@ -64,6 +64,17 @@
     }
   }
 
+  // The charts can send us here already filtered by a kind or an extension.
+  $effect(() => {
+    if (storage.rankingCategory || storage.rankingExtension) {
+      what = 'files';
+      category = storage.rankingCategory;
+      extText = storage.rankingExtension;
+      storage.rankingCategory = '';
+      storage.rankingExtension = '';
+    }
+  });
+
   // Run again whenever a control changes, and when the scan's data changed (partial or finished).
   $effect(() => {
     void [what, mode, count, scope, minText, minUnit, maxText, maxUnit, extText, category, age, storage.sessionId, storage.version, storage.current];

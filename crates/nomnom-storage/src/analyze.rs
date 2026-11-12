@@ -313,3 +313,61 @@ pub fn by_category(idx: &Index, scope: NodeId) -> Vec<Group> {
     v.sort_by_key(|g| Reverse(g.size));
     v
 }
+
+#[derive(Serialize, Debug, Clone)]
+pub struct TreeView {
+    pub id: NodeId,
+    pub name: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub alloc: u64,
+    /// Broad kind for colouring (files only; folders are "folder").
+    pub category: &'static str,
+    pub children: Vec<TreeView>,
+    /// Smaller children that were folded together to keep the picture readable.
+    pub hidden_count: u32,
+    pub hidden_size: u64,
+    pub hidden_alloc: u64,
+}
+
+/// A nested view for the treemap: `depth` levels below `node`, at most `max_children` biggest
+/// children at each level (the rest are counted in `hidden_*`).
+pub fn treemap(idx: &Index, node: NodeId, depth: u32, max_children: usize) -> TreeView {
+    let n = idx.node(node).unwrap();
+    let is_dir = n.is_dir();
+    let mut v = TreeView {
+        id: node,
+        name: idx.name(node).to_string(),
+        is_dir,
+        size: n.size,
+        alloc: n.alloc,
+        category: if is_dir {
+            "folder"
+        } else {
+            category_of(&extension_of(idx.name(node)))
+        },
+        children: Vec::new(),
+        hidden_count: 0,
+        hidden_size: 0,
+        hidden_alloc: 0,
+    };
+    if !is_dir || depth == 0 || n.is_link() {
+        return v;
+    }
+    let mut kids: Vec<NodeId> = idx
+        .children(node)
+        .filter(|c| idx.node(*c).unwrap().size > 0)
+        .collect();
+    kids.sort_by_key(|c| Reverse(idx.node(*c).unwrap().size));
+    for (i, c) in kids.into_iter().enumerate() {
+        if i < max_children {
+            v.children.push(treemap(idx, c, depth - 1, max_children));
+        } else {
+            let cn = idx.node(c).unwrap();
+            v.hidden_count += 1;
+            v.hidden_size += cn.size;
+            v.hidden_alloc += cn.alloc;
+        }
+    }
+    v
+}

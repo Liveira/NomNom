@@ -463,7 +463,9 @@ fn compressed_size(path: &Path) -> Option<u64> {
 
 /// Extended-length form so paths over 260 characters work: `\\?\C:\...` or `\\?\UNC\server\...`.
 pub fn long_os_path(p: &Path) -> PathBuf {
-    let s = p.to_string_lossy();
+    // The extended-length form isn't normalized by Windows, so forward slashes must go here.
+    let s = p.to_string_lossy().replace('/', "\\");
+    let s = s.as_str();
     if s.starts_with(r"\\?\") {
         p.to_path_buf()
     } else if let Some(rest) = s.strip_prefix(r"\\") {

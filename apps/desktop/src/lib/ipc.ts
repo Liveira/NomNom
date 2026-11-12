@@ -457,9 +457,75 @@ export const stIpc = {
     invoke<StNode[]>('st_top_files', { id, node, n, filter }),
   topFolders: (id: number, node: number, n: number, mode: 'inclusive' | 'exclusive', minSize?: number) =>
     invoke<StNode[]>('st_top_folders', { id, node, n, mode, minSize }),
+  opPlan: (id: number, kind: StOpKind, nodes: number[], dest?: string, newName?: string) =>
+    invoke<StPlan>('st_op_plan', { id, kind, nodes, dest, newName }),
+  opRun: (planId: string, confirmed: boolean, typed: string | undefined, includeReadonly: boolean) =>
+    invoke<StReport>('st_op_run', { planId, confirmed, typed, includeReadonly }),
+  opCancel: () => invoke<void>('st_op_cancel'),
+  open: (id: number, node: number, reveal: boolean) => invoke<void>('st_open', { id, node, reveal }),
+  treemap: (id: number, node: number, depth: number, maxChildren: number) =>
+    invoke<StTree>('st_treemap', { id, node, depth, maxChildren }),
   paths: (id: number, nodes: number[]) => invoke<string[]>('st_paths', { id, nodes }),
   stats: (id: number, node: number) => invoke<{ extensions: StGroup[]; categories: StGroup[] }>('st_stats', { id, node }),
 };
 export function onStorageProgress(handler: (p: StProgress) => void): Promise<UnlistenFn> {
   return listen<StProgress>('storage://progress', (e) => handler(e.payload));
+}
+
+export type StOpKind = 'recycle' | 'delete' | 'copy' | 'move' | 'rename';
+export interface StPlanItem {
+  path: string;
+  is_dir: boolean;
+  size: number;
+  files: number;
+  warn: boolean;
+}
+export interface StPlan {
+  plan_id: string;
+  kind: StOpKind;
+  item_count: number;
+  items: StPlanItem[];
+  total_size: number;
+  total_files: number;
+  refused: { path: string; reason: string }[];
+  warnings: string[];
+  needs_typed: boolean;
+  dest: string | null;
+  new_name: string | null;
+}
+export interface StItemResult {
+  path: string;
+  status: 'done' | 'failed' | 'skipped';
+  message: string | null;
+  size: number;
+  to: string | null;
+}
+export interface StReport {
+  results: StItemResult[];
+  cancelled: boolean;
+}
+export interface StOpProgress {
+  done: number;
+  total: number;
+  current: string;
+}
+
+export function onStorageOp(handler: (p: StOpProgress) => void): Promise<UnlistenFn> {
+  return listen<StOpProgress>('storage://op', (e) => handler(e.payload));
+}
+export function onStorageChanged(handler: (id: number) => void): Promise<UnlistenFn> {
+  return listen<number>('storage://changed', (e) => handler(e.payload));
+}
+
+export interface StTree {
+  id: number;
+  name: string;
+  is_dir: boolean;
+  size: number;
+  alloc: number;
+  category: string;
+  children: StTree[];
+  hidden_count: number;
+  hidden_size: number;
+  hidden_alloc: number;
 }

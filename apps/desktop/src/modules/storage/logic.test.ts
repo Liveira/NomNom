@@ -90,3 +90,39 @@ describe('selection', () => {
     expect(nextSelection(none, null, ids, 9, { ctrl: false, shift: false }).selected).toBe(none);
   });
 });
+
+import { attributeLabels, shortcutAction, shortcutsActive } from './logic';
+
+describe('shortcuts', () => {
+  const k = (key: string, m: Partial<{ ctrl: boolean; shift: boolean; alt: boolean }> = {}) => shortcutAction({ key, ctrl: false, shift: false, alt: false, ...m });
+  it('maps the documented keys', () => {
+    expect(k('Delete')).toBe('recycle');
+    expect(k('Delete', { shift: true })).toBe('delete');
+    expect(k('c', { ctrl: true })).toBe('copy');
+    expect(k('X', { ctrl: true })).toBe('cut');
+    expect(k('v', { ctrl: true })).toBe('paste');
+    expect(k('a', { ctrl: true })).toBe('selectAll');
+    expect(k('F2')).toBe('rename');
+    expect(k('F5')).toBe('refresh');
+    expect(k('Enter', { alt: true })).toBe('properties');
+  });
+  it('ignores combinations that mean something else', () => {
+    expect(k('Delete', { ctrl: true })).toBeNull();
+    expect(k('Delete', { shift: true, ctrl: true })).toBeNull();
+    expect(k('c')).toBeNull();
+    expect(k('c', { ctrl: true, shift: true })).toBeNull();
+    expect(k('Enter')).toBeNull();
+    expect(k('F2', { shift: true })).toBeNull();
+  });
+  it('only act on the file list, never while typing, in a dialog or during a scan', () => {
+    const base = { dialogOpen: false, menuOpen: false, targetIsField: false, tab: 'explorer', hasSession: true, busy: false };
+    expect(shortcutsActive(base)).toBe(true);
+    for (const off of [{ dialogOpen: true }, { menuOpen: true }, { targetIsField: true }, { tab: 'rankings' }, { hasSession: false }, { busy: true }]) {
+      expect(shortcutsActive({ ...base, ...off })).toBe(false);
+    }
+  });
+  it('describes attributes in words', () => {
+    expect(attributeLabels(0x1 | 0x2, 0)).toEqual(['Read-only', 'Hidden']);
+    expect(attributeLabels(0, 2 | 4)).toEqual(['Link (not followed)', 'Same data as another name']);
+  });
+});

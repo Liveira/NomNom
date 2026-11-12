@@ -1,5 +1,26 @@
-import { stIpc, onStorageProgress, type StDetail, type StDrive, type StNode, type StProgress, type StSort } from '../../lib/ipc';
+import { open as pickFolder } from '@tauri-apps/plugin-dialog';
+import {
+  stIpc,
+  onStorageProgress,
+  onStorageOp,
+  type StDetail,
+  type StDrive,
+  type StNode,
+  type StOpKind,
+  type StOpProgress,
+  type StPlan,
+  type StProgress,
+  type StReport,
+  type StSort,
+} from '../../lib/ipc';
 import { isBusy, nextSelection } from './logic';
+
+export type Dialog =
+  | { type: 'confirm'; plan: StPlan; busy: boolean; error: string }
+  | { type: 'rename'; node: StNode; error: string }
+  | { type: 'result'; report: StReport; kind: StOpKind }
+  | { type: 'props'; node: StNode; path: string }
+  | { type: 'refused'; plan: StPlan };
 
 const ROW_LIMIT = 5000;
 
@@ -19,7 +40,17 @@ class StorageStore {
   anchor = $state<number | null>(null);
   /** Goes up whenever the scan's data changed, so views that cache (the tree) reload. */
   version = $state(0);
-  tab = $state<'explorer' | 'rankings'>('explorer');
+  tab = $state<'explorer' | 'rankings' | 'charts'>('explorer');
+  view = $state<'table' | 'treemap'>('table');
+  /** Set by the charts so the rankings open already filtered; the rankings clear them. */
+  rankingCategory = $state('');
+  rankingExtension = $state('');
+  clipboard = $state<{ session: number; nodes: number[]; cut: boolean } | null>(null);
+  dialog = $state<Dialog | null>(null);
+  menu = $state<{ x: number; y: number } | null>(null);
+  opProgress = $state<StOpProgress | null>(null);
+  notice = $state('');
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
   error = $state('');
   loading = $state(false);
 
@@ -43,6 +74,7 @@ class StorageStore {
     if (this.listening) return;
     this.listening = true;
     await onStorageProgress((p) => this.onProgress(p));
+    await onStorageOp((p) => (this.opProgress = p));
     const existing = await stIpc.drives().catch(() => []);
     this.drives = existing;
   }
@@ -196,6 +228,151 @@ class StorageStore {
 
   selectAll() {
     this.selected = new Set(this.rows.map((r) => r.id));
+  }
+
+  // ---- file operations: plan, confirm, run ---------------------------------------------------
+
+  say(text: string) {
+    this.notice = text;
+    if (this.noticeTimer) clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => (this.notice = ''), 7000);
+  }
+
+  get selectedRows(): StNode[] {
+    return this.rows.filter((r) => this.selected.has(r.id));
+  }
+
+  async plan(kind: StOpKind, nodes: number[], dest?: string, newName?: string): Promise<StPlan | null> {
+    const id = this.sessionId;
+    if (id == null || nodes.length === 0) return null;
+    try {
+      return await stIpc.opPlan(id, kind, nodes, dest, newName);
+    } catch (e) {
+      this.error = String(e);
+      return null;
+    }
+  }
+
+  /** Runs a plan the app made. `typed` is what the person typed when the plan asked for it. */
+  async runPlan(plan: StPlan, confirmed: boolean, typed?: string, includeReadonly = false): Promise<StReport | null> {
+    this.opProgress = { done: 0, total: plan.item_count, current: '' };
+    try {
+      const report = await stIpc.opRun(plan.plan_id, confirmed, typed, includeReadonly);
+      this.opProgress = null;
+      await this.afterOp(report, plan.kind);
+      return report;
+    } catch (e) {
+      this.opProgress = null;
+      if (this.dialog?.type === 'confirm') this.dialog = { ...this.dialog, busy: false, error: String(e) };
+      else this.error = String(e);
+      return null;
+    }
+  }
+
+  private async afterOp(report: StReport, kind: StOpKind) {
+    this.dialog = null;
+    this.selected = new Set();
+    this.version++;
+    await this.reload();
+    const done = report.results.filter((r) => r.status === 'done').length;
+    if (done < report.results.length || report.cancelled) {
+      this.dialog = { type: 'result', report, kind };
+    } else {
+      const verb = { recycle: 'Moved to the Recycle Bin', delete: 'Deleted', copy: 'Copied', move: 'Moved', rename: 'Renamed' }[kind];
+      this.say(`${verb}: ${done} ${done === 1 ? 'item' : 'items'}.`);
+    }
+  }
+
+  private show(plan: StPlan) {
+    this.dialog = plan.item_count === 0 ? { type: 'refused', plan } : { type: 'confirm', plan, busy: false, error: '' };
+  }
+
+  /** Delete key (to the Recycle Bin) or Shift+Delete (permanent, always asks). */
+  async remove(permanent: boolean) {
+    const plan = await this.plan(permanent ? 'delete' : 'recycle', [...this.selected]);
+    if (!plan) return;
+    // The Recycle Bin can be undone in Windows, so it needs no extra click unless something is unusual.
+    if (!permanent && plan.item_count > 0 && plan.refused.length === 0 && plan.warnings.length === 0) {
+      await this.runPlan(plan, false);
+      return;
+    }
+    this.show(plan);
+  }
+
+  copySelection(cut: boolean) {
+    const nodes = [...this.selected];
+    if (nodes.length === 0 || this.sessionId == null) return;
+    this.clipboard = { session: this.sessionId, nodes, cut };
+    this.say(`${nodes.length} ${nodes.length === 1 ? 'item' : 'items'} ${cut ? 'cut' : 'copied'}. Open a folder and paste.`);
+  }
+
+  async paste() {
+    const c = this.clipboard;
+    const dest = this.detail?.path;
+    if (!c || !dest || c.session !== this.sessionId) return;
+    const plan = await this.plan(c.cut ? 'move' : 'copy', c.nodes, dest);
+    if (plan) this.show(plan);
+  }
+
+  /** "Copy to…" and "Move to…": choose a folder first. */
+  async sendTo(kind: 'copy' | 'move') {
+    const nodes = [...this.selected];
+    if (nodes.length === 0) return;
+    const dest = await pickFolder({ directory: true, multiple: false, title: kind === 'copy' ? 'Copy to…' : 'Move to…' });
+    if (typeof dest !== 'string') return;
+    const plan = await this.plan(kind, nodes, dest);
+    if (plan) this.show(plan);
+  }
+
+  startRename() {
+    const only = this.selectedRows;
+    if (only.length === 1) this.dialog = { type: 'rename', node: only[0], error: '' };
+  }
+
+  async doRename(newName: string) {
+    if (this.dialog?.type !== 'rename') return;
+    const node = this.dialog.node;
+    const plan = await this.plan('rename', [node.id], undefined, newName);
+    if (!plan) return;
+    if (plan.item_count === 0) {
+      this.dialog = { type: 'rename', node, error: plan.refused[0]?.reason ?? "That name can't be used." };
+      return;
+    }
+    const report = await this.runPlan(plan, false);
+    if (report && report.results[0]?.status !== 'done') {
+      this.dialog = { type: 'rename', node, error: report.results[0]?.message ?? "It couldn't be renamed." };
+    }
+  }
+
+  async showProperties() {
+    const first = this.selectedRows[0]?.id ?? this.current;
+    const id = this.sessionId;
+    if (id == null) return;
+    const d = await stIpc.node(id, first);
+    this.dialog = { type: 'props', node: d.node, path: d.path };
+  }
+
+  async openSelected(reveal: boolean) {
+    const id = this.sessionId;
+    const first = this.selectedRows[0];
+    if (id == null || !first) return;
+    try {
+      await stIpc.open(id, first.id, reveal);
+    } catch (e) {
+      this.error = String(e);
+    }
+  }
+
+  async copyPath() {
+    const id = this.sessionId;
+    if (id == null || this.selected.size === 0) return;
+    const paths = await stIpc.paths(id, [...this.selected]);
+    await navigator.clipboard.writeText(paths.join('\r\n'));
+    this.say(paths.length === 1 ? 'Path copied.' : `${paths.length} paths copied.`);
+  }
+
+  cancelOp() {
+    void stIpc.opCancel();
   }
 
   get truncated(): boolean {

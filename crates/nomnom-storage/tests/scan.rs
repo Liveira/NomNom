@@ -333,3 +333,66 @@ fn the_system_drive_is_listed_with_real_numbers() {
     assert_eq!(c.filesystem, "NTFS");
     assert!(c.cluster >= 512);
 }
+
+#[test]
+fn removing_and_renaming_in_the_index_matches_a_fresh_scan() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = dir.path();
+    write(&r.join("a/x.bin"), 1000);
+    write(&r.join("a/sub/y.bin"), 2000);
+    write(&r.join("b/z.bin"), 4000);
+    write(&r.join("top.bin"), 8000);
+    let s = scan(r);
+    {
+        let mut idx = s.index.write().unwrap();
+        let sub = find_in(&idx, "a/sub");
+        idx.remove_node(sub);
+        let top = find_in(&idx, "top.bin");
+        idx.remove_node(top);
+        let z = find_in(&idx, "b");
+        idx.rename_node(z, "renamed");
+    }
+    std::fs::remove_dir_all(r.join("a/sub")).unwrap();
+    std::fs::remove_file(r.join("top.bin")).unwrap();
+    std::fs::rename(r.join("b"), r.join("renamed")).unwrap();
+    let fresh = scan(r);
+    let (a, b) = (s.index.read().unwrap(), fresh.index.read().unwrap());
+    let (x, y) = (a.node(0).unwrap(), b.node(0).unwrap());
+    assert_eq!(
+        (x.size, x.alloc, x.files, x.dirs, x.own_size),
+        (y.size, y.alloc, y.files, y.dirs, y.own_size)
+    );
+    assert!(a.children(0).any(|c| a.name(c) == "renamed"));
+    assert_eq!(
+        a.resolve_path(&r.join("A/X.bin")),
+        Some(find_in(&a, "a/x.bin")),
+        "paths resolve without regard to case"
+    );
+    assert_eq!(a.resolve_path(&r.join("a/sub")), None);
+}
+
+#[test]
+fn the_treemap_view_nests_by_size_and_folds_the_small_ones() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = dir.path();
+    write(&r.join("big/one.mp4"), 5000);
+    write(&r.join("big/two.txt"), 1000);
+    for i in 0..5 {
+        write(&r.join(format!("many/f{i}.bin")), 10 + i);
+    }
+    let s = scan(r);
+    let idx = s.index.read().unwrap();
+    let t = analyze::treemap(&idx, idx.root(), 2, 10);
+    assert_eq!(t.children[0].name, "big");
+    assert_eq!(t.children[0].children[0].name, "one.mp4");
+    assert_eq!(t.children[0].children[0].category, "video");
+    assert_eq!(t.children[0].category, "folder");
+    let flat = analyze::treemap(&idx, idx.root(), 1, 10);
+    assert!(
+        flat.children[0].children.is_empty(),
+        "depth 1 stops at the first level"
+    );
+    let folded = analyze::treemap(&idx, find_in(&idx, "many"), 1, 3);
+    assert_eq!(folded.children.len(), 3);
+    assert_eq!((folded.hidden_count, folded.hidden_size), (2, 10 + 11));
+}

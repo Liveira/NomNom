@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
     browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
-    quick, shortcuts, state::AppState, storage, tray, windows,
+    quick, shortcuts, state::AppState, storage, storage_ops, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -155,6 +155,11 @@ pub fn run() {
             storage::st_top_folders,
             storage::st_stats,
             storage::st_paths,
+            storage::st_treemap,
+            storage_ops::st_op_plan,
+            storage_ops::st_op_run,
+            storage_ops::st_op_cancel,
+            storage_ops::st_open,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,

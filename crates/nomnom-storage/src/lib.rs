@@ -4,6 +4,8 @@
 pub mod analyze;
 pub mod drives;
 pub mod index;
+pub mod ops;
+pub mod protect;
 pub mod scan;
 
 pub use index::{Index, NodeId, NodeView};

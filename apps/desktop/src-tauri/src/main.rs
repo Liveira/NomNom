@@ -15,6 +15,7 @@ mod quick;
 mod shortcuts;
 mod state;
 mod storage;
+mod storage_ops;
 mod tray;
 mod windows;
 

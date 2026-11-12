@@ -2812,14 +2812,17 @@ dependencies = [
 name = "nomnom-storage"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "junction",
  "nomnom-core",
+ "nomnom-organizer",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 2.0.21",
  "tracing",
  "windows 0.58.0",
+ "winreg 0.55.0",
 ]
 
 [[package]]

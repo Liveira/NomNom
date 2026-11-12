@@ -18,12 +18,15 @@ use tauri::{AppHandle, Emitter, State};
 
 #[derive(Default)]
 pub struct StorageState {
-    sessions: Mutex<HashMap<u64, Arc<Session>>>,
-    next: AtomicU64,
+    pub(crate) sessions: Mutex<HashMap<u64, Arc<Session>>>,
+    pub(crate) next: AtomicU64,
+    pub(crate) plans: Mutex<HashMap<String, crate::storage_ops::StoredPlan>>,
+    pub(crate) op_cancel: std::sync::atomic::AtomicBool,
+    pub(crate) op_running: std::sync::atomic::AtomicBool,
 }
 
 impl StorageState {
-    fn get(&self, id: u64) -> Result<Arc<Session>, String> {
+    pub(crate) fn get(&self, id: u64) -> Result<Arc<Session>, String> {
         self.sessions
             .lock()
             .unwrap()
@@ -339,4 +342,30 @@ pub fn st_paths(
             }
         })
         .collect())
+}
+
+/// Nested sizes for the treemap.
+#[tauri::command]
+pub async fn st_treemap(
+    state: State<'_, AppState>,
+    id: u64,
+    node: NodeId,
+    depth: u32,
+    max_children: usize,
+) -> Result<analyze::TreeView, String> {
+    let s = state.storage.get(id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let idx = s.index.read().unwrap();
+        if idx.node(node).is_none() {
+            return Err("That item isn't in the scan.".to_string());
+        }
+        Ok(analyze::treemap(
+            &idx,
+            node,
+            depth.clamp(1, 4),
+            max_children.clamp(10, 400),
+        ))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }

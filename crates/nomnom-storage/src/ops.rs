@@ -1,0 +1,828 @@
+//! File operations. Nothing here trusts the scan: every operation is planned first (the plan
+//! records what is on disk right now and refuses anything that changed since the scan), and run
+//! later against the disk again, item by item. A deleted folder is never followed into a link.
+
+use crate::index::{Index, NodeId, F_LINK, F_LOSSY_NAME};
+use crate::protect::{valid_new_name, Protected, Verdict};
+use crate::scan::long_os_path;
+use nomnom_organizer::winfs::{self, FileId};
+use serde::Serialize;
+use std::fs::{File, OpenOptions};
+use std::io::{self, Read, Write};
+use std::os::windows::fs::MetadataExt;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+const ATTR_READONLY: u32 = 0x1;
+const ATTR_DIRECTORY: u32 = 0x10;
+const ATTR_REPARSE: u32 = 0x400;
+
+/// Past these a permanent delete asks for more than one click.
+pub const BIG_FILES: u64 = 1000;
+pub const BIG_BYTES: u64 = 10 * 1024 * 1024 * 1024;
+
+#[derive(Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    Recycle,
+    Delete,
+    Copy,
+    Move,
+    Rename,
+}
+
+/// What was on disk when the plan was made.
+#[derive(Clone, Copy, Debug)]
+pub struct Snap {
+    pub id: FileId,
+    pub size: u64,
+    pub mtime: i64,
+    pub is_dir: bool,
+    pub is_reparse: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct Item {
+    pub node: NodeId,
+    pub path: PathBuf,
+    pub is_dir: bool,
+    pub size: u64,
+    pub files: u64,
+    pub snap: Snap,
+    pub warn: bool,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Refusal {
+    pub path: String,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct Plan {
+    pub kind: Kind,
+    pub items: Vec<Item>,
+    pub dest: Option<PathBuf>,
+    pub new_name: Option<String>,
+    pub refused: Vec<Refusal>,
+    pub warnings: Vec<String>,
+    pub total_size: u64,
+    pub total_files: u64,
+    /// A permanent delete this big or this risky needs the count typed in.
+    pub needs_typed: bool,
+}
+
+fn name_of(p: &Path) -> String {
+    p.file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("?")
+        .to_string()
+}
+
+fn snap_of(path: &Path) -> io::Result<Snap> {
+    let i = winfs::info(&long_os_path(path))?;
+    Ok(Snap {
+        id: i.id,
+        size: i.size,
+        mtime: i.mtime,
+        is_dir: i.is_dir(),
+        is_reparse: i.is_reparse(),
+    })
+}
+
+/// Builds a plan from items picked in a scan. Nothing on disk is changed.
+pub fn plan(
+    idx: &Index,
+    kind: Kind,
+    nodes: &[NodeId],
+    dest: Option<&Path>,
+    new_name: Option<&str>,
+    protect: &Protected,
+) -> Plan {
+    let mut p = Plan {
+        kind,
+        items: Vec::new(),
+        dest: dest.map(Path::to_path_buf),
+        new_name: new_name.map(str::to_string),
+        refused: Vec::new(),
+        warnings: Vec::new(),
+        total_size: 0,
+        total_files: 0,
+        needs_typed: false,
+    };
+    let mut chosen: Vec<(NodeId, PathBuf)> = Vec::new();
+    for &n in nodes {
+        match idx.node(n) {
+            Some(_) => chosen.push((n, idx.path_of(n))),
+            None => p.refused.push(Refusal {
+                path: format!("#{n}"),
+                reason: "That item isn't in the scan.".into(),
+            }),
+        }
+    }
+    chosen.sort_by_key(|(_, path)| path.components().count());
+    chosen.dedup_by(|a, b| a.0 == b.0);
+    let mut kept: Vec<(NodeId, PathBuf)> = Vec::new();
+    for (n, path) in chosen {
+        // A folder and something inside it: the folder already covers it.
+        if kept
+            .iter()
+            .any(|(_, k)| nomnom_organizer::pathutil::is_inside(&path, k))
+        {
+            continue;
+        }
+        kept.push((n, path));
+    }
+
+    for (n, path) in kept {
+        let node = idx.node(n).unwrap();
+        let shown = path.to_string_lossy().to_string();
+        let refuse = |p: &mut Plan, why: &str| {
+            p.refused.push(Refusal {
+                path: shown.clone(),
+                reason: why.to_string(),
+            })
+        };
+        if node.flags & F_LOSSY_NAME != 0
+            || idx
+                .ancestors(n)
+                .iter()
+                .any(|a| idx.node(*a).unwrap().flags & F_LOSSY_NAME != 0)
+        {
+            refuse(
+                &mut p,
+                "The name has characters Windows can't write back safely.",
+            );
+            continue;
+        }
+        let mut warn = false;
+        match protect.check(&path) {
+            Verdict::Refuse(why) => {
+                refuse(&mut p, &why);
+                continue;
+            }
+            Verdict::Warn(why) => {
+                warn = true;
+                p.warnings.push(format!("{}: {why}", name_of(&path)));
+            }
+            Verdict::Ok => {}
+        }
+        let snap = match snap_of(&path) {
+            Ok(s) => s,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                refuse(&mut p, "It no longer exists. Refresh the folder.");
+                continue;
+            }
+            Err(e) => {
+                refuse(&mut p, &format!("It can't be read: {e}"));
+                continue;
+            }
+        };
+        let was_dir = node.is_dir();
+        let stale = snap.is_dir != was_dir
+            || snap.is_reparse != (node.flags & F_LINK != 0 || node.attrs & 0x400 != 0)
+            || (!was_dir && (snap.size != node.size || snap.mtime != node.mtime));
+        if stale {
+            refuse(
+                &mut p,
+                "It changed after the scan. Refresh the folder and try again.",
+            );
+            continue;
+        }
+        if kind == Kind::Recycle {
+            if let Err(why) = recycle_ok(&path, node.size) {
+                refuse(&mut p, &why);
+                continue;
+            }
+        }
+        p.total_size += node.size;
+        p.total_files += if was_dir { u64::from(node.files) } else { 1 };
+        p.items.push(Item {
+            node: n,
+            path,
+            is_dir: was_dir,
+            size: node.size,
+            files: if was_dir { u64::from(node.files) } else { 1 },
+            snap,
+            warn,
+        });
+    }
+
+    match kind {
+        Kind::Copy | Kind::Move => match dest {
+            None => p.refused.push(Refusal {
+                path: String::new(),
+                reason: "Choose a destination folder.".into(),
+            }),
+            Some(d) => check_destination(&mut p, d, protect),
+        },
+        Kind::Rename => {
+            if p.items.len() != 1 {
+                p.items.clear();
+                p.refused.push(Refusal {
+                    path: String::new(),
+                    reason: "Rename works on one item at a time.".into(),
+                });
+            } else if let Err(why) =
+                new_name.map_or(Err("Type a new name.".to_string()), valid_new_name)
+            {
+                p.items.clear();
+                p.refused.push(Refusal {
+                    path: String::new(),
+                    reason: why,
+                });
+            }
+        }
+        _ => {}
+    }
+    if kind == Kind::Delete {
+        p.needs_typed =
+            p.total_files > BIG_FILES || p.total_size > BIG_BYTES || p.items.iter().any(|i| i.warn);
+    }
+    p
+}
+
+fn check_destination(p: &mut Plan, d: &Path, protect: &Protected) {
+    let bad = |p: &mut Plan, why: String| {
+        p.items.clear();
+        p.refused.push(Refusal {
+            path: d.to_string_lossy().to_string(),
+            reason: why,
+        });
+    };
+    if !d.is_dir() {
+        return bad(p, "The destination folder doesn't exist.".into());
+    }
+    match protect.check(d) {
+        Verdict::Refuse(why) => return bad(p, format!("Can't put files there. {why}")),
+        Verdict::Warn(why) => p.warnings.push(format!("Destination: {why}")),
+        Verdict::Ok => {}
+    }
+    if let Some(it) = p
+        .items
+        .iter()
+        .find(|i| i.is_dir && nomnom_organizer::pathutil::is_inside(d, &i.path))
+    {
+        let why = format!("{} can't be put inside itself.", name_of(&it.path));
+        bad(p, why);
+    }
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Status {
+    Done,
+    Failed,
+    Skipped,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ItemResult {
+    pub path: String,
+    pub status: Status,
+    pub message: Option<String>,
+    pub size: u64,
+    /// Where it went (copy, move, rename).
+    pub to: Option<String>,
+}
+
+#[derive(Serialize, Clone, Debug, Default)]
+pub struct Report {
+    pub results: Vec<ItemResult>,
+    pub cancelled: bool,
+}
+
+impl Report {
+    pub fn count(&self, s: Status) -> usize {
+        self.results.iter().filter(|r| r.status == s).count()
+    }
+    pub fn bytes_done(&self) -> u64 {
+        self.results
+            .iter()
+            .filter(|r| r.status == Status::Done)
+            .map(|r| r.size)
+            .sum()
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Progress {
+    pub done: usize,
+    pub total: usize,
+    pub current: String,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RunOptions {
+    /// Also delete files marked read-only (they are reported, not deleted, otherwise).
+    pub include_readonly: bool,
+}
+
+/// Runs a plan. Each item is checked against the disk again right before it is touched.
+pub fn run(
+    plan: &Plan,
+    opts: RunOptions,
+    cancel: &AtomicBool,
+    progress: &dyn Fn(Progress),
+) -> Report {
+    let mut report = Report::default();
+    let total = plan.items.len();
+    for (i, item) in plan.items.iter().enumerate() {
+        progress(Progress {
+            done: i,
+            total,
+            current: name_of(&item.path),
+        });
+        if cancel.load(Ordering::SeqCst) {
+            report.cancelled = true;
+            for rest in &plan.items[i..] {
+                report.results.push(result(
+                    rest,
+                    Status::Skipped,
+                    Some("Stopped before this item.".into()),
+                    None,
+                ));
+            }
+            break;
+        }
+        if let Err(why) = revalidate(item) {
+            report
+                .results
+                .push(result(item, Status::Skipped, Some(why), None));
+            continue;
+        }
+        let outcome = match plan.kind {
+            Kind::Recycle => recycle(&item.path).map(|_| None),
+            Kind::Delete => delete_item(item, opts, cancel).map(|_| None),
+            Kind::Copy => copy_item(item, plan.dest.as_deref().unwrap(), cancel).map(Some),
+            Kind::Move => move_item(item, plan.dest.as_deref().unwrap(), cancel),
+            Kind::Rename => rename_item(item, plan.new_name.as_deref().unwrap()).map(Some),
+        };
+        report.results.push(match outcome {
+            Ok(to) => result(item, Status::Done, None, to),
+            Err(e) if e.kind() == io::ErrorKind::Other && e.to_string().starts_with("skip:") => {
+                result(
+                    item,
+                    Status::Skipped,
+                    Some(e.to_string().trim_start_matches("skip:").trim().to_string()),
+                    None,
+                )
+            }
+            Err(e) => result(item, Status::Failed, Some(explain(&e)), None),
+        });
+    }
+    progress(Progress {
+        done: report.results.len(),
+        total,
+        current: String::new(),
+    });
+    report
+}
+
+fn result(item: &Item, status: Status, message: Option<String>, to: Option<PathBuf>) -> ItemResult {
+    ItemResult {
+        path: item.path.to_string_lossy().to_string(),
+        status,
+        message,
+        size: item.size,
+        to: to.map(|t| t.to_string_lossy().to_string()),
+    }
+}
+
+fn explain(e: &io::Error) -> String {
+    match e.raw_os_error() {
+        Some(5) => "Access denied. NomNom doesn't take over permissions.".into(),
+        Some(32) => "Another program is using it.".into(),
+        Some(112) => "The disk is full.".into(),
+        Some(145) => "The folder isn't empty.".into(),
+        Some(3) | Some(2) => "It was already gone.".into(),
+        _ => e.to_string(),
+    }
+}
+
+fn skip(why: &str) -> io::Error {
+    io::Error::other(format!("skip:{why}"))
+}
+
+/// The disk must still show what the plan saw. A scan is a photograph, never an authority.
+fn revalidate(item: &Item) -> Result<(), String> {
+    let now = snap_of(&item.path).map_err(|e| {
+        if e.kind() == io::ErrorKind::NotFound {
+            "It was already gone.".to_string()
+        } else {
+            format!("It can't be read now: {e}")
+        }
+    })?;
+    let s = item.snap;
+    if now.id != s.id || now.is_dir != s.is_dir || now.is_reparse != s.is_reparse {
+        return Err("A different file or folder is at this path now.".into());
+    }
+    if !s.is_dir && (now.size != s.size || now.mtime != s.mtime) {
+        return Err("The file changed after the preview.".into());
+    }
+    Ok(())
+}
+
+// ---- delete ------------------------------------------------------------------------------
+
+#[derive(Default)]
+struct Failures {
+    count: usize,
+    first: Option<String>,
+}
+
+fn delete_item(item: &Item, opts: RunOptions, cancel: &AtomicBool) -> io::Result<()> {
+    let mut f = Failures::default();
+    delete_tree(&item.path, opts.include_readonly, cancel, &mut f);
+    match f.first {
+        None => Ok(()),
+        Some(first) => Err(io::Error::other(format!(
+            "{} {} couldn't be deleted. First problem: {first}",
+            f.count,
+            if f.count == 1 { "item" } else { "items" }
+        ))),
+    }
+}
+
+/// Deletes a file or folder. A link (junction or symlink) is removed itself and never entered.
+#[allow(clippy::permissions_set_readonly_false)] // Windows only: this clears the read-only attribute, nothing else
+fn delete_tree(path: &Path, include_readonly: bool, cancel: &AtomicBool, f: &mut Failures) {
+    let long = long_os_path(path);
+    let md = match std::fs::symlink_metadata(&long) {
+        Ok(m) => m,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return,
+        Err(e) => return fail(f, path, &e),
+    };
+    let attrs = md.file_attributes();
+    if attrs & ATTR_REPARSE != 0 {
+        let r = if attrs & ATTR_DIRECTORY != 0 {
+            std::fs::remove_dir(&long)
+        } else {
+            std::fs::remove_file(&long)
+        };
+        if let Err(e) = r {
+            fail(f, path, &e);
+        }
+    } else if attrs & ATTR_DIRECTORY != 0 {
+        match std::fs::read_dir(&long) {
+            Ok(rd) => {
+                for entry in rd.flatten() {
+                    if cancel.load(Ordering::SeqCst) {
+                        return fail_msg(f, path, "Stopped before everything was deleted.");
+                    }
+                    delete_tree(&path.join(entry.file_name()), include_readonly, cancel, f);
+                }
+            }
+            Err(e) => return fail(f, path, &e),
+        }
+        if let Err(e) = std::fs::remove_dir(&long) {
+            // Something inside couldn't be deleted, or appeared meanwhile.
+            if f.count == 0 {
+                fail(f, path, &e);
+            }
+        }
+    } else {
+        if attrs & ATTR_READONLY != 0 {
+            if !include_readonly {
+                return fail_msg(
+                    f,
+                    path,
+                    "Read-only file. Tick \"also delete read-only files\" to remove it.",
+                );
+            }
+            let mut perm = md.permissions();
+            perm.set_readonly(false);
+            if let Err(e) = std::fs::set_permissions(&long, perm) {
+                return fail(f, path, &e);
+            }
+        }
+        if let Err(e) = std::fs::remove_file(&long) {
+            fail(f, path, &e);
+        }
+    }
+}
+
+fn fail(f: &mut Failures, path: &Path, e: &io::Error) {
+    fail_msg(f, path, &format!("{} ({})", explain(e), name_of(path)));
+}
+fn fail_msg(f: &mut Failures, path: &Path, msg: &str) {
+    let _ = path;
+    f.count += 1;
+    f.first.get_or_insert_with(|| msg.to_string());
+}
+
+// ---- recycle ---------------------------------------------------------------------------
+
+/// Checks that Windows can really keep this in the Recycle Bin. When it can't, Windows may delete
+/// the item for good without asking, so NomNom refuses instead.
+pub fn recycle_ok(path: &Path, size: u64) -> Result<(), String> {
+    let drive = crate::drives::drive_of(path)
+        .ok_or("The Recycle Bin only works for items on a local drive.")?;
+    if drive.kind != crate::drives::DriveKind::Fixed {
+        return Err(
+            "This drive has no Recycle Bin. Use Shift+Delete to delete it permanently.".into(),
+        );
+    }
+    if path.to_string_lossy().len() >= 255 {
+        return Err(
+            "The path is too long for the Recycle Bin. Use Shift+Delete to delete it permanently."
+                .into(),
+        );
+    }
+    let mut limit = drive.total / 20;
+    if let Some((nuke, max_mb)) = bitbucket_settings(&drive.root) {
+        if nuke {
+            return Err(
+                "Windows is set to delete files on this drive without using the Recycle Bin."
+                    .into(),
+            );
+        }
+        if let Some(mb) = max_mb {
+            limit = limit.min(mb * 1024 * 1024);
+        }
+    }
+    if drive.total > 0 && size > limit {
+        return Err(
+            "Too big for the Recycle Bin. Use Shift+Delete if you want it gone for good.".into(),
+        );
+    }
+    Ok(())
+}
+
+fn bitbucket_settings(root: &str) -> Option<(bool, Option<u64>)> {
+    use windows::core::PCWSTR;
+    use windows::Win32::Storage::FileSystem::GetVolumeNameForVolumeMountPointW;
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+    let wroot: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut buf = [0u16; 64];
+    // SAFETY: wroot is NUL-terminated and buf is large enough for a volume GUID path.
+    unsafe { GetVolumeNameForVolumeMountPointW(PCWSTR(wroot.as_ptr()), &mut buf) }.ok()?;
+    let name = String::from_utf16_lossy(&buf[..buf.iter().position(|c| *c == 0)?]);
+    let guid = name.split(['{', '}']).nth(1)?;
+    let key = winreg::RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey_with_flags(
+            format!(
+                r"Software\Microsoft\Windows\CurrentVersion\Explorer\BitBucket\Volume\{{{guid}}}"
+            ),
+            KEY_READ,
+        )
+        .ok()?;
+    let nuke: u32 = key.get_value("NukeOnDelete").unwrap_or(0);
+    let max: Option<u32> = key.get_value("MaxCapacity").ok();
+    Some((nuke == 1, max.map(u64::from)))
+}
+
+/// Sends one item to the Recycle Bin through the shell.
+pub fn recycle(path: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::core::PCWSTR;
+    use windows::Win32::UI::Shell::{
+        SHFileOperationW, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOCONFIRMMKDIR, FOF_NOERRORUI,
+        FOF_SILENT, FO_DELETE, SHFILEOPSTRUCTW,
+    };
+    let mut from: Vec<u16> = path.as_os_str().encode_wide().collect();
+    from.push(0);
+    from.push(0);
+    let mut op = SHFILEOPSTRUCTW {
+        wFunc: FO_DELETE,
+        pFrom: PCWSTR(from.as_ptr()),
+        fFlags: (FOF_ALLOWUNDO
+            | FOF_NOCONFIRMATION
+            | FOF_NOCONFIRMMKDIR
+            | FOF_NOERRORUI
+            | FOF_SILENT)
+            .0 as u16,
+        ..Default::default()
+    };
+    // SAFETY: `from` is double-NUL terminated and outlives the call.
+    let code = unsafe { SHFileOperationW(&mut op) };
+    if code != 0 || op.fAnyOperationsAborted.as_bool() {
+        return Err(io::Error::other(format!(
+            "Windows couldn't move it to the Recycle Bin (code {code:#x})."
+        )));
+    }
+    if path.exists() {
+        return Err(io::Error::other("Windows left the item where it was."));
+    }
+    Ok(())
+}
+
+// ---- copy and move ---------------------------------------------------------------------
+
+/// `name`, or `name (2)`, `name (3)` … so nothing is ever replaced.
+pub fn free_name(dir: &Path, name: &str) -> PathBuf {
+    let first = dir.join(name);
+    if !long_os_path(&first).exists() {
+        return first;
+    }
+    let (stem, ext) = match name.rfind('.') {
+        Some(i) if i > 0 => (&name[..i], &name[i..]),
+        _ => (name, ""),
+    };
+    (2..10_000)
+        .map(|n| dir.join(format!("{stem} ({n}){ext}")))
+        .find(|p| !long_os_path(p).exists())
+        .unwrap_or_else(|| dir.join(format!("{stem} ({}){ext}", uuid_like())))
+}
+
+fn uuid_like() -> String {
+    format!(
+        "{:x}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0)
+    )
+}
+
+fn copy_item(item: &Item, dest: &Path, cancel: &AtomicBool) -> io::Result<PathBuf> {
+    let target = free_name(dest, &name_of(&item.path));
+    let mut skipped = Vec::new();
+    copy_tree(&item.path, &target, cancel, &mut skipped)?;
+    Ok(target)
+}
+
+fn move_item(item: &Item, dest: &Path, cancel: &AtomicBool) -> io::Result<Option<PathBuf>> {
+    let same_dir = item
+        .path
+        .parent()
+        .is_some_and(|p| nomnom_organizer::pathutil::is_same(p, dest));
+    if same_dir {
+        return Err(skip("It is already in that folder."));
+    }
+    let target = free_name(dest, &name_of(&item.path));
+    let same_volume = winfs::info(&long_os_path(dest))
+        .map(|d| d.id.volume == item.snap.id.volume)
+        .unwrap_or(false);
+    if same_volume {
+        nomnom_core::fs::move_no_replace(&long_os_path(&item.path), &long_os_path(&target))?;
+        return Ok(Some(target));
+    }
+    move_by_copy(item, &target, cancel)?;
+    Ok(Some(target))
+}
+
+/// Another drive: copy, prove the copy is identical, and only then remove the original.
+pub fn move_by_copy(item: &Item, target: &Path, cancel: &AtomicBool) -> io::Result<()> {
+    let mut skipped = Vec::new();
+    if let Err(e) = copy_tree(&item.path, target, cancel, &mut skipped) {
+        let mut f = Failures::default();
+        // Remove only the half-made copy.
+        delete_tree(target, true, &AtomicBool::new(false), &mut f);
+        return Err(e);
+    }
+    let verified = if skipped.is_empty() {
+        verify_tree(&item.path, target)
+    } else {
+        Err(io::Error::other(format!(
+            "{} links inside weren't copied, so the original was kept.",
+            skipped.len()
+        )))
+    };
+    if let Err(e) = verified {
+        return Err(io::Error::other(format!(
+            "The copy wasn't identical, so the original was kept ({e}). The copy is at {}.",
+            target.display()
+        )));
+    }
+    revalidate(item).map_err(|why| {
+        io::Error::other(format!(
+            "The original changed while copying, so it was kept ({why}). The copy is at {}.",
+            target.display()
+        ))
+    })?;
+    let mut f = Failures::default();
+    delete_tree(&item.path, false, cancel, &mut f);
+    match f.first {
+        None => Ok(()),
+        Some(first) => Err(io::Error::other(format!(
+            "Copied, but the original couldn't be fully removed: {first}"
+        ))),
+    }
+}
+
+/// Copies a file or folder to a name that doesn't exist. Links inside a folder are listed in
+/// `skipped` and not followed.
+pub fn copy_tree(
+    src: &Path,
+    dst: &Path,
+    cancel: &AtomicBool,
+    skipped: &mut Vec<PathBuf>,
+) -> io::Result<()> {
+    if cancel.load(Ordering::SeqCst) {
+        return Err(io::Error::other("Stopped."));
+    }
+    let (ls, ld) = (long_os_path(src), long_os_path(dst));
+    let md = std::fs::symlink_metadata(&ls)?;
+    let attrs = md.file_attributes();
+    if attrs & ATTR_REPARSE != 0 {
+        skipped.push(src.to_path_buf());
+        return Ok(());
+    }
+    if attrs & ATTR_DIRECTORY != 0 {
+        std::fs::create_dir(&ld)?;
+        for e in std::fs::read_dir(&ls)? {
+            let e = e?;
+            copy_tree(
+                &src.join(e.file_name()),
+                &dst.join(e.file_name()),
+                cancel,
+                skipped,
+            )?;
+        }
+        return Ok(());
+    }
+    let mut input = File::open(&ls)?;
+    let mut out = OpenOptions::new().write(true).create_new(true).open(&ld)?;
+    io::copy(&mut input, &mut out)?;
+    out.flush()?;
+    if let Ok(m) = md.modified() {
+        let _ = out.set_modified(m);
+    }
+    Ok(())
+}
+
+fn hash_file(p: &Path) -> io::Result<[u8; 32]> {
+    let mut f = File::open(long_os_path(p))?;
+    let mut h = blake3::Hasher::new();
+    let mut buf = vec![0u8; 1 << 20];
+    loop {
+        let n = f.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(*h.finalize().as_bytes())
+}
+
+/// Same names, same sizes and the same content on both sides.
+pub fn verify_tree(a: &Path, b: &Path) -> io::Result<()> {
+    let (la, lb) = (long_os_path(a), long_os_path(b));
+    let ma = std::fs::symlink_metadata(&la)?;
+    let mb = std::fs::symlink_metadata(&lb)?;
+    if ma.is_dir() != mb.is_dir() {
+        return Err(io::Error::other(format!(
+            "{} isn't the same kind of item",
+            name_of(a)
+        )));
+    }
+    if ma.is_dir() {
+        let mut names: Vec<_> = std::fs::read_dir(&la)?
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
+        names.sort();
+        let mut other: Vec<_> = std::fs::read_dir(&lb)?
+            .flatten()
+            .map(|e| e.file_name())
+            .collect();
+        other.sort();
+        if names != other {
+            return Err(io::Error::other(format!(
+                "{} has different contents",
+                name_of(a)
+            )));
+        }
+        for n in names {
+            verify_tree(&a.join(&n), &b.join(&n))?;
+        }
+        return Ok(());
+    }
+    if ma.len() != mb.len() || hash_file(a)? != hash_file(b)? {
+        return Err(io::Error::other(format!("{} differs", name_of(a))));
+    }
+    Ok(())
+}
+
+fn rename_item(item: &Item, new_name: &str) -> io::Result<PathBuf> {
+    let parent = item
+        .path
+        .parent()
+        .ok_or_else(|| io::Error::other("It has no folder."))?;
+    let target = parent.join(new_name);
+    let same_item_different_case = long_os_path(&target).exists()
+        && snap_of(&target)
+            .map(|s| s.id == item.snap.id)
+            .unwrap_or(false);
+    if long_os_path(&target).exists() && !same_item_different_case {
+        return Err(io::Error::other(
+            "Something with that name is already in this folder.",
+        ));
+    }
+    if same_item_different_case {
+        // A change of letter case only: Windows treats both names as one, so go through a temporary name.
+        let tmp = parent.join(format!(".nomnom-rename-{}", uuid_like()));
+        nomnom_core::fs::move_no_replace(&long_os_path(&item.path), &long_os_path(&tmp))?;
+        if let Err(e) =
+            nomnom_core::fs::move_no_replace(&long_os_path(&tmp), &long_os_path(&target))
+        {
+            let _ =
+                nomnom_core::fs::move_no_replace(&long_os_path(&tmp), &long_os_path(&item.path));
+            return Err(e);
+        }
+    } else {
+        nomnom_core::fs::move_no_replace(&long_os_path(&item.path), &long_os_path(&target))?;
+    }
+    Ok(target)
+}

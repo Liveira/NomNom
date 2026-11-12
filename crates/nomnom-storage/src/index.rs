@@ -234,6 +234,88 @@ impl Index {
         p
     }
 
+    /// Finds the node for a path inside the scan (names compared without regard to case).
+    pub fn resolve_path(&self, path: &std::path::Path) -> Option<NodeId> {
+        let norm = |p: &std::path::Path| {
+            p.to_string_lossy()
+                .replace('/', "\\")
+                .trim_end_matches('\\')
+                .to_lowercase()
+        };
+        let (p, root) = (norm(path), norm(&self.root_path));
+        if p == root {
+            return Some(0);
+        }
+        let rest = p.strip_prefix(&format!("{root}\\"))?;
+        let mut cur = 0;
+        for part in rest.split('\\') {
+            cur = self
+                .children(cur)
+                .find(|c| self.name(*c).to_lowercase() == part)?;
+        }
+        Some(cur)
+    }
+
+    /// Takes one item (and everything below it) out of the index, correcting every total above it.
+    /// Used after a delete or move so the picture stays right without scanning again.
+    pub fn remove_node(&mut self, id: NodeId) {
+        let Some(n) = self.nodes.get(id as usize) else {
+            return;
+        };
+        let (parent, size, alloc, files, dirs, is_dir, next) = (
+            n.parent,
+            n.size,
+            n.alloc,
+            n.files,
+            n.dirs,
+            n.is_dir(),
+            n.next_sibling,
+        );
+        if parent == NONE {
+            return;
+        }
+        let first = self.nodes[parent as usize].first_child;
+        if first == id {
+            self.nodes[parent as usize].first_child = next;
+        } else {
+            let mut cur = first;
+            while cur != NONE {
+                if self.nodes[cur as usize].next_sibling == id {
+                    self.nodes[cur as usize].next_sibling = next;
+                    break;
+                }
+                cur = self.nodes[cur as usize].next_sibling;
+            }
+        }
+        self.nodes[id as usize].parent = NONE;
+        if !is_dir {
+            let p = &mut self.nodes[parent as usize];
+            p.own_size = p.own_size.saturating_sub(size);
+        }
+        let (df, dd) = if is_dir { (files, dirs + 1) } else { (1, 0) };
+        let mut cur = parent;
+        while cur != NONE {
+            let a = &mut self.nodes[cur as usize];
+            a.size = a.size.saturating_sub(size);
+            a.alloc = a.alloc.saturating_sub(alloc);
+            a.files = a.files.saturating_sub(df);
+            a.dirs = a.dirs.saturating_sub(dd);
+            cur = a.parent;
+        }
+    }
+
+    /// Gives an item a new name in place.
+    pub fn rename_node(&mut self, id: NodeId, new_name: &str) {
+        if new_name.len() > u16::MAX as usize || id as usize >= self.nodes.len() {
+            return;
+        }
+        let off = self.names.len() as u32;
+        self.names.push_str(new_name);
+        let n = &mut self.nodes[id as usize];
+        n.name_off = off;
+        n.name_len = new_name.len() as u16;
+    }
+
     /// The chain from the root to `id`, root first.
     pub fn ancestors(&self, id: NodeId) -> Vec<NodeId> {
         let mut v = Vec::new();

@@ -60,6 +60,17 @@
 
   function open(n: StNode) {
     if (n.is_dir && !n.is_link) void storage.go(n.id);
+    else if (!n.is_dir) {
+      storage.selected = new Set([n.id]);
+      void storage.openSelected(false);
+    }
+  }
+
+  function context(e: MouseEvent, i: number) {
+    e.preventDefault();
+    cursor = i;
+    if (!storage.selected.has(storage.rows[i].id)) storage.clickRow(i, { ctrl: false, shift: false });
+    storage.menu = { x: e.clientX, y: e.clientY };
   }
 
   function onKey(e: KeyboardEvent) {
@@ -138,6 +149,7 @@
               storage.clickRow(i, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
             }}
             ondblclick={() => open(n)}
+            oncontextmenu={(e) => context(e, i)}
             onkeydown={() => {}}
           >
             {#each shown as c (c.key)}
