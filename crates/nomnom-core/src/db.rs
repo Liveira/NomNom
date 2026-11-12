@@ -30,6 +30,21 @@ const MIGRATIONS: &[&str] = &[
     "ALTER TABLE downloads ADD COLUMN subdir TEXT;",
     // v4: where a moved file ended up, so undo can tell whether it was touched since
     "ALTER TABLE org_ops ADD COLUMN dst_size INTEGER; ALTER TABLE org_ops ADD COLUMN dst_mtime INTEGER; ALTER TABLE org_ops ADD COLUMN dst_file_id TEXT;",
+    // v5: Disk Analyzer snapshots. Folder sizes down to a depth, and the big files, as of one moment.
+    "CREATE TABLE storage_snapshots(
+        id INTEGER PRIMARY KEY AUTOINCREMENT, root TEXT NOT NULL, label TEXT NOT NULL DEFAULT '',
+        source TEXT NOT NULL DEFAULT 'manual', created_at INTEGER NOT NULL,
+        files INTEGER NOT NULL, dirs INTEGER NOT NULL, bytes INTEGER NOT NULL, alloc INTEGER NOT NULL,
+        depth INTEGER NOT NULL, big_min INTEGER NOT NULL, errors INTEGER NOT NULL DEFAULT 0);
+     CREATE INDEX storage_snapshots_root ON storage_snapshots(root, created_at);
+     CREATE TABLE storage_snapshot_dirs(
+        snapshot_id INTEGER NOT NULL REFERENCES storage_snapshots(id) ON DELETE CASCADE,
+        path TEXT NOT NULL, size INTEGER NOT NULL, alloc INTEGER NOT NULL, files INTEGER NOT NULL,
+        PRIMARY KEY(snapshot_id, path)) WITHOUT ROWID;
+     CREATE TABLE storage_snapshot_files(
+        snapshot_id INTEGER NOT NULL REFERENCES storage_snapshots(id) ON DELETE CASCADE,
+        path TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER,
+        PRIMARY KEY(snapshot_id, path)) WITHOUT ROWID;",
 ];
 
 pub struct Db {

@@ -6,6 +6,7 @@
   import Charts from './Charts.svelte';
   import DriveCards from './DriveCards.svelte';
   import Duplicates from './Duplicates.svelte';
+  import History from './History.svelte';
   import Search from './Search.svelte';
   import FileTable from './FileTable.svelte';
   import OpDialogs from './OpDialogs.svelte';
@@ -165,6 +166,7 @@
     <button role="tab" aria-selected={storage.tab === 'charts'} class:on={storage.tab === 'charts'} onclick={() => (storage.tab = 'charts')}>Charts</button>
     <button role="tab" aria-selected={storage.tab === 'search'} class:on={storage.tab === 'search'} onclick={() => (storage.tab = 'search')}>Search</button>
     <button role="tab" aria-selected={storage.tab === 'duplicates'} class:on={storage.tab === 'duplicates'} onclick={() => (storage.tab = 'duplicates')}>Duplicates</button>
+    <button role="tab" aria-selected={storage.tab === 'history'} class:on={storage.tab === 'history'} onclick={() => (storage.tab = 'history')}>History</button>
   </div>
 
   {#if storage.error}<p class="error" role="alert">{storage.error} <button class="link" onclick={() => (storage.error = '')}>Dismiss</button></p>{/if}
@@ -204,6 +206,8 @@
       <Search />
     {:else if storage.tab === 'duplicates'}
       <Duplicates />
+    {:else if storage.tab === 'history'}
+      <History />
     {:else}
       <Charts />
     {/if}

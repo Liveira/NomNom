@@ -28,6 +28,13 @@ export interface Settings {
     default_audio: Container;
     sort_into_folders: boolean;
   };
+  storage: {
+    snapshot_depth: number;
+    big_file_mb: number;
+    schedule: 'off' | 'on_start' | 'daily' | 'weekly';
+    schedule_roots: string[];
+    keep_scheduled: number;
+  };
 }
 
 export interface SettingsPatch {
@@ -53,6 +60,11 @@ export interface SettingsPatch {
   shellMenu?: boolean;
   autostart?: boolean;
   firstRunDone?: boolean;
+  storageSchedule?: 'off' | 'on_start' | 'daily' | 'weekly';
+  storageRoots?: string[];
+  storageKeep?: number;
+  storageDepth?: number;
+  storageBigMb?: number;
 }
 
 export interface ModuleManifest {
@@ -616,3 +628,74 @@ export const stTools = {
   export: (id: number, node: number, spec: StReportSpec, path: string) => invoke<number>('st_export', { id, node, spec, path }),
   exportPaths: (id: number, nodes: number[], path: string) => invoke<number>('st_export_paths', { id, nodes, path }),
 };
+
+// ---- Disk Analyzer: history ---------------------------------------------------------------------------
+export interface StSnapshot {
+  id: number;
+  root: string;
+  label: string;
+  source: 'manual' | 'scheduled';
+  created_at: number;
+  files: number;
+  dirs: number;
+  bytes: number;
+  alloc: number;
+  depth: number;
+  big_min: number;
+  errors: number;
+}
+export type StChange = 'grew' | 'shrank' | 'new' | 'gone';
+export interface StChangeRow {
+  path: string;
+  change: StChange;
+  before: number | null;
+  after: number | null;
+  delta: number;
+}
+export interface StComparison {
+  bytes_before: number;
+  bytes_after: number;
+  delta: number;
+  files_before: number;
+  files_after: number;
+  depth: number;
+  big_min: number;
+  dirs: StChangeRow[];
+  dirs_changed: number;
+  files: StChangeRow[];
+  files_changed: number;
+}
+export interface StCompareView {
+  before: StSnapshot;
+  after: StSnapshot | null;
+  comparison: StComparison;
+}
+export interface StTrendPoint {
+  id: number;
+  created_at: number;
+  size: number | null;
+}
+export interface StRunNote {
+  root: string;
+  at: number;
+  ok: boolean;
+  message: string;
+}
+
+export const stHistory = {
+  save: (id: number, label: string) => invoke<StSnapshot>('st_snapshot_save', { id, label }),
+  list: (root: string) => invoke<StSnapshot[]>('st_snapshots', { root }),
+  remove: (snapshot: number) => invoke<void>('st_snapshot_delete', { snapshot }),
+  compare: (a: number, b: number | null, id: number | null, limit: number) =>
+    invoke<StCompareView>('st_snapshot_compare', { a, b, id, limit }),
+  exportComparison: (a: number, b: number | null, id: number | null, format: 'csv' | 'json' | 'html' | 'xlsx' | 'pdf', path: string) =>
+    invoke<number>('st_export_comparison', { a, b, id, format, path }),
+  trend: (root: string, folder: string) => invoke<StTrendPoint[]>('st_snapshot_trend', { root, folder }),
+  scheduleStatus: () => invoke<{ running: string | null; notes: StRunNote[] }>('st_schedule_status'),
+};
+export function onStorageSnapshots(handler: (root: string) => void): Promise<UnlistenFn> {
+  return listen<string>('storage://snapshots', (e) => handler(e.payload));
+}
+export function onStorageSchedule(handler: () => void): Promise<UnlistenFn> {
+  return listen<string>('storage://schedule', () => handler());
+}

@@ -142,6 +142,33 @@ impl Default for Organizer {
     }
 }
 
+/// Disk Analyzer: what snapshots keep, and the optional scheduled scans. Scheduled scans only read.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Storage {
+    /// How many folder levels a snapshot keeps.
+    pub snapshot_depth: u8,
+    /// Files at least this big (in MB) are kept in a snapshot by name.
+    pub big_file_mb: u32,
+    /// "off", "on_start", "daily" or "weekly".
+    pub schedule: String,
+    /// Folders and drives the schedule scans.
+    pub schedule_roots: Vec<std::path::PathBuf>,
+    /// How many scheduled snapshots to keep for each folder. Snapshots made by hand are never removed.
+    pub keep_scheduled: u32,
+}
+impl Default for Storage {
+    fn default() -> Self {
+        Storage {
+            snapshot_depth: 6,
+            big_file_mb: 50,
+            schedule: "off".into(),
+            schedule_roots: Vec::new(),
+            keep_scheduled: 12,
+        }
+    }
+}
+
 /// Windows integration: the right-click menu and starting with Windows. Everything is off until the
 /// user answers the first-run screen (which offers the menu switched on).
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -166,6 +193,7 @@ pub struct Settings {
     pub browser: Browser,
     pub organizer: Organizer,
     pub system: System,
+    pub storage: Storage,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -181,6 +209,7 @@ impl Default for Settings {
             browser: Browser::default(),
             organizer: Organizer::default(),
             system: System::default(),
+            storage: Storage::default(),
             extra: Map::new(),
         }
     }

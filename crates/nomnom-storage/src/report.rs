@@ -339,6 +339,63 @@ pub fn duplicates_table(groups: &[DupGroup]) -> Table {
     }
 }
 
+/// What changed between two snapshots (or a snapshot and a scan), biggest changes first.
+pub fn comparison_table(
+    c: &crate::snapshot::Comparison,
+    before_label: &str,
+    after_label: &str,
+) -> Table {
+    use crate::snapshot::Change;
+    let word = |ch: Change| match ch {
+        Change::Grew => "Grew",
+        Change::Shrank => "Shrank",
+        Change::New => "New",
+        Change::Gone => "Gone",
+    };
+    let size = |v: Option<u64>| v.map_or(Value::Text(String::new()), Value::Bytes);
+    let mut rows = Vec::new();
+    for d in &c.dirs {
+        rows.push(vec![
+            Value::Text("Folder".into()),
+            Value::Text(d.path.clone()),
+            Value::Text(word(d.change).into()),
+            size(d.before),
+            size(d.after),
+            Value::Int(d.delta),
+        ]);
+    }
+    for f in &c.files {
+        rows.push(vec![
+            Value::Text("File".into()),
+            Value::Text(f.path.clone()),
+            Value::Text(word(f.change).into()),
+            size(f.before),
+            size(f.after),
+            Value::Int(f.delta),
+        ]);
+    }
+    Table {
+        title: format!("Changes from {before_label} to {after_label}"),
+        note: Some(format!(
+            "Total went from {} to {}. Folders down to {} levels and files of {} or more were compared; \
+             anything smaller or deeper was not kept in both and is not listed.",
+            human_bytes(c.bytes_before),
+            human_bytes(c.bytes_after),
+            c.depth,
+            human_bytes(c.big_min)
+        )),
+        columns: vec![
+            Column { key: "kind", label: "Kind" },
+            Column { key: "path", label: "Path" },
+            Column { key: "change", label: "Change" },
+            Column { key: "before", label: "Before" },
+            Column { key: "after", label: "After" },
+            Column { key: "delta", label: "Difference in bytes" },
+        ],
+        rows,
+    }
+}
+
 // ---- writers ---------------------------------------------------------------------------------------
 
 fn csv_cell(s: &str) -> String {
@@ -378,7 +435,11 @@ pub fn to_csv(t: &Table) -> Vec<u8> {
     for r in &t.rows {
         out.push_str(
             &r.iter()
-                .map(|v| csv_cell(&raw(v)))
+                .map(|v| match v {
+                    // Only text can be mistaken for a formula; a negative number stays a number.
+                    Value::Text(_) => csv_cell(&raw(v)),
+                    _ => raw(v),
+                })
                 .collect::<Vec<_>>()
                 .join(","),
         );

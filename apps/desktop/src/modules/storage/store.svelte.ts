@@ -44,7 +44,7 @@ class StorageStore {
   anchor = $state<number | null>(null);
   /** Goes up whenever the scan's data changed, so views that cache (the tree) reload. */
   version = $state(0);
-  tab = $state<'explorer' | 'rankings' | 'charts' | 'search' | 'duplicates'>('explorer');
+  tab = $state<'explorer' | 'rankings' | 'charts' | 'search' | 'duplicates' | 'history'>('explorer');
   view = $state<'table' | 'treemap'>('table');
   /** Set by the charts so the rankings open already filtered; the rankings clear them. */
   rankingCategory = $state('');
@@ -166,8 +166,11 @@ class StorageStore {
     const p = this.progress;
     if (!p || this.busy) return;
     if (whole || this.current === 0) {
+      // A fresh scan starts on the Explorer, but refreshing from another tab should stay where it is.
+      const tab = this.tab;
       await this.close(p.id);
       await this.start(p.root);
+      this.tab = tab;
       return;
     }
     try {

@@ -43,6 +43,11 @@ pub struct SettingsPatch {
     shell_menu: Option<bool>,
     autostart: Option<bool>,
     first_run_done: Option<bool>,
+    storage_schedule: Option<String>,
+    storage_roots: Option<Vec<String>>,
+    storage_keep: Option<u32>,
+    storage_depth: Option<u8>,
+    storage_big_mb: Option<u32>,
 }
 
 #[tauri::command]
@@ -82,6 +87,22 @@ pub fn update_settings(
     if let Some(dir) = patch.output_dir.as_deref().filter(|d| !d.is_empty()) {
         if !std::path::Path::new(dir).is_dir() {
             return Err("That folder doesn't exist.".into());
+        }
+    }
+    if let Some(v) = patch.storage_schedule.as_deref() {
+        if !["off", "on_start", "daily", "weekly"].contains(&v) {
+            return Err("Pick Off, When NomNom starts, Daily or Weekly.".into());
+        }
+    }
+    if let Some(roots) = &patch.storage_roots {
+        if roots.len() > 10 {
+            return Err("Pick at most 10 folders to scan on a schedule.".into());
+        }
+        for r in roots {
+            let p = std::path::Path::new(r);
+            if !p.is_absolute() || nomnom_organizer::pathutil::has_traversal(p) || !p.is_dir() {
+                return Err(format!("{r} isn't a folder NomNom can scan."));
+            }
         }
     }
     let result = state
@@ -143,6 +164,31 @@ pub fn update_settings(
             }
             if let Some(v) = patch.first_run_done {
                 s.system.first_run_done = v;
+            }
+            if let Some(v) = &patch.storage_schedule {
+                s.storage.schedule = v.clone();
+            }
+            if let Some(v) = &patch.storage_roots {
+                let mut seen: Vec<std::path::PathBuf> = Vec::new();
+                for r in v {
+                    let p = std::path::PathBuf::from(r);
+                    if !seen
+                        .iter()
+                        .any(|x| nomnom_organizer::pathutil::is_same(x, &p))
+                    {
+                        seen.push(p);
+                    }
+                }
+                s.storage.schedule_roots = seen;
+            }
+            if let Some(v) = patch.storage_keep {
+                s.storage.keep_scheduled = v.clamp(1, 100);
+            }
+            if let Some(v) = patch.storage_depth {
+                s.storage.snapshot_depth = v.clamp(1, 12);
+            }
+            if let Some(v) = patch.storage_big_mb {
+                s.storage.big_file_mb = v.clamp(1, 100_000);
             }
             if let Some(v) = patch.close_to_tray {
                 s.general.close_to_tray = v;

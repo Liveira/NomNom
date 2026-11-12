@@ -2819,6 +2819,7 @@ dependencies = [
  "nomnom-core",
  "nomnom-organizer",
  "regex",
+ "rusqlite",
  "serde",
  "serde_json",
  "sha2",

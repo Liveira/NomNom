@@ -1,7 +1,8 @@
 use crate::modules::downloads;
 use crate::{
     browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
-    quick, shortcuts, state::AppState, storage, storage_ops, storage_tools, tray, windows,
+    quick, shortcuts, state::AppState, storage, storage_history, storage_ops, storage_tools, tray,
+    windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -171,6 +172,13 @@ pub fn run() {
             storage_tools::st_rename_plan,
             storage_tools::st_export,
             storage_tools::st_export_paths,
+            storage_history::st_snapshot_save,
+            storage_history::st_snapshots,
+            storage_history::st_snapshot_delete,
+            storage_history::st_snapshot_compare,
+            storage_history::st_export_comparison,
+            storage_history::st_snapshot_trend,
+            storage_history::st_schedule_status,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,
@@ -205,6 +213,7 @@ pub fn run() {
             quick::apply_keep_ready(app.handle());
             organizer::recover_at_startup(&app.state::<AppState>().journal);
             organizer::apply_auto(app.handle());
+            storage_history::spawn(app.handle().clone());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
             } else if !background {

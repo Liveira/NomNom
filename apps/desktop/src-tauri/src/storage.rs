@@ -24,6 +24,7 @@ pub struct StorageState {
     pub(crate) op_cancel: std::sync::atomic::AtomicBool,
     pub(crate) op_running: std::sync::atomic::AtomicBool,
     pub(crate) dupes: Mutex<Option<(u64, Arc<nomnom_storage::dupes::Job>)>>,
+    pub(crate) schedule: crate::storage_history::ScheduleState,
 }
 
 impl StorageState {

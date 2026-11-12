@@ -16,14 +16,17 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::State;
 
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
 }
 
-fn gate(state: &AppState, id: u64) -> Result<std::sync::Arc<nomnom_storage::Session>, String> {
+pub(crate) fn gate(
+    state: &AppState,
+    id: u64,
+) -> Result<std::sync::Arc<nomnom_storage::Session>, String> {
     let s = state.storage.get(id)?;
     if !s.is_finished() {
         return Err("Wait for the scan to finish first.".into());
@@ -252,7 +255,7 @@ pub struct ReportSpec {
 }
 
 /// Where a report may be written: a new file, outside the places NomNom protects.
-fn checked_target(state: &AppState, path: &str, ext: &str) -> Result<PathBuf, String> {
+pub(crate) fn checked_target(state: &AppState, path: &str, ext: &str) -> Result<PathBuf, String> {
     let p = PathBuf::from(path);
     if !p.is_absolute() {
         return Err("Choose where to save the file.".into());
@@ -269,7 +272,7 @@ fn checked_target(state: &AppState, path: &str, ext: &str) -> Result<PathBuf, St
     Ok(p)
 }
 
-fn write_new(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn write_new(path: &std::path::Path, bytes: &[u8]) -> Result<(), String> {
     use std::io::Write;
     let mut f = std::fs::OpenOptions::new()
         .write(true)
