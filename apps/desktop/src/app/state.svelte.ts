@@ -1,4 +1,4 @@
-import { ipc, type Settings, type SettingsPatch, type TaskInfo, type Theme } from '../lib/ipc';
+import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings, type SettingsPatch, type TaskInfo, type Theme } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
 import { discoverModules } from './discover';
 
@@ -7,6 +7,8 @@ class AppState {
   settings = $state<Settings | null>(null);
   current = $state('home');
   tasks = $state<Record<string, TaskInfo>>({});
+  /** A newer NomNom found by the last update check. */
+  newVersion = $state<UpdateAvailable | null>(null);
 
   get activeTasks(): TaskInfo[] {
     return Object.values(this.tasks).filter((t) => t.state === 'running' || t.state === 'queued');
@@ -22,6 +24,12 @@ class AppState {
     this.settings = settings;
     this.tasks = Object.fromEntries(tasks.map((t) => [t.id, t]));
     this.applyTheme(settings.appearance.theme);
+    try {
+      this.newVersion = await updateIpc.known();
+      await onUpdateAvailable((u) => (this.newVersion = u));
+    } catch {
+      /* the update notice is optional */
+    }
   }
 
   mergeTasks(batch: TaskInfo[]) {

@@ -46,6 +46,7 @@
         >
           <Icon name={item.icon} />
           {#if !collapsed}<span>{item.name}</span>{/if}
+          {#if item.id === 'settings' && app.newVersion}<span class="dot" role="img" aria-label="Update available" title="Update available"></span>{/if}
         </button>
       </li>
     {/each}
@@ -98,4 +99,7 @@
   .item.active { background: var(--surface-3); color: var(--text); }
   .item.active :global(svg) { color: var(--accent); }
   .collapsed .item { justify-content: center; padding-inline: 0; }
+  .item { position: relative; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: auto; }
+  .collapsed .dot { position: absolute; top: 6px; right: 14px; margin: 0; }
 </style>

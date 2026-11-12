@@ -1,7 +1,8 @@
 # NomNom
 
 A small, fast utility hub for Windows 11. Everything runs on your PC. No account, no telemetry,
-nothing is sent anywhere except the downloads you ask for.
+nothing is sent anywhere except the downloads you ask for and an update check (Settings, on by
+default) that reads NomNom's own release page on GitHub.
 
 | Part | What it does |
 |---|---|
@@ -11,6 +12,7 @@ nothing is sent anywhere except the downloads you ask for.
 | **File Organizer** | Sorts a folder (Downloads, by default) into Videos, Audio, Images and Documents. It shows what it would do first, never touches folders that look like software, never replaces a file, and every move can be undone. An automatic mode handles new downloads. |
 | **File Tools** | Converts pictures, sound, video, text, Markdown and (with LibreOffice) Office files. Your originals are never changed. |
 | **Disk Analyzer** | Scans a drive or folder and shows where the space went: a table, a treemap, charts, the biggest files and folders, search, and duplicate files (compared byte for byte). Scanning only reads. Moving to the Recycle Bin, deleting, copying, moving, renaming and zipping happen only after a preview and your confirmation. Snapshots show what grew since an earlier day, and an optional schedule saves them for you. |
+| **Updates** | Looks for a newer release on GitHub about once a day (you can turn that off, or check by hand). Nothing is installed until you press the button; the installer is checked against the SHA-256 published with the release. |
 | **Right-click menu** | Convert from Explorer. Uses the Windows 11 menu when Windows trusts the package, the classic menu otherwise. |
 
 ## Install

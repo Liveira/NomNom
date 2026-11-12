@@ -182,6 +182,24 @@ pub struct System {
     pub first_run_done: bool,
 }
 
+/// NomNom's own updates. The check only reads the latest release page; nothing is installed unasked.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Updates {
+    /// Look for a new version when NomNom starts and then about once a day.
+    pub auto_check: bool,
+    /// Unix seconds of the last successful check, 0 if never.
+    pub last_checked: i64,
+}
+impl Default for Updates {
+    fn default() -> Self {
+        Updates {
+            auto_check: true,
+            last_checked: 0,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -194,6 +212,7 @@ pub struct Settings {
     pub organizer: Organizer,
     pub system: System,
     pub storage: Storage,
+    pub updates: Updates,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -210,6 +229,7 @@ impl Default for Settings {
             organizer: Organizer::default(),
             system: System::default(),
             storage: Storage::default(),
+            updates: Updates::default(),
             extra: Map::new(),
         }
     }

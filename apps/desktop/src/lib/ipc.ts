@@ -35,6 +35,7 @@ export interface Settings {
     schedule_roots: string[];
     keep_scheduled: number;
   };
+  updates: { auto_check: boolean; last_checked: number };
 }
 
 export interface SettingsPatch {
@@ -65,6 +66,7 @@ export interface SettingsPatch {
   storageKeep?: number;
   storageDepth?: number;
   storageBigMb?: number;
+  autoUpdateCheck?: boolean;
 }
 
 export interface ModuleManifest {
@@ -376,6 +378,32 @@ export const integrationIpc = {
   status: () => invoke<IntegrationStatus>('integration_status'),
   repair: () => invoke<IntegrationStatus>('integration_repair'),
 };
+
+// ---- NomNom updates ---------------------------------------------------------------------------
+export interface UpdateAvailable {
+  version: string;
+  notes: string;
+  page: string;
+  file_name: string;
+  url: string;
+  size: number;
+  sha256: string;
+}
+export type UpdateCheck =
+  | { state: 'up_to_date'; current: string; latest: string }
+  | ({ state: 'available' } & UpdateAvailable);
+export const updateIpc = {
+  version: () => invoke<string>('update_version'),
+  known: () => invoke<UpdateAvailable | null>('update_known'),
+  check: () => invoke<UpdateCheck>('update_check'),
+  install: () => invoke<void>('update_install'),
+};
+export function onUpdateAvailable(handler: (u: UpdateAvailable) => void): Promise<UnlistenFn> {
+  return listen<UpdateAvailable>('update://available', (e) => handler(e.payload));
+}
+export function onUpdateProgress(handler: (p: { done: number; total: number | null }) => void): Promise<UnlistenFn> {
+  return listen('update://progress', (e) => handler(e.payload as never));
+}
 
 // ---- Disk Analyzer ---------------------------------------------------------------------------
 export interface StDrive {

@@ -48,6 +48,7 @@ pub struct SettingsPatch {
     storage_keep: Option<u32>,
     storage_depth: Option<u8>,
     storage_big_mb: Option<u32>,
+    auto_update_check: Option<bool>,
 }
 
 #[tauri::command]
@@ -186,6 +187,9 @@ pub fn update_settings(
             }
             if let Some(v) = patch.storage_depth {
                 s.storage.snapshot_depth = v.clamp(1, 12);
+            }
+            if let Some(v) = patch.auto_update_check {
+                s.updates.auto_check = v;
             }
             if let Some(v) = patch.storage_big_mb {
                 s.storage.big_file_mb = v.clamp(1, 100_000);

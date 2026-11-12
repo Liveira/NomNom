@@ -2,7 +2,7 @@ use crate::modules::downloads;
 use crate::{
     browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
     quick, shortcuts, state::AppState, storage, storage_history, storage_ops, storage_tools, tray,
-    windows,
+    updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -120,6 +120,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(state)
+        .manage(updater::UpdateState::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
             commands::get_settings,
@@ -179,6 +180,10 @@ pub fn run() {
             storage_history::st_export_comparison,
             storage_history::st_snapshot_trend,
             storage_history::st_schedule_status,
+            updater::update_version,
+            updater::update_known,
+            updater::update_check,
+            updater::update_install,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,
@@ -214,6 +219,7 @@ pub fn run() {
             organizer::recover_at_startup(&app.state::<AppState>().journal);
             organizer::apply_auto(app.handle());
             storage_history::spawn(app.handle().clone());
+            updater::spawn(app.handle().clone());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
             } else if !background {

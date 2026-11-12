@@ -19,6 +19,7 @@ mod storage_history;
 mod storage_ops;
 mod storage_tools;
 mod tray;
+mod updater;
 mod windows;
 
 fn main() {

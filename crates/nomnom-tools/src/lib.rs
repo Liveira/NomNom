@@ -7,6 +7,7 @@ use nomnom_core::process;
 use std::path::{Path, PathBuf};
 
 mod install;
+pub mod update;
 
 pub use install::{parse_checksum, verify_sha256, InstallProgress};
 

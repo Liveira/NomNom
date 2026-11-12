@@ -56,7 +56,7 @@ fn client() -> Result<reqwest::Client, ToolError> {
         .map_err(net)
 }
 
-async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, ToolError> {
+pub(crate) async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, ToolError> {
     client
         .get(url)
         .send()
@@ -68,7 +68,7 @@ async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String, ToolE
         .map_err(net)
 }
 
-async fn download_to(
+pub(crate) async fn download_to(
     client: &reqwest::Client,
     url: &str,
     dest: &Path,

@@ -7,6 +7,7 @@
   import OrganizerSettings from './OrganizerSettings.svelte';
   import Shortcuts from './Shortcuts.svelte';
   import SystemSettings from './SystemSettings.svelte';
+  import UpdateSettings from './UpdateSettings.svelte';
 
   const themes: { value: Theme; label: string }[] = [
     { value: 'system', label: 'System' },
@@ -56,6 +57,8 @@
 <Shortcuts />
 
 <SystemSettings />
+
+<UpdateSettings />
 
 <style>
   h1 { margin-bottom: 20px; }
