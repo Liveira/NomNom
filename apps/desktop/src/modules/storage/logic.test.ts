@@ -6,7 +6,7 @@ import {
 } from './logic';
 
 const prog = (p: Partial<StProgress>): StProgress => ({
-  id: 1, root: 'C:\\', state: 'done', files: 10, dirs: 2, bytes: 1000, errors: 0, elapsed_ms: 1000,
+  id: 1, root: 'C:\\', state: 'done', files: 10, dirs: 2, bytes: 1000, allocated: 1000, errors: 0, elapsed_ms: 1000,
   drive_used: 1000, drive_total: 5000, ...p,
 });
 
@@ -38,12 +38,12 @@ describe('completeness note', () => {
     expect(completenessNote(prog({}), false)).toBeNull();
   });
   it('gives the real numbers and no excuse when they match', () => {
-    const n = completenessNote(prog({ bytes: 1000, drive_used: 1010 }), true)!;
+    const n = completenessNote(prog({ bytes: 1000, allocated: 1000, drive_used: 1010 }), true)!;
     expect(n).toContain('Windows reports');
     expect(n).not.toContain('difference');
   });
   it('explains a gap without inventing one', () => {
-    const n = completenessNote(prog({ bytes: 10 * 1024 ** 3, drive_used: 20 * 1024 ** 3, errors: 3 }), true)!;
+    const n = completenessNote(prog({ bytes: 10 * 1024 ** 3, allocated: 10 * 1024 ** 3, drive_used: 20 * 1024 ** 3, errors: 3 }), true)!;
     expect(n).toContain('10.0 GB');
     expect(n).toContain('20.0 GB');
     expect(n).toContain('page file');

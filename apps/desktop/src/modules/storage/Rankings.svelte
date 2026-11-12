@@ -157,7 +157,7 @@
     {#if items.length === 0}
       <p class="empty">{loading || storage.busy ? 'Looking…' : 'Nothing matches these filters.'}</p>
     {:else}
-      <VirtualList {items} rowHeight={34} label={what === 'files' ? 'Biggest files' : 'Biggest folders'}>
+      <VirtualList {items} rowHeight={34} kind="list" label={what === 'files' ? 'Biggest files' : 'Biggest folders'}>
         {#snippet row(n: StNode, i: number)}
           <div class="tr">
             <span class="rank tabular">{i + 1}</span>

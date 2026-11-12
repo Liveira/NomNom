@@ -46,6 +46,9 @@ pub struct Progress {
     pub files: u64,
     pub dirs: u64,
     pub bytes: u64,
+    /// Space the files take on disk (whole clusters, compression, shared copies counted once).
+    /// This is the number that can be compared with what Windows reports as used.
+    pub allocated: u64,
     pub errors: u64,
     pub elapsed_ms: u64,
     /// Used space of the drive the scan is on, when the root is on a lettered drive.
@@ -61,6 +64,13 @@ fn progress_of(s: &Session, drive: &Option<Drive>) -> Progress {
         files: s.stats.files.load(Ordering::Relaxed),
         dirs: s.stats.dirs.load(Ordering::Relaxed),
         bytes: s.stats.bytes.load(Ordering::Relaxed),
+        allocated: s
+            .index
+            .read()
+            .unwrap()
+            .node(0)
+            .map(|n| n.alloc)
+            .unwrap_or(0),
         errors: s.stats.errors.load(Ordering::Relaxed),
         elapsed_ms: s.elapsed().as_millis() as u64,
         drive_used: drive.as_ref().map(|d| d.used),

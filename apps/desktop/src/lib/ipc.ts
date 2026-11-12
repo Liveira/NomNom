@@ -399,6 +399,8 @@ export interface StProgress {
   files: number;
   dirs: number;
   bytes: number;
+  /** Space taken on disk, the number to compare with `drive_used`. */
+  allocated: number;
   errors: number;
   elapsed_ms: number;
   drive_used: number | null;

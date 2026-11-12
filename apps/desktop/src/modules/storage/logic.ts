@@ -63,10 +63,11 @@ export function isBusy(p: Pick<StProgress, 'state'> | null): boolean {
  */
 export function completenessNote(p: StProgress, isWholeDrive: boolean): string | null {
   if (!isWholeDrive || p.drive_used == null || p.state === 'running' || p.state === 'paused') return null;
-  const found = p.bytes;
+  // Windows counts whole clusters, so the on-disk size is what its "used" figure compares with.
+  const found = p.allocated;
   const used = p.drive_used;
   const gap = used - found;
-  const head = `Found ${formatBytes(found)} in files. Windows reports ${formatBytes(used)} used on this drive.`;
+  const head = `Found ${formatBytes(p.bytes)} in files, ${formatBytes(found)} on disk. Windows reports ${formatBytes(used)} used on this drive.`;
   if (p.state === 'cancelled') return `${head} The scan was stopped, so the result is partial.`;
   if (Math.abs(gap) < Math.max(used * 0.01, 50 * 1024 * 1024)) return head;
   const why =

@@ -19,6 +19,9 @@
   let paths = $state<Record<number, string>>({});
   let selected = $state(new Set<number>());
   let anchor = $state<number | null>(null);
+  /** The row the keyboard is on. */
+  let cursor = $state(-1);
+  let list = $state<ReturnType<typeof VirtualList<StNode>> | null>(null);
   let error = $state('');
   let loading = $state(false);
   let ranOnce = $state(false);
@@ -67,6 +70,7 @@
       found = r;
       ranOnce = true;
       selected = new Set();
+      cursor = -1;
       anchor = null;
       const list = await stIpc.paths(id, r.items.map((n) => n.id));
       if (mine === seq) paths = Object.fromEntries(r.items.map((n, i) => [n.id, list[i]]));
@@ -95,11 +99,34 @@
     writeSaved();
   }
 
-  function click(i: number, e: MouseEvent) {
+  function pick(i: number, mods: { ctrl: boolean; shift: boolean }) {
     if (!found) return;
-    const r = nextSelection(selected, anchor, found.items.map((x) => x.id), i, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
+    cursor = i;
+    const r = nextSelection(selected, anchor, found.items.map((x) => x.id), i, mods);
     selected = r.selected;
     anchor = r.anchor;
+  }
+  function click(i: number, e: MouseEvent) {
+    pick(i, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
+  }
+
+  /** Arrow keys, Home, End, Ctrl+A and Enter on the list itself. Keys pressed on a button inside a row stay with the button. */
+  function onKey(e: KeyboardEvent) {
+    if (!found || e.target !== e.currentTarget) return;
+    const n = found.items.length;
+    if (n === 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      const next = e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : Math.min(n - 1, Math.max(0, (cursor < 0 ? (e.key === 'ArrowDown' ? -1 : n) : cursor) + (e.key === 'ArrowDown' ? 1 : -1)));
+      pick(next, { ctrl: false, shift: e.shiftKey });
+      list?.reveal(next);
+    } else if ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      selected = new Set(found.items.map((x) => x.id));
+    } else if (e.key === 'Enter' && cursor >= 0) {
+      e.preventDefault();
+      void show(found.items[cursor]);
+    }
   }
 
   const chosen = $derived([...selected]);
@@ -209,9 +236,9 @@
     {:else if found.items.length === 0}
       <p class="empty">{loading ? 'Searching…' : 'Nothing matches.'}</p>
     {:else}
-      <VirtualList items={found.items} rowHeight={34} label="Search results">
+      <VirtualList bind:this={list} items={found.items} rowHeight={34} label="Search results" onkeydown={onKey}>
         {#snippet row(n: StNode, i: number)}
-          <div class="tr" class:sel={selected.has(n.id)} role="option" aria-selected={selected.has(n.id)} tabindex="-1" onclick={(e) => click(i, e)} ondblclick={() => show(n)} onkeydown={() => {}}>
+          <div class="tr" class:sel={selected.has(n.id)} class:cur={i === cursor} role="option" aria-selected={selected.has(n.id)} tabindex="-1" onclick={(e) => click(i, e)} ondblclick={() => show(n)} onkeydown={() => {}}>
             <span class="n"><span class="nm" title={n.name}>{n.name}{n.is_dir ? ' (folder)' : ''}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}</span></span>
             <span class="s right tabular">{formatBytes(n.size)}</span>
             <span class="m">{formatDate(n.mtime)}</span>
@@ -264,6 +291,8 @@
   .tr { height: 100%; border-radius: 4px; cursor: default; }
   .tr:hover { background: var(--surface-2); }
   .tr.sel { background: var(--accent-soft, var(--surface-3)); outline: 1px solid var(--accent); outline-offset: -1px; }
+  .tr.cur { outline: 1px dotted var(--text-3); outline-offset: -1px; }
+  .tr.cur.sel { outline: 2px solid var(--accent); }
   .right { text-align: right; }
   .n { min-width: 0; display: grid; }
   .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; }

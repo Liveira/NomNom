@@ -7,12 +7,15 @@
     rowHeight = 28,
     row,
     label = 'List',
+    kind = 'listbox',
     onkeydown,
   }: {
     items: T[];
     rowHeight?: number;
     row: Snippet<[T, number]>;
     label?: string;
+    /** 'listbox' when rows can be selected, 'list' for rows that only show information and hold their own buttons. */
+    kind?: 'listbox' | 'list';
     onkeydown?: (e: KeyboardEvent) => void;
   } = $props();
 
@@ -37,21 +40,23 @@
   }
 </script>
 
+<!-- A list that scrolls has to take focus, or a keyboard user can't scroll it. -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="vl"
   bind:this={el}
   bind:clientHeight={height}
   onscroll={(e) => (top = e.currentTarget.scrollTop)}
-  role="listbox"
+  role={kind}
   aria-label={label}
-  aria-multiselectable="true"
+  aria-multiselectable={kind === 'listbox' ? 'true' : undefined}
   tabindex="0"
   {onkeydown}
 >
   <div class="spacer" style:height="{items.length * rowHeight}px">
     <div class="window" style:transform="translateY({first * rowHeight}px)">
       {#each visible as item, i (first + i)}
-        <div class="row" style:height="{rowHeight}px">
+        <div class="row" role={kind === 'list' ? 'listitem' : undefined} style:height="{rowHeight}px">
           {@render row(item, first + i)}
         </div>
       {/each}
@@ -61,6 +66,8 @@
 
 <style>
   .vl { overflow: auto; height: 100%; min-height: 0; outline: none; position: relative; }
+  /* Drawn inside the box: the list clips anything outside it. */
+  .vl:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
   .spacer { position: relative; min-width: 100%; }
   .window { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
   .row { display: block; }

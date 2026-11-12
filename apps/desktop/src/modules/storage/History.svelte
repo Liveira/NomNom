@@ -321,7 +321,7 @@
   button.small { padding: 3px 10px; }
   .link { border: 0; background: none; color: var(--accent-text); text-decoration: underline; padding: 0; font-size: 12.5px; }
   .list { display: grid; gap: 2px; }
-  .snap { display: grid; grid-template-columns: minmax(270px, 1.4fr) 76px 84px minmax(110px, 1fr) auto; gap: 10px; align-items: center; padding: 4px 6px; border-radius: 6px; }
+  .snap { display: grid; grid-template-columns: minmax(0, 1.4fr) auto auto minmax(0, 1fr) auto; gap: 4px 14px; min-width: 0; align-items: center; padding: 4px 6px; border-radius: 6px; }
   .snap:hover { background: var(--surface-2); }
   .pick { display: flex; flex-direction: row; gap: 8px; align-items: center; color: var(--text); font-size: 13px; }
   .sum { margin: 0; font-weight: 600; }

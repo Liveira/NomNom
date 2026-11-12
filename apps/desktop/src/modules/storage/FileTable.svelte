@@ -93,6 +93,15 @@
     } else if ((e.key === 'a' || e.key === 'A') && mods.ctrl) {
       e.preventDefault();
       storage.selectAll();
+    } else if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+      // The menu key and Shift+F10 open the same menu a right click does, at the current row.
+      e.preventDefault();
+      if (n === 0) return;
+      if (cursor < 0) cursor = 0;
+      if (!storage.selected.has(storage.rows[cursor].id)) storage.clickRow(cursor, { ctrl: false, shift: false });
+      const where = (e.currentTarget as HTMLElement).querySelector('.tr.cur') ?? e.currentTarget;
+      const r = (where as HTMLElement).getBoundingClientRect();
+      storage.menu = { x: Math.round(r.left + 24), y: Math.round(r.bottom) };
     }
   }
 

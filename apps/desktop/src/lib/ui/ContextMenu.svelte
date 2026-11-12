@@ -13,12 +13,16 @@
 
   let el = $state<HTMLDivElement | null>(null);
   let active = $state(-1);
+  /** Measured, so a long menu is never cut off at the bottom of a small window. */
+  let measured = $state(0);
 
   // Keep the menu inside the window.
   const left = $derived(Math.max(4, Math.min(x, window.innerWidth - 240)));
-  const top = $derived(Math.max(4, Math.min(y, window.innerHeight - (items.length * 30 + 16))));
+  const top = $derived(Math.max(4, Math.min(y, window.innerHeight - (measured || items.length * 34 + 16) - 4)));
 
   $effect(() => {
+    // Give focus back to what had it (the list, for a keyboard user) once the menu is gone.
+    const previous = document.activeElement as HTMLElement | null;
     el?.focus();
     const away = (e: MouseEvent) => {
       if (el && !el.contains(e.target as Node)) onclose();
@@ -28,6 +32,8 @@
     return () => {
       window.removeEventListener('mousedown', away, true);
       window.removeEventListener('blur', onclose);
+      const now = document.activeElement;
+      if (previous && previous.isConnected && (now === document.body || now === null || el?.contains(now))) previous.focus();
     };
   });
 
@@ -43,6 +49,7 @@
       const at = enabled.indexOf(active);
       const next = e.key === 'ArrowDown' ? enabled[(at + 1) % enabled.length] : enabled[(at <= 0 ? enabled.length : at) - 1];
       active = next;
+      el?.querySelectorAll('button')[next]?.scrollIntoView({ block: 'nearest' });
     } else if (e.key === 'Enter' && active >= 0) {
       e.preventDefault();
       onpick(items[active].id);
@@ -50,7 +57,7 @@
   }
 </script>
 
-<div class="menu" bind:this={el} role="menu" tabindex="-1" style:left="{left}px" style:top="{top}px" {onkeydown}>
+<div class="menu" bind:this={el} bind:offsetHeight={measured} role="menu" tabindex="-1" style:left="{left}px" style:top="{top}px" {onkeydown}>
   {#each items as it, i (it.id)}
     {#if it.separatorBefore}<div class="sep" role="separator"></div>{/if}
     <button role="menuitem" class:active={i === active} disabled={it.disabled} onmouseenter={() => (active = i)} onclick={() => onpick(it.id)}>
@@ -61,7 +68,7 @@
 </div>
 
 <style>
-  .menu { position: fixed; z-index: 60; min-width: 220px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); outline: none; display: grid; }
+  .menu { position: fixed; z-index: 60; min-width: 220px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); outline: none; display: grid; max-height: calc(100vh - 8px); overflow-y: auto; }
   button { display: flex; justify-content: space-between; gap: 24px; border: 0; background: none; color: inherit; text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
   button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-3); }
   button:disabled { color: var(--text-3); cursor: default; }
