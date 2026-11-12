@@ -371,3 +371,57 @@ pub fn treemap(idx: &Index, node: NodeId, depth: u32, max_children: usize) -> Tr
     }
     v
 }
+
+/// Totals of files by how long ago they were last changed (or created, or opened), under `scope`.
+/// `now` is Unix seconds. Files with no date go in "No date".
+pub fn by_age(idx: &Index, scope: NodeId, field: crate::search::DateField, now: i64) -> Vec<Group> {
+    const DAY: i64 = 86_400;
+    let buckets: [(&str, i64); 6] = [
+        ("Last 7 days", 7 * DAY),
+        ("8 to 30 days", 30 * DAY),
+        ("31 to 90 days", 90 * DAY),
+        ("3 months to 1 year", 365 * DAY),
+        ("1 to 3 years", 3 * 365 * DAY),
+        ("Over 3 years", i64::MAX),
+    ];
+    let mut v: Vec<Group> = buckets
+        .iter()
+        .map(|(k, _)| Group {
+            key: (*k).to_string(),
+            size: 0,
+            alloc: 0,
+            files: 0,
+        })
+        .collect();
+    v.push(Group {
+        key: "No date".into(),
+        size: 0,
+        alloc: 0,
+        files: 0,
+    });
+    walk(idx, scope, |id| {
+        let n = idx.node(id).unwrap();
+        if n.is_dir() {
+            return;
+        }
+        let t = filetime_to_unix(match field {
+            crate::search::DateField::Created => n.ctime,
+            crate::search::DateField::Modified => n.mtime,
+            crate::search::DateField::Accessed => n.atime,
+        });
+        let slot = match t {
+            None => v.len() - 1,
+            Some(t) => {
+                let age = (now - t).max(0);
+                buckets
+                    .iter()
+                    .position(|(_, limit)| age <= *limit)
+                    .unwrap_or(5)
+            }
+        };
+        v[slot].size += n.size;
+        v[slot].alloc += n.alloc;
+        v[slot].files += 1;
+    });
+    v
+}

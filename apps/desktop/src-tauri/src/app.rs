@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
     browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
-    quick, shortcuts, state::AppState, storage, storage_ops, tray, windows,
+    quick, shortcuts, state::AppState, storage, storage_ops, storage_tools, tray, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -160,6 +160,17 @@ pub fn run() {
             storage_ops::st_op_run,
             storage_ops::st_op_cancel,
             storage_ops::st_open,
+            storage_tools::st_search,
+            storage_tools::st_by_age,
+            storage_tools::st_dupes_start,
+            storage_tools::st_dupes_progress,
+            storage_tools::st_dupes_groups,
+            storage_tools::st_dupes_cancel,
+            storage_tools::st_dupes_plan,
+            storage_tools::st_rename_preview,
+            storage_tools::st_rename_plan,
+            storage_tools::st_export,
+            storage_tools::st_export_paths,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,

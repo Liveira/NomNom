@@ -472,13 +472,15 @@ export function onStorageProgress(handler: (p: StProgress) => void): Promise<Unl
   return listen<StProgress>('storage://progress', (e) => handler(e.payload));
 }
 
-export type StOpKind = 'recycle' | 'delete' | 'copy' | 'move' | 'rename';
+export type StOpKind = 'recycle' | 'delete' | 'copy' | 'move' | 'rename' | 'batch_rename' | 'zip';
 export interface StPlanItem {
   path: string;
   is_dir: boolean;
   size: number;
   files: number;
   warn: boolean;
+  new_name: string | null;
+  keep: string | null;
 }
 export interface StPlan {
   plan_id: string;
@@ -529,3 +531,88 @@ export interface StTree {
   hidden_size: number;
   hidden_alloc: number;
 }
+
+// ---- Disk Analyzer: search, duplicates, batch, reports ------------------------------------------
+export type StTextMode = 'contains' | 'wildcard' | 'regex';
+export type StDateField = 'created' | 'modified' | 'accessed';
+export type StQuery =
+  | { type: 'and'; items: StQuery[] }
+  | { type: 'or'; items: StQuery[] }
+  | { type: 'not'; item: StQuery }
+  | { type: 'name'; text: string; mode: StTextMode }
+  | { type: 'path'; text: string; mode: StTextMode }
+  | { type: 'ext'; values: string[] }
+  | { type: 'size'; min: number | null; max: number | null }
+  | { type: 'date'; field: StDateField; after: number | null; before: number | null }
+  | { type: 'age'; field: StDateField; older_than_days: number | null; newer_than_days: number | null }
+  | { type: 'attr'; name: string; set: boolean }
+  | { type: 'kind'; category: string }
+  | { type: 'item'; what: 'file' | 'folder' };
+export interface StFound {
+  total: number;
+  truncated: boolean;
+  items: StNode[];
+}
+export interface StDupCopy {
+  node: number;
+  path: string;
+  mtime: number | null;
+  names: number;
+}
+export interface StDupGroup {
+  size: number;
+  sha256: string;
+  copies: StDupCopy[];
+  recoverable: number;
+}
+export interface StDupProgress {
+  stage: 'listing' | 'comparing' | 'hashing' | 'done' | 'cancelled';
+  candidates: number;
+  files_done: number;
+  files_total: number;
+  bytes_done: number;
+  bytes_total: number;
+  unreadable: number;
+  groups: number;
+  recoverable: number;
+}
+export interface StRenameRule {
+  find: string;
+  replace: string;
+  regex: boolean;
+  prefix: string;
+  suffix: string;
+  start: number;
+  step: number;
+  pad: number;
+  case: '' | 'lower' | 'upper';
+  include_extension: boolean;
+}
+export interface StRenameRow {
+  old: string;
+  new: string | null;
+  error: string | null;
+}
+export type StReportSpec = (
+  | { kind: 'tree'; depth: number }
+  | { kind: 'top_files'; n: number }
+  | { kind: 'top_folders'; n: number; mode: 'inclusive' | 'exclusive' }
+  | { kind: 'extensions' }
+  | { kind: 'categories' }
+  | { kind: 'age'; field: StDateField }
+  | { kind: 'duplicates' }
+) & { format: 'csv' | 'json' | 'html' | 'xlsx' | 'pdf'; columns: string[] };
+
+export const stTools = {
+  search: (id: number, node: number, query: StQuery, limit: number) => invoke<StFound>('st_search', { id, node, query, limit }),
+  byAge: (id: number, node: number, field: StDateField) => invoke<StGroup[]>('st_by_age', { id, node, field }),
+  dupesStart: (id: number, node: number, minSize: number) => invoke<void>('st_dupes_start', { id, node, minSize }),
+  dupesProgress: () => invoke<[number, StDupProgress] | null>('st_dupes_progress'),
+  dupesGroups: (offset: number, limit: number) => invoke<StDupGroup[]>('st_dupes_groups', { offset, limit }),
+  dupesCancel: () => invoke<void>('st_dupes_cancel'),
+  dupesPlan: (id: number, permanent: boolean, groups: { keep: number; remove: number[] }[]) => invoke<StPlan>('st_dupes_plan', { id, permanent, groups }),
+  renamePreview: (id: number, nodes: number[], rule: StRenameRule) => invoke<StRenameRow[]>('st_rename_preview', { id, nodes, rule }),
+  renamePlan: (id: number, nodes: number[], rule: StRenameRule) => invoke<StPlan>('st_rename_plan', { id, nodes, rule }),
+  export: (id: number, node: number, spec: StReportSpec, path: string) => invoke<number>('st_export', { id, node, spec, path }),
+  exportPaths: (id: number, nodes: number[], path: string) => invoke<number>('st_export_paths', { id, nodes, path }),
+};

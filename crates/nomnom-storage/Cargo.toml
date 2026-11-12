@@ -8,6 +8,10 @@ license.workspace = true
 nomnom-core = { path = "../nomnom-core" }
 nomnom-organizer = { path = "../nomnom-organizer" }
 blake3 = "1"
+regex = "1"
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+nomnom-converter = { path = "../nomnom-converter" }
 winreg = "0.55"
 serde.workspace = true
 serde_json.workspace = true
@@ -24,5 +28,6 @@ windows = { version = "0.58", features = [
 ] }
 
 [dev-dependencies]
+lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
 tempfile.workspace = true
 junction = "1"

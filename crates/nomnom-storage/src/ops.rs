@@ -29,6 +29,10 @@ pub enum Kind {
     Copy,
     Move,
     Rename,
+    /// Many items, each with its own new name from a rule (see `batch`).
+    BatchRename,
+    /// Put the items in one ZIP file in the destination folder.
+    Zip,
 }
 
 /// What was on disk when the plan was made.
@@ -41,6 +45,14 @@ pub struct Snap {
     pub is_reparse: bool,
 }
 
+/// For deleting a duplicate: the copy that stays, and which the item must still match.
+#[derive(Clone, Debug)]
+pub struct Keep {
+    pub path: PathBuf,
+    pub id: FileId,
+    pub size: u64,
+}
+
 #[derive(Clone, Debug)]
 pub struct Item {
     pub node: NodeId,
@@ -50,6 +62,99 @@ pub struct Item {
     pub files: u64,
     pub snap: Snap,
     pub warn: bool,
+    pub keep: Option<Keep>,
+    /// For a batch rename: what this item will be called.
+    pub new_name: Option<String>,
+}
+
+/// Plans the removal of duplicate copies. Each group names the copy to keep. A copy is only
+/// removed after its content is compared, byte for byte, with the one kept (checked again at run
+/// time), and the kept copy can never be in the list.
+pub fn plan_duplicates(
+    idx: &Index,
+    kind: Kind,
+    groups: &[(NodeId, Vec<NodeId>)],
+    protect: &Protected,
+) -> Plan {
+    assert!(matches!(kind, Kind::Recycle | Kind::Delete));
+    let removing: Vec<NodeId> = groups.iter().flat_map(|(_, r)| r.iter().copied()).collect();
+    let mut plan = plan(idx, kind, &removing, None, None, protect);
+    let mut kept_somewhere: Vec<NodeId> = Vec::new();
+    for (keep, _) in groups {
+        kept_somewhere.push(*keep);
+    }
+    let mut accepted = Vec::new();
+    for item in std::mem::take(&mut plan.items) {
+        let Some((keep, _)) = groups.iter().find(|(_, r)| r.contains(&item.node)) else {
+            continue;
+        };
+        let why = if kept_somewhere.contains(&item.node) {
+            Some("This copy is the one being kept in another group.")
+        } else {
+            match snap_of(&idx.path_of(*keep)) {
+                Ok(k) if k.id == item.snap.id => Some("This is another name for the same file as the copy kept, so deleting it frees nothing."),
+                Ok(k) if k.size != item.snap.size || k.is_dir || k.is_reparse => Some("It isn't the same size as the copy kept."),
+                Ok(_) => None,
+                Err(_) => Some("The copy to keep can't be found."),
+            }
+        };
+        match why {
+            Some(w) => plan.refused.push(Refusal {
+                path: item.path.to_string_lossy().to_string(),
+                reason: w.to_string(),
+            }),
+            None => accepted.push(item),
+        }
+    }
+    plan.items = accepted;
+    for item in &mut plan.items {
+        let (keep, _) = groups.iter().find(|(_, r)| r.contains(&item.node)).unwrap();
+        let keep_path = idx.path_of(*keep);
+        if let Ok(k) = snap_of(&keep_path) {
+            item.keep = Some(Keep {
+                path: keep_path,
+                id: k.id,
+                size: k.size,
+            });
+        }
+    }
+    plan.total_size = plan.items.iter().map(|i| i.size).sum();
+    plan.total_files = plan.items.len() as u64;
+    plan.needs_typed = plan.kind == Kind::Delete
+        && (plan.total_files > BIG_FILES
+            || plan.total_size > BIG_BYTES
+            || plan.items.iter().any(|i| i.warn));
+    plan
+}
+
+/// True when two files hold exactly the same bytes.
+pub fn verify_same(a: &Path, b: &Path) -> io::Result<bool> {
+    let (mut fa, mut fb) = (File::open(long_os_path(a))?, File::open(long_os_path(b))?);
+    if fa.metadata()?.len() != fb.metadata()?.len() {
+        return Ok(false);
+    }
+    let (mut ba, mut bb) = (vec![0u8; 1 << 20], vec![0u8; 1 << 20]);
+    loop {
+        let na = read_full(&mut fa, &mut ba)?;
+        let nb = read_full(&mut fb, &mut bb)?;
+        if na != nb || ba[..na] != bb[..nb] {
+            return Ok(false);
+        }
+        if na == 0 {
+            return Ok(true);
+        }
+    }
+}
+
+fn read_full(f: &mut File, buf: &mut [u8]) -> io::Result<usize> {
+    let mut got = 0;
+    while got < buf.len() {
+        match f.read(&mut buf[got..])? {
+            0 => break,
+            n => got += n,
+        }
+    }
+    Ok(got)
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -205,11 +310,13 @@ pub fn plan(
             files: if was_dir { u64::from(node.files) } else { 1 },
             snap,
             warn,
+            keep: None,
+            new_name: None,
         });
     }
 
     match kind {
-        Kind::Copy | Kind::Move => match dest {
+        Kind::Copy | Kind::Move | Kind::Zip => match dest {
             None => p.refused.push(Refusal {
                 path: String::new(),
                 reason: "Choose a destination folder.".into(),
@@ -325,6 +432,9 @@ pub fn run(
     cancel: &AtomicBool,
     progress: &dyn Fn(Progress),
 ) -> Report {
+    if plan.kind == Kind::Zip {
+        return crate::batch::run_zip(plan, cancel, progress);
+    }
     let mut report = Report::default();
     let total = plan.items.len();
     for (i, item) in plan.items.iter().enumerate() {
@@ -345,6 +455,35 @@ pub fn run(
             }
             break;
         }
+        if let Some(keep) = &item.keep {
+            // The copy that stays must still be there and unchanged, and identical to this one.
+            let kept_ok = snap_of(&keep.path)
+                .map(|k| k.id == keep.id && k.size == keep.size && !k.is_reparse)
+                .unwrap_or(false);
+            if !kept_ok {
+                report.results.push(result(
+                    item,
+                    Status::Skipped,
+                    Some(
+                        "The copy that was to be kept is gone or changed, so nothing was deleted."
+                            .into(),
+                    ),
+                    None,
+                ));
+                continue;
+            }
+            if !verify_same(&keep.path, &item.path).unwrap_or(false) {
+                report.results.push(result(
+                    item,
+                    Status::Skipped,
+                    Some(
+                        "This file is not identical to the copy kept, so it was left alone.".into(),
+                    ),
+                    None,
+                ));
+                continue;
+            }
+        }
         if let Err(why) = revalidate(item) {
             report
                 .results
@@ -357,6 +496,12 @@ pub fn run(
             Kind::Copy => copy_item(item, plan.dest.as_deref().unwrap(), cancel).map(Some),
             Kind::Move => move_item(item, plan.dest.as_deref().unwrap(), cancel),
             Kind::Rename => rename_item(item, plan.new_name.as_deref().unwrap()).map(Some),
+            Kind::BatchRename => match item.new_name.as_deref() {
+                Some(n) => rename_item(item, n).map(Some),
+                None => Err(skip("It has no new name.")),
+            },
+            // Zipping is done as a whole before this loop.
+            Kind::Zip => Err(skip("Handled with the archive.")),
         };
         report.results.push(match outcome {
             Ok(to) => result(item, Status::Done, None, to),

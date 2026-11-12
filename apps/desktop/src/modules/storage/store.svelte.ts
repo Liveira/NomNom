@@ -1,6 +1,7 @@
-import { open as pickFolder } from '@tauri-apps/plugin-dialog';
+import { open as pickFolder, save as saveFile } from '@tauri-apps/plugin-dialog';
 import {
   stIpc,
+  stTools,
   onStorageProgress,
   onStorageOp,
   type StDetail,
@@ -20,7 +21,10 @@ export type Dialog =
   | { type: 'rename'; node: StNode; error: string }
   | { type: 'result'; report: StReport; kind: StOpKind }
   | { type: 'props'; node: StNode; path: string }
-  | { type: 'refused'; plan: StPlan };
+  | { type: 'refused'; plan: StPlan }
+  | { type: 'batchrename'; nodes: number[] }
+  | { type: 'zip'; nodes: number[]; error: string }
+  | { type: 'export'; error: string };
 
 const ROW_LIMIT = 5000;
 
@@ -40,7 +44,7 @@ class StorageStore {
   anchor = $state<number | null>(null);
   /** Goes up whenever the scan's data changed, so views that cache (the tree) reload. */
   version = $state(0);
-  tab = $state<'explorer' | 'rankings' | 'charts'>('explorer');
+  tab = $state<'explorer' | 'rankings' | 'charts' | 'search' | 'duplicates'>('explorer');
   view = $state<'table' | 'treemap'>('table');
   /** Set by the charts so the rankings open already filtered; the rankings clear them. */
   rankingCategory = $state('');
@@ -278,18 +282,27 @@ class StorageStore {
     if (done < report.results.length || report.cancelled) {
       this.dialog = { type: 'result', report, kind };
     } else {
-      const verb = { recycle: 'Moved to the Recycle Bin', delete: 'Deleted', copy: 'Copied', move: 'Moved', rename: 'Renamed' }[kind];
+      const verb = {
+        recycle: 'Moved to the Recycle Bin',
+        delete: 'Deleted',
+        copy: 'Copied',
+        move: 'Moved',
+        rename: 'Renamed',
+        batch_rename: 'Renamed',
+        zip: 'Added to a ZIP file',
+      }[kind];
       this.say(`${verb}: ${done} ${done === 1 ? 'item' : 'items'}.`);
     }
   }
 
-  private show(plan: StPlan) {
+  /** Shows what a plan would do and waits for the person to confirm. */
+  show(plan: StPlan) {
     this.dialog = plan.item_count === 0 ? { type: 'refused', plan } : { type: 'confirm', plan, busy: false, error: '' };
   }
 
-  /** Delete key (to the Recycle Bin) or Shift+Delete (permanent, always asks). */
-  async remove(permanent: boolean) {
-    const plan = await this.plan(permanent ? 'delete' : 'recycle', [...this.selected]);
+  /** Delete key (to the Recycle Bin) or Shift+Delete (permanent, always asks). `nodes` lets other tabs act on their own list. */
+  async remove(permanent: boolean, nodes: number[] = [...this.selected]) {
+    const plan = await this.plan(permanent ? 'delete' : 'recycle', nodes);
     if (!plan) return;
     // The Recycle Bin can be undone in Windows, so it needs no extra click unless something is unusual.
     if (!permanent && plan.item_count > 0 && plan.refused.length === 0 && plan.warnings.length === 0) {
@@ -341,6 +354,33 @@ class StorageStore {
     const report = await this.runPlan(plan, false);
     if (report && report.results[0]?.status !== 'done') {
       this.dialog = { type: 'rename', node, error: report.results[0]?.message ?? "It couldn't be renamed." };
+    }
+  }
+
+  /** Opens the batch rename window for the chosen items. */
+  startBatchRename(nodes: number[] = [...this.selected]) {
+    if (nodes.length > 0) this.dialog = { type: 'batchrename', nodes };
+  }
+
+  startZip(nodes: number[] = [...this.selected]) {
+    if (nodes.length > 0) this.dialog = { type: 'zip', nodes, error: '' };
+  }
+
+  startExport() {
+    if (this.sessionId != null) this.dialog = { type: 'export', error: '' };
+  }
+
+  /** Writes the full paths of the chosen items to a text file the person picks. */
+  async savePaths(nodes: number[] = [...this.selected]) {
+    const id = this.sessionId;
+    if (id == null || nodes.length === 0) return;
+    const path = await saveFile({ title: 'Save the list of paths', defaultPath: 'paths.txt', filters: [{ name: 'Text file', extensions: ['txt'] }] });
+    if (typeof path !== 'string') return;
+    try {
+      const n = await stTools.exportPaths(id, nodes, path);
+      this.say(`Saved ${n} ${n === 1 ? 'path' : 'paths'}.`);
+    } catch (e) {
+      this.error = String(e);
     }
   }
 

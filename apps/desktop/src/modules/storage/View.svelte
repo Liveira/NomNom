@@ -5,6 +5,8 @@
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import Charts from './Charts.svelte';
   import DriveCards from './DriveCards.svelte';
+  import Duplicates from './Duplicates.svelte';
+  import Search from './Search.svelte';
   import FileTable from './FileTable.svelte';
   import OpDialogs from './OpDialogs.svelte';
   import Rankings from './Rankings.svelte';
@@ -81,6 +83,9 @@
       { id: 'copyto', label: 'Copy to…', disabled: count === 0 },
       { id: 'moveto', label: 'Move to…', disabled: count === 0 },
       { id: 'rename', label: 'Rename', hint: 'F2', separatorBefore: true, disabled: !one },
+      { id: 'batchrename', label: 'Rename in batch…', disabled: count < 2 },
+      { id: 'zip', label: 'Add to ZIP file…', disabled: count === 0 },
+      { id: 'savepaths', label: 'Save list of paths…', disabled: count === 0 },
       { id: 'recycle', label: 'Move to Recycle Bin', hint: 'Delete', disabled: count === 0 },
       { id: 'delete', label: 'Delete permanently…', hint: 'Shift+Delete', disabled: count === 0 },
       { id: 'rescan', label: 'Scan this folder again', separatorBefore: true, disabled: !folder },
@@ -102,6 +107,9 @@
       case 'copypath': await storage.copyPath(); break;
       case 'copyto': await storage.sendTo('copy'); break;
       case 'moveto': await storage.sendTo('move'); break;
+      case 'batchrename': storage.startBatchRename(); break;
+      case 'zip': storage.startZip(); break;
+      case 'savepaths': await storage.savePaths(); break;
       case 'rescan': {
         const n = storage.selectedRows[0];
         if (n && storage.sessionId != null) await stIpc.rescan(storage.sessionId, n.id).catch((e) => (storage.error = String(e)));
@@ -143,6 +151,7 @@
       {:else}
         <button class="plain" onclick={() => storage.refresh()} title="Scan this folder again (F5)">Refresh</button>
       {/if}
+      <button class="plain" onclick={() => storage.startExport()} disabled={storage.busy}>Save report…</button>
     </div>
   </div>
 
@@ -154,6 +163,8 @@
     <button role="tab" aria-selected={storage.tab === 'explorer'} class:on={storage.tab === 'explorer'} onclick={() => (storage.tab = 'explorer')}>Explorer</button>
     <button role="tab" aria-selected={storage.tab === 'rankings'} class:on={storage.tab === 'rankings'} onclick={() => (storage.tab = 'rankings')}>Biggest items</button>
     <button role="tab" aria-selected={storage.tab === 'charts'} class:on={storage.tab === 'charts'} onclick={() => (storage.tab = 'charts')}>Charts</button>
+    <button role="tab" aria-selected={storage.tab === 'search'} class:on={storage.tab === 'search'} onclick={() => (storage.tab = 'search')}>Search</button>
+    <button role="tab" aria-selected={storage.tab === 'duplicates'} class:on={storage.tab === 'duplicates'} onclick={() => (storage.tab = 'duplicates')}>Duplicates</button>
   </div>
 
   {#if storage.error}<p class="error" role="alert">{storage.error} <button class="link" onclick={() => (storage.error = '')}>Dismiss</button></p>{/if}
@@ -189,6 +200,10 @@
       </div>
     {:else if storage.tab === 'rankings'}
       <Rankings />
+    {:else if storage.tab === 'search'}
+      <Search />
+    {:else if storage.tab === 'duplicates'}
+      <Duplicates />
     {:else}
       <Charts />
     {/if}

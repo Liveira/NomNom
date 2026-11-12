@@ -23,6 +23,7 @@ pub struct StorageState {
     pub(crate) plans: Mutex<HashMap<String, crate::storage_ops::StoredPlan>>,
     pub(crate) op_cancel: std::sync::atomic::AtomicBool,
     pub(crate) op_running: std::sync::atomic::AtomicBool,
+    pub(crate) dupes: Mutex<Option<(u64, Arc<nomnom_storage::dupes::Job>)>>,
 }
 
 impl StorageState {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatBytes } from '../../lib/format';
-  import { stIpc, type StGroup, type StNode } from '../../lib/ipc';
+  import { stIpc, stTools, type StDateField, type StGroup, type StNode } from '../../lib/ipc';
   import { CATEGORY_COLORS, CATEGORY_LABELS } from './treemap';
   import { pieSlices } from './charts';
   import { storage } from './store.svelte';
@@ -8,6 +8,8 @@
   let folders = $state<StNode[]>([]);
   let categories = $state<StGroup[]>([]);
   let extensions = $state<StGroup[]>([]);
+  let ages = $state<StGroup[]>([]);
+  let ageField = $state<StDateField>('modified');
   let scope = $state<'all' | 'here'>('all');
   let error = $state('');
   let seq = 0;
@@ -18,9 +20,10 @@
     const node = scope === 'here' ? storage.current : 0;
     const mine = ++seq;
     try {
-      const [f, s] = await Promise.all([stIpc.topFolders(id, node, 12, 'exclusive', 1), stIpc.stats(id, node)]);
+      const [f, s, a] = await Promise.all([stIpc.topFolders(id, node, 12, 'exclusive', 1), stIpc.stats(id, node), stTools.byAge(id, node, ageField)]);
       if (mine !== seq) return;
       folders = f;
+      ages = a;
       categories = s.categories.filter((c) => c.size > 0);
       extensions = s.extensions.slice(0, 12);
       error = '';
@@ -29,13 +32,15 @@
     }
   }
   $effect(() => {
-    void [storage.sessionId, storage.version, scope, storage.current];
+    void [storage.sessionId, storage.version, scope, storage.current, ageField];
     void load();
   });
 
   const slices = $derived(pieSlices(categories.map((c) => ({ key: c.key, value: c.size }))));
   const maxFolder = $derived(Math.max(1, ...folders.map((f) => f.size)));
   const maxExt = $derived(Math.max(1, ...extensions.map((e) => e.size)));
+  const maxAge = $derived(Math.max(1, ...ages.map((a) => a.size)));
+  const AGE_FIELDS: Record<StDateField, string> = { modified: 'last changed', created: 'created', accessed: 'last opened' };
   const totalCat = $derived(categories.reduce((s, c) => s + c.size, 0));
 
   async function pickCategory(key: string) {
@@ -106,6 +111,22 @@
         </button>
       {:else}<p class="hint">Nothing to show yet.</p>{/each}
     </section>
+
+    <section aria-label="Files by age">
+      <h3>By age
+        <select bind:value={ageField} aria-label="Which date">
+          {#each Object.entries(AGE_FIELDS) as [k, label] (k)}<option value={k}>{label}</option>{/each}
+        </select>
+      </h3>
+      {#each ages.filter((a) => a.files > 0) as a (a.key)}
+        <div class="bar static">
+          <span class="label">{a.key}</span>
+          <span class="track"><span class="fill" style:width="{(a.size / maxAge) * 100}%"></span></span>
+          <span class="tabular val">{formatBytes(a.size)} <span class="hint">{a.files.toLocaleString()}</span></span>
+        </div>
+      {:else}<p class="hint">Nothing to show yet.</p>{/each}
+      {#if ageField === 'accessed'}<p class="hint">Windows often doesn't update the last-opened date, so this one can look older than it is.</p>{/if}
+    </section>
   </div>
 </div>
 
@@ -130,6 +151,9 @@
   .pct { color: var(--text-3); text-align: right; }
   .bar { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; align-items: center; width: 100%; border: 0; background: none; color: inherit; padding: 3px 4px; border-radius: 6px; cursor: pointer; text-align: left; }
   .bar:hover { background: var(--surface-2); }
+  .bar.static { cursor: default; }
+  .bar.static:hover { background: none; }
+  h3 select { margin-left: 8px; font-size: 12.5px; }
   .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .track { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
   .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; }

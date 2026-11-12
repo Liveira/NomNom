@@ -2,11 +2,15 @@
 //! it. Windows only. No Tauri code lives here.
 
 pub mod analyze;
+pub mod batch;
 pub mod drives;
+pub mod dupes;
 pub mod index;
 pub mod ops;
 pub mod protect;
+pub mod report;
 pub mod scan;
+pub mod search;
 
 pub use index::{Index, NodeId, NodeView};
 pub use scan::{ScanOptions, Session, State};

@@ -21,7 +21,7 @@ pub struct StoredPlan {
     made: Instant,
 }
 
-fn protected(state: &AppState) -> Protected {
+pub(crate) fn protected(state: &AppState) -> Protected {
     let (zones, exact) = state.paths.protected_folders();
     Protected::from_zones(zones, exact)
 }
@@ -33,6 +33,9 @@ pub struct ItemView {
     pub size: u64,
     pub files: u64,
     pub warn: bool,
+    pub new_name: Option<String>,
+    /// For a duplicate: the copy that stays.
+    pub keep: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -79,6 +82,11 @@ pub fn st_op_plan(
             &protected(&state),
         )
     };
+    Ok(store_plan(&state, id, kind, plan))
+}
+
+/// Keeps a plan so it can be run later, and describes it for the window.
+pub(crate) fn store_plan(state: &AppState, session: u64, kind: Kind, plan: Plan) -> PlanView {
     let plan_id = uuid::Uuid::new_v4().to_string();
     let view = PlanView {
         plan_id: plan_id.clone(),
@@ -94,6 +102,11 @@ pub fn st_op_plan(
                 size: i.size,
                 files: i.files,
                 warn: i.warn,
+                new_name: i.new_name.clone(),
+                keep: i
+                    .keep
+                    .as_ref()
+                    .map(|k| k.path.to_string_lossy().to_string()),
             })
             .collect(),
         total_size: plan.total_size,
@@ -109,12 +122,12 @@ pub fn st_op_plan(
     plans.insert(
         plan_id,
         StoredPlan {
-            session: id,
+            session,
             plan,
             made: Instant::now(),
         },
     );
-    Ok(view)
+    view
 }
 
 #[derive(Serialize, Clone)]
@@ -211,12 +224,19 @@ fn update_index(session: &std::sync::Arc<nomnom_storage::Session>, plan: &Plan, 
                         idx.rename_node(item.node, n);
                     }
                 }
+                (Kind::BatchRename, Status::Done) => {
+                    if let Some(n) = &item.new_name {
+                        idx.rename_node(item.node, n);
+                    }
+                }
                 // Part of a folder may be gone; look again at that folder only.
                 (_, Status::Failed) if item.is_dir => rescan.push(item.node),
                 _ => {}
             }
         }
-        if matches!(plan.kind, Kind::Copy | Kind::Move) && report.count(Status::Done) > 0 {
+        if matches!(plan.kind, Kind::Copy | Kind::Move | Kind::Zip)
+            && report.count(Status::Done) > 0
+        {
             if let Some(d) = plan.dest.as_ref().and_then(|d| idx.resolve_path(d)) {
                 rescan.push(d);
             }
