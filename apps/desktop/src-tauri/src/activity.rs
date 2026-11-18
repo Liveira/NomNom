@@ -237,6 +237,11 @@ pub fn flush_on_exit(app: &AppHandle) {
     persist_flushes(&state.db, &state.activity, flush);
 }
 
+/// Writes the app you are using right now to the record, so a summary made this moment includes it.
+pub fn flush_now(app: &AppHandle) {
+    flush_on_exit(app);
+}
+
 pub fn spawn(app: AppHandle) {
     let self_pid = std::process::id();
     tauri::async_runtime::spawn(async move {

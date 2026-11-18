@@ -75,6 +75,16 @@ const MIGRATIONS: &[&str] = &[
         active_secs INTEGER NOT NULL);
      CREATE INDEX activity_sessions_time ON activity_sessions(started_at DESC);
      CREATE INDEX activity_sessions_app ON activity_sessions(app_id, started_at DESC);",
+    // v7: Focus mode blocks (a timed stretch of work or a break) and how they ended.
+    "CREATE TABLE focus_blocks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER,
+        planned_secs INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        label TEXT NOT NULL DEFAULT '',
+        completed INTEGER NOT NULL DEFAULT 0);
+     CREATE INDEX focus_blocks_time ON focus_blocks(started_at DESC);",
 ];
 
 pub struct Db {

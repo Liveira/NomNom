@@ -42,7 +42,7 @@ uuid.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 nomnom-win = { path = "../../../crates/nomnom-win" }
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Globalization"] }
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Globalization", "Win32_System_Time"] }
 
 [target.'cfg(not(windows))'.dependencies]
 nomnom-linux = { path = "../../../crates/nomnom-linux" }

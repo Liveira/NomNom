@@ -180,6 +180,54 @@ pub fn organized_toast(lang: Lang, moved: usize) -> String {
     }
 }
 
+/// The notification when a timer ends: its title and body.
+pub fn focus_done(
+    lang: Lang,
+    was_focus: bool,
+    block: Option<&crate::focus::Block>,
+) -> (String, String) {
+    let mins = block.map(|b| b.planned_secs / 60).unwrap_or(0);
+    let top = block
+        .and_then(|b| b.apps.first())
+        .map(|a| a.name.clone())
+        .unwrap_or_default();
+    match (lang, was_focus) {
+        (Lang::En, true) => (
+            "Focus block finished".into(),
+            if top.is_empty() {
+                format!("{mins} minutes done. Time for a break.")
+            } else {
+                format!("{mins} minutes done, mostly in {top}. Time for a break.")
+            },
+        ),
+        (Lang::En, false) => ("Break is over".into(), "Ready for the next block?".into()),
+        (Lang::Pt, true) => (
+            "Bloco de foco concluído".into(),
+            if top.is_empty() {
+                format!("{mins} minutos concluídos. Hora de uma pausa.")
+            } else {
+                format!("{mins} minutos concluídos, a maior parte em {top}. Hora de uma pausa.")
+            },
+        ),
+        (Lang::Pt, false) => (
+            "A pausa acabou".into(),
+            "Pronto para o próximo bloco?".into(),
+        ),
+        (Lang::Es, true) => (
+            "Bloque de enfoque terminado".into(),
+            if top.is_empty() {
+                format!("{mins} minutos hechos. Hora de un descanso.")
+            } else {
+                format!("{mins} minutos hechos, sobre todo en {top}. Hora de un descanso.")
+            },
+        ),
+        (Lang::Es, false) => (
+            "El descanso terminó".into(),
+            "¿Listo para el siguiente bloque?".into(),
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

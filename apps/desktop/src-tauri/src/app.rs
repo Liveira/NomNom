@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
-    activity, browser, commands, events, filetools, integrations, modules, notifier, organizer,
-    pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup, storage_history,
-    storage_ops, storage_tools, tray, updater, windows,
+    activity, browser, commands, events, filetools, focus, integrations, modules, notifier,
+    organizer, pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup,
+    storage_history, storage_ops, storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -147,6 +147,7 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(state)
         .manage(updater::UpdateState::default())
+        .manage(focus::FocusState::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
             commands::get_settings,
@@ -210,6 +211,9 @@ pub fn run() {
             storage_history::st_snapshot_trend,
             storage_history::st_schedule_status,
             storage_cleanup::st_cleanup_spots,
+            focus::focus_start,
+            focus::focus_stop,
+            focus::focus_status,
             updater::update_version,
             updater::update_known,
             updater::update_check,
@@ -256,6 +260,7 @@ pub fn run() {
             storage_history::spawn(app.handle().clone());
             activity::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
+            focus::spawn(app.handle().clone());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
             } else if wants_quick(&args) {

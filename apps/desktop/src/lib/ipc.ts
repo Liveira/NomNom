@@ -915,3 +915,38 @@ export const actIpc = {
 export function onActivityUpdated(handler: () => void): Promise<UnlistenFn> {
   return listen<null>('activity://updated', () => handler());
 }
+
+// ---- Focus mode -------------------------------------------------------------------------------
+export interface FocusActive {
+  id: number;
+  kind: 'focus' | 'break';
+  label: string;
+  started_at: number;
+  planned_secs: number;
+  remaining_secs: number;
+}
+export interface FocusBlock {
+  id: number;
+  kind: 'focus' | 'break';
+  label: string;
+  started_at: number;
+  ended_at: number;
+  planned_secs: number;
+  completed: boolean;
+  apps: { name: string; secs: number }[];
+}
+export interface FocusStatus {
+  active: FocusActive | null;
+  today_blocks: number;
+  today_secs: number;
+  streak_days: number;
+  recent: FocusBlock[];
+}
+export const focusIpc = {
+  status: () => invoke<FocusStatus>('focus_status'),
+  start: (kind: 'focus' | 'break', minutes: number, label: string) => invoke<FocusActive>('focus_start', { kind, minutes, label }),
+  stop: () => invoke<FocusBlock | null>('focus_stop'),
+};
+export function onFocusChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('focus://changed', () => handler());
+}

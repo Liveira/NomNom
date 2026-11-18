@@ -12,6 +12,7 @@
   } from '../../lib/ipc';
   import AppBadge from './AppBadge.svelte';
   import AppDetailModal from './AppDetailModal.svelte';
+  import FocusCard from './FocusCard.svelte';
   import {
     CATEGORIES,
     categoryInfo,
@@ -106,6 +107,8 @@
   </div>
   <HeroEmblem icon="playtime" orbit={["flame", "clock", "star"]} size={104} />
 </header>
+
+<FocusCard />
 
 <div class="toolbar">
   <div class="range-tabs" role="tablist" aria-label="Time period">
