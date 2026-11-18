@@ -175,16 +175,13 @@ fn the_menu_works_the_way_explorer_uses_it() {
     let webp = sub(&cmd, "Convert to WebP");
     unsafe { webp.Invoke(&two, None).unwrap() };
     let args: Vec<String> = wait_for(&argdump).lines().map(String::from).collect();
-    assert_eq!(
-        args,
-        [
-            "--shell-action",
-            "convert:webp",
-            "--files",
-            &png.to_string_lossy(),
-            &jpg.to_string_lossy()
-        ]
-    );
+    // The temp folder can be spelled with an 8.3 short name on one side and the long name on the
+    // other (RUNNER~1 vs runneradmin), so the files are compared by what they point at.
+    assert_eq!(args[..3], ["--shell-action", "convert:webp", "--files"]);
+    assert_eq!(args.len(), 5);
+    let real = |p: &str| std::fs::canonicalize(p).unwrap();
+    assert_eq!(real(&args[3]), real(&png.to_string_lossy()));
+    assert_eq!(real(&args[4]), real(&jpg.to_string_lossy()));
     std::fs::remove_file(&argdump).unwrap();
 
     // A big selection goes through a list file inside NOMNOM's own temp folder.
