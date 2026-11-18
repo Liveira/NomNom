@@ -5,10 +5,12 @@
 use nomnom_storage::analyze::{self, SortKey};
 use nomnom_storage::dupes;
 use nomnom_storage::elevate::{load_scan_file, save_scan_file};
+#[cfg(windows)]
 use nomnom_storage::index::F_HAS_ADS;
 use nomnom_storage::ops::{self, Kind, RunOptions, Status};
 use nomnom_storage::protect::Protected;
 use nomnom_storage::report::{self, Format};
+#[cfg(windows)]
 use nomnom_storage::scan::compressed_size;
 use nomnom_storage::search::{compile, run, Query, TextMode};
 use nomnom_storage::{ScanOptions, Session};
