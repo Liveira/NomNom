@@ -49,6 +49,9 @@ pub struct SettingsPatch {
     storage_depth: Option<u8>,
     storage_big_mb: Option<u32>,
     auto_update_check: Option<bool>,
+    activity_enabled: Option<bool>,
+    activity_idle_secs: Option<u32>,
+    activity_track_nomnom: Option<bool>,
 }
 
 #[tauri::command]
@@ -202,6 +205,15 @@ pub fn update_settings(
             }
             if let Some(v) = patch.sidebar_collapsed {
                 s.appearance.sidebar_collapsed = v;
+            }
+            if let Some(v) = patch.activity_enabled {
+                s.activity.enabled = v;
+            }
+            if let Some(v) = patch.activity_idle_secs {
+                s.activity.idle_timeout_secs = v.clamp(60, 3600);
+            }
+            if let Some(v) = patch.activity_track_nomnom {
+                s.activity.track_nomnom = v;
             }
         })
         .map_err(|e| e.to_string());

@@ -1,6 +1,7 @@
 // Release builds are GUI-only: no console window.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod activity;
 mod app;
 mod browser;
 mod commands;

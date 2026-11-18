@@ -1,8 +1,8 @@
 name: Release
 
-# Runs when a version tag is pushed (for example v0.1.0). It builds Windows, Arch Linux,
-# Debian/Ubuntu (.deb) and portable AppImage artifacts, computes SHA256SUMS.txt, and attaches
-# everything to a DRAFT release so nothing is public until someone presses Publish.
+# Runs when a version tag is pushed (for example v0.2.0). It builds Windows, Arch Linux,
+# Debian/Ubuntu (.deb) and portable AppImage artifacts, computes SHA256SUMS.txt, and publishes
+# the GitHub release so in-app updates can download and verify it immediately.
 on:
   push:
     tags: ["v*"]
@@ -204,6 +204,6 @@ jobs:
           cat release/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
           files: release/*
           fail_on_unmatched_files: true

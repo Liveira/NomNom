@@ -160,3 +160,27 @@ impl Module for Storage {
         Ok(())
     }
 }
+
+static ACTIVITY: ModuleManifest = ModuleManifest {
+    id: "activity",
+    name: "Playtime",
+    nav: Some(NavEntry {
+        order: 15,
+        icon: "playtime",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: Some("activity"),
+    capabilities: &[],
+};
+
+pub struct Activity;
+#[async_trait]
+impl Module for Activity {
+    fn manifest(&self) -> &ModuleManifest {
+        &ACTIVITY
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}

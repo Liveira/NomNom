@@ -1,10 +1,11 @@
 //! NomNom's own updates: look at the latest published release, and on request download its
-//! package, check it against the published SHA-256, and apply or save it safely.
+//! package, check it against the published SHA-256, and apply it directly in-app.
 //!
-//! - On Windows: starts the NSIS updater (`/P /UPDATE /R`) and quits so it can replace the files.
-//! - On Linux: when running as a writable `.AppImage`, replaces the `.AppImage` atomically and
-//!   relaunches it; when running from a system package (`pacman` `.pkg.tar.zst` or `apt` `.deb`),
-//!   saves the SHA-256-verified package into Downloads and reveals it in the file manager.
+//! - On Windows: starts the NSIS updater silently (`/S /UPDATE /R`), replaces the files in place,
+//!   and relaunches NomNom automatically without an installer wizard.
+//! - On Linux: replaces writable `.AppImage` files atomically in place and relaunches; on Arch
+//!   Linux (`.pkg.tar.zst`) and Debian/Ubuntu (`.deb`), upgrades directly via Polkit (`pkexec`) and
+//!   relaunches `/usr/bin/nomnom` (falling back to saving in Downloads if Polkit is unavailable).
 
 use crate::state::AppState;
 use nomnom_tools::update::{self, Available, Check};
@@ -132,7 +133,10 @@ async fn download_and_apply(app: &AppHandle, wanted: &Available) -> CmdResult<Ap
     let file = update::download(wanted, &dir, &progress)
         .await
         .map_err(|e| e.to_string())?;
-    apply_downloaded_package(app, &file)
+    let app_clone = app.clone();
+    tokio::task::spawn_blocking(move || apply_downloaded_package(&app_clone, &file))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[cfg(windows)]
@@ -142,10 +146,10 @@ fn apply_downloaded_package(_app: &AppHandle, file: &std::path::Path) -> CmdResu
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
 
     let mut cmd = std::process::Command::new(file);
-    cmd.args(["/P", "/UPDATE", "/R"])
+    cmd.args(["/S", "/UPDATE", "/R"])
         .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
     cmd.spawn()
-        .map_err(|e| format!("The installer couldn't be started: {e}"))?;
+        .map_err(|e| format!("The update couldn't be started: {e}"))?;
     Ok(ApplyOutcome {
         should_exit: true,
         message: None,
@@ -153,9 +157,26 @@ fn apply_downloaded_package(_app: &AppHandle, file: &std::path::Path) -> CmdResu
 }
 
 #[cfg(not(windows))]
+fn has_cmd(bin: &str) -> bool {
+    std::env::var_os("PATH")
+        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(bin).is_file()))
+        .unwrap_or(false)
+}
+
+#[cfg(not(windows))]
+fn relaunch_linux(bin: &std::path::Path) {
+    use std::os::unix::process::CommandExt;
+    let _ = std::process::Command::new(bin)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .process_group(0)
+        .spawn();
+}
+
+#[cfg(not(windows))]
 fn apply_downloaded_package(app: &AppHandle, file: &std::path::Path) -> CmdResult<ApplyOutcome> {
     use std::os::unix::fs::PermissionsExt;
-    use std::os::unix::process::CommandExt;
     use tauri_plugin_opener::OpenerExt;
 
     let name_lower = file
@@ -164,7 +185,7 @@ fn apply_downloaded_package(app: &AppHandle, file: &std::path::Path) -> CmdResul
         .unwrap_or_default()
         .to_ascii_lowercase();
 
-    // In-place AppImage self-update when launched from a writable AppImage path.
+    // 1. In-place AppImage self-update when launched from a writable AppImage path.
     if name_lower.ends_with(".appimage") {
         let _ = std::fs::set_permissions(file, std::fs::Permissions::from_mode(0o755));
         if let Some(current_appimage) = std::env::var_os("APPIMAGE").map(std::path::PathBuf::from) {
@@ -173,12 +194,7 @@ fn apply_downloaded_package(app: &AppHandle, file: &std::path::Path) -> CmdResul
                 let _ = std::fs::set_permissions(&sibling, std::fs::Permissions::from_mode(0o755));
                 if std::fs::rename(&sibling, &current_appimage).is_ok() {
                     let _ = std::fs::remove_file(file);
-                    let _ = std::process::Command::new(&current_appimage)
-                        .stdin(std::process::Stdio::null())
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::null())
-                        .process_group(0)
-                        .spawn();
+                    relaunch_linux(&current_appimage);
                     return Ok(ApplyOutcome {
                         should_exit: true,
                         message: None,
@@ -189,8 +205,38 @@ fn apply_downloaded_package(app: &AppHandle, file: &std::path::Path) -> CmdResul
         }
     }
 
-    // System package (.pkg.tar.zst on Arch, .deb on Debian/Ubuntu, or standalone AppImage):
-    // place the verified file in Downloads without overwriting anything and reveal it.
+    // 2. Direct in-app upgrade via Polkit (`pkexec`) for Arch Linux (.pkg.tar.zst) and Debian/Ubuntu (.deb).
+    if has_cmd("pkexec") {
+        let upgraded = if name_lower.ends_with(".pkg.tar.zst") && has_cmd("pacman") {
+            std::process::Command::new("pkexec")
+                .args(["pacman", "-U", "--noconfirm"])
+                .arg(file)
+                .status()
+                .is_ok_and(|s| s.success())
+        } else if name_lower.ends_with(".deb") && has_cmd("apt-get") {
+            std::process::Command::new("pkexec")
+                .args(["apt-get", "install", "-y", "--allow-downgrades"])
+                .arg(file)
+                .status()
+                .is_ok_and(|s| s.success())
+        } else {
+            false
+        };
+
+        if upgraded {
+            let _ = std::fs::remove_file(file);
+            let target_bin = std::path::Path::new("/usr/bin/nomnom");
+            if target_bin.is_file() {
+                relaunch_linux(target_bin);
+            }
+            return Ok(ApplyOutcome {
+                should_exit: true,
+                message: None,
+            });
+        }
+    }
+
+    // 3. Fallback when Polkit is unavailable or dismissed: save verified package in Downloads.
     let downloads = app.state::<AppState>().paths.downloads.clone();
     let file_name = file
         .file_name()

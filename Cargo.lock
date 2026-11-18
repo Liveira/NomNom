@@ -2666,7 +2666,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "libc",
+ "nomnom-activity",
  "nomnom-converter",
  "nomnom-core",
  "nomnom-downloads",
@@ -2677,6 +2679,7 @@ dependencies = [
  "nomnom-tools",
  "nomnom-win",
  "notify",
+ "rusqlite",
  "serde",
  "serde_json",
  "tauri",

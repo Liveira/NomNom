@@ -31,6 +31,7 @@ pub struct AppState {
     pub organizer: crate::organizer::OrganizerState,
     pub filetools: crate::filetools::FileToolsState,
     pub storage: crate::storage::StorageState,
+    pub activity: crate::activity::ActivityState,
     /// Why the Windows 11 menu isn't in use, when it isn't (shown in Settings).
     pub shell_note: Mutex<Option<String>>,
     pub started: Instant,

@@ -18,6 +18,9 @@ nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
 nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
 nomnom-converter = { path = "../../../crates/nomnom-converter" }
 nomnom-storage = { path = "../../../crates/nomnom-storage" }
+nomnom-activity = { path = "../../../crates/nomnom-activity" }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
 tokio-util.workspace = true
 notify = "8"
 tauri-plugin-notification = "2"

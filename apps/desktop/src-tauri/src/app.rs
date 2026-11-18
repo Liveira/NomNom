@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
-    browser, commands, events, filetools, integrations, modules, notifier, organizer, pipe_server,
-    quick, shortcuts, state::AppState, storage, storage_history, storage_ops, storage_tools, tray,
-    updater, windows,
+    activity, browser, commands, events, filetools, integrations, modules, notifier, organizer,
+    pipe_server, quick, shortcuts, state::AppState, storage, storage_history, storage_ops,
+    storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -112,6 +112,7 @@ pub fn run() {
         organizer: Default::default(),
         filetools: Default::default(),
         storage: Default::default(),
+        activity: Default::default(),
         shell_note: Default::default(),
         started,
     };
@@ -212,6 +213,11 @@ pub fn run() {
             updater::update_known,
             updater::update_check,
             updater::update_install,
+            activity::act_live,
+            activity::act_overview,
+            activity::act_app_detail,
+            activity::act_update_app,
+            activity::act_delete_app,
             integrations::integration_status,
             integrations::integration_repair,
             browser::browser_status,
@@ -247,6 +253,7 @@ pub fn run() {
             organizer::recover_at_startup(&app.state::<AppState>().journal);
             organizer::apply_auto(app.handle());
             storage_history::spawn(app.handle().clone());
+            activity::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
@@ -260,12 +267,16 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build NOMNOM");
 
-    app.run(move |_app, event| {
+    app.run(move |app, event| match event {
         // Closing the last window destroys it. Keep the process alive in the tray if allowed.
-        if let RunEvent::ExitRequested { api, code, .. } = event {
+        RunEvent::ExitRequested { api, code, .. } => {
             if code.is_none() && settings.get().general.close_to_tray {
                 api.prevent_exit();
             }
         }
+        RunEvent::Exit => {
+            activity::flush_on_exit(app);
+        }
+        _ => {}
     });
 }
