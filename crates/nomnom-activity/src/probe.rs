@@ -264,6 +264,9 @@ mod win_impl {
 #[derive(Default)]
 struct LinuxState {
     x11: Option<X11Handle>,
+    /// The session D-Bus link used on Wayland (KDE's KWin script, idle time). Opened once.
+    wayland: Option<crate::wayland_linux::Link>,
+    wayland_tried: bool,
     /// Which way the focused window was found last time, so the log says when that changes.
     source: &'static str,
 }
@@ -375,6 +378,47 @@ mod linux_impl {
         }
 
         exe
+    }
+
+    /// A game that is running right now: a program of this user, started by Steam (its environment
+    /// carries `SteamGameId`) or living in a games folder, with Wine and Proton unwrapped to the
+    /// game's own `.exe`. Launchers, runtimes and helpers are skipped.
+    fn running_game() -> Option<(u32, String)> {
+        let my_uid = unsafe { libc::geteuid() };
+        let mut best: Option<(u32, String)> = None;
+        for entry in std::fs::read_dir("/proc").ok()?.flatten() {
+            let Some(pid) = entry
+                .file_name()
+                .to_str()
+                .and_then(|s| s.parse::<u32>().ok())
+            else {
+                continue;
+            };
+            {
+                use std::os::unix::fs::MetadataExt;
+                if std::fs::metadata(entry.path()).is_ok_and(|m| m.uid() != my_uid) {
+                    continue;
+                }
+            }
+            let Some(exe) = resolve_proc_exe(pid) else {
+                continue;
+            };
+            if !crate::wayland::is_game_exe(&exe) {
+                continue;
+            }
+            // Under Steam the environment says so; elsewhere the folder is enough.
+            let steam = std::fs::read(format!("/proc/{pid}/environ"))
+                .is_ok_and(|e| crate::wayland::environ_has(&e, "SteamGameId"));
+            let in_steam_folder = exe.to_ascii_lowercase().contains("/steamapps/common/");
+            if in_steam_folder && !steam {
+                continue; // something from a Steam library that Steam didn't start
+            }
+            // The oldest match is the game itself, not something it started.
+            if best.as_ref().is_none_or(|(p, _)| pid < *p) {
+                best = Some((pid, exe));
+            }
+        }
+        best
     }
 
     fn hyprland_socket_path() -> Option<PathBuf> {
@@ -632,7 +676,44 @@ mod linux_impl {
                 };
             }
 
-            // 3. X11 & XWayland (`_NET_ACTIVE_WINDOW` + `XScreenSaver`)
+            // 3. KDE Plasma on Wayland: a small KWin script reports the focused window
+            let on_wayland = std::env::var("XDG_SESSION_TYPE").is_ok_and(|s| s == "wayland")
+                || (std::env::var_os("WAYLAND_DISPLAY").is_some()
+                    && std::env::var_os("DISPLAY").is_none());
+            if on_wayland && !self.linux.wayland_tried {
+                self.linux.wayland_tried = true;
+                let desktop = crate::wayland::desktop_of(
+                    &std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
+                );
+                self.linux.wayland = crate::wayland_linux::Link::open(desktop, true);
+            }
+            if let Some(link) = self.linux.wayland.as_ref() {
+                if let Some(focus) = link.focus() {
+                    if focus.pid == 0 {
+                        // The desktop itself is in focus: nothing to count.
+                        self.note_source("KDE Plasma");
+                        return ForegroundSample::LockedOrNone;
+                    }
+                    let idle_secs = link.idle_secs().unwrap_or(0);
+                    self.note_source("KDE Plasma");
+                    let exe_path = resolve_proc_exe(focus.pid);
+                    let wm_class = Some(focus.class).filter(|c| !c.is_empty());
+                    let desktop_name =
+                        extract_desktop_name(exe_path.as_deref(), wm_class.as_deref());
+                    return ForegroundSample::Active {
+                        raw: RawForeground {
+                            pid: focus.pid,
+                            exe_path,
+                            wm_class,
+                            desktop_name,
+                        },
+                        idle_secs,
+                        fullscreen_or_gamepad: focus.fullscreen,
+                    };
+                }
+            }
+
+            // 4. X11 & XWayland (`_NET_ACTIVE_WINDOW` + `XScreenSaver`)
             if self.linux.x11.is_none() && std::env::var_os("DISPLAY").is_some() {
                 self.linux.x11 = connect_x11();
             }
@@ -659,6 +740,33 @@ mod linux_impl {
                     Err(()) => {
                         self.linux.x11 = None;
                     }
+                }
+            }
+
+            // 5. A desktop that doesn't tell which window has focus (GNOME on Wayland, others):
+            // a game that is running counts, the way Steam counts its own playtime.
+            if on_wayland {
+                if let Some((pid, exe_path)) = running_game() {
+                    self.note_source(
+                        "a running game (this desktop doesn't share the focused window)",
+                    );
+                    let idle_secs = self
+                        .linux
+                        .wayland
+                        .as_ref()
+                        .and_then(|l| l.idle_secs())
+                        .unwrap_or(0);
+                    let desktop_name = extract_desktop_name(Some(exe_path.as_str()), None);
+                    return ForegroundSample::Active {
+                        raw: RawForeground {
+                            pid,
+                            exe_path: Some(exe_path),
+                            wm_class: None,
+                            desktop_name,
+                        },
+                        idle_secs,
+                        fullscreen_or_gamepad: true,
+                    };
                 }
             }
 

@@ -8,6 +8,9 @@ pub mod classify;
 pub mod icons;
 pub mod probe;
 pub mod tracker;
+pub mod wayland;
+#[cfg(target_os = "linux")]
+mod wayland_linux;
 
 pub use classify::{classify_app, AppCategory, AppIdentity, RawForeground};
 pub use icons::{encode_icon_data_url, extract_app_meta, ExtractedMeta};
