@@ -10,7 +10,7 @@ Everything runs on your own machine. No account, no telemetry, and nothing is se
 |---|---|
 | **NomNom Downloader** | Paste a link, pick video or audio and a quality, download. Uses `yt-dlp` and `ffmpeg` (from your system `PATH` on Linux, or downloaded into NomNom's own tools folder on request). Queue, pause, resume, duplicate check, Firefox cookies, and history. |
 | **Quick download** | `Ctrl+Alt+D` reads the link on your clipboard and opens a small popup window. Enter downloads it immediately. |
-| **Firefox extension** | Adds a download button on YouTube, X, Instagram and Reddit posts. Talks to NomNom over Firefox Native Messaging and a per-user local socket/pipe (supports Firefox and LibreWolf). |
+| **Browser extension** | Adds a download button on YouTube, X, Instagram and Reddit posts, with a menu for video or audio, and a button on top of the video player on TikTok, Vimeo, Twitch, Dailymotion, Facebook, Bilibili and a few more. Firefox and LibreWolf; Chrome and Edge from `nomnom-chrome-extension.zip` (Load unpacked). Talks to NomNom over Native Messaging and a per-user local socket/pipe. |
 | **File Organizer** | Sorts a folder (`Downloads`, by default) into `Videos`, `Audio`, `Images` and `Documents`. Shows a full preview first, refuses to touch system or software folders, never overwrites an existing file (`RENAME_NOREPLACE` on Linux, `MOVEFILE_WRITE_THROUGH` without replace on Windows), and every run can be undone. Includes an automatic watch mode for new downloads. |
 | **File Tools** | Converts images, audio, video, text, Markdown, CSV/JSON/YAML/TOML and (with LibreOffice) Office documents to PDF. Source files are only ever read; outputs write to temporary files and move atomically under a free name. |
 | **Disk Analyzer** | Scans a drive, mount point or folder (optionally elevated via Polkit `pkexec` on Linux or UAC Administrator on Windows) and shows where space went: multi-column TreeGrid with `[files]` and free/system space, split list, cushioned treemap, sunburst ring chart, charts by kind, extension, age, size range and file owner, largest items, advanced search with presets, and duplicate finder (send to Trash / Recycle Bin, delete, move, zip, or replace duplicates with hardlinks). Supports filesystem compression (`FS_IOC_SETFLAGS` on Linux where supported, NTFS compression on Windows), extended attributes / NTFS streams, batch rename, saved scan files, reports (CSV, XLSX, PDF, HTML, JSON), and scheduled scan snapshots. |
@@ -140,14 +140,14 @@ NomNom never writes outside your user profile unless you run an explicit file op
 | Settings (`settings.json`) | `$XDG_CONFIG_HOME/nomnom` (`~/.config/nomnom`) | `%LOCALAPPDATA%\NOMNOM` |
 | Cache & staged updates | `$XDG_CACHE_HOME/nomnom` (`~/.cache/nomnom`) | `%LOCALAPPDATA%\NOMNOM\cache` |
 | Local IPC endpoint | `$XDG_RUNTIME_DIR/nomnom.sock` (`0600`) | `\\.\pipe\nomnom-<SID>` (SDDL per-user) |
-| Firefox Native Messaging manifest | `~/.mozilla/native-messaging-hosts/com.nomnom.host.json` (plus `~/.librewolf/...` when LibreWolf is present) | `HKCU\Software\Mozilla\NativeMessagingHosts\com.nomnom.host` |
+| Firefox Native Messaging manifest | `~/.mozilla/native-messaging-hosts/com.nomnom.host.json` (plus `~/.librewolf/...` when LibreWolf is present) | `HKCU\Software\Mozilla\NativeMessagingHosts\com.nomnom.host` (plus the Chrome and Edge keys) |
 
 ---
 
 ## Repository Layout
 
 - `apps/desktop` — Svelte 5 + TypeScript UI and Tauri v2 host (`apps/desktop/src-tauri`)
-- `apps/firefox-extension` — Manifest V3 Firefox & LibreWolf add-on
+- `apps/firefox-extension` — Manifest V3 extension for Firefox, LibreWolf, Chrome and Edge (two builds from one source)
 - `crates/nomnom-core` — XDG / Known Folder paths, settings, SQLite history, safe file moves, process groups
 - `crates/nomnom-ipc` — Native Messaging framing and per-user Named Pipe / Unix domain socket transport
 - `crates/nomnom-native-host` — Bridge binary launched by Firefox

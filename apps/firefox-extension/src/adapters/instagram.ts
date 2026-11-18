@@ -1,5 +1,5 @@
 import { createButton, hasButton, removeButtons } from '../shared/button';
-import { send, type Result } from '../shared/messaging';
+import { send, type DownloadPreset, type Result } from '../shared/messaging';
 import { watch } from '../shared/observe';
 import type { Adapter } from '../shared/run';
 
@@ -54,10 +54,15 @@ function actionBar(article: Element): Element | null {
   return marker?.closest('section') ?? null;
 }
 
-function download(article: Element): Promise<Result> {
+function isVideo(article: Element): boolean {
+  const url = postUrl(article);
+  return article.querySelector('video') !== null || (url?.includes('/reel/') ?? false);
+}
+
+function download(article: Element, preset?: DownloadPreset): Promise<Result> {
   const url = postUrl(article);
   if (!url) return Promise.resolve({ ok: false, message: "Couldn't find this post's link." });
-  if (article.querySelector('video') || url.includes('/reel/')) return send({ kind: 'download', url });
+  if (isVideo(article)) return send({ kind: 'download', url, preset });
   const images = postImages(article);
   if (images.length > 0) return send({ kind: 'media', source: url, media: images });
   return Promise.resolve({ ok: false, message: 'No pictures or video in this post.' });
@@ -69,7 +74,19 @@ export function mountInstagram(doc: Document = document): () => void {
       const bar = actionBar(article);
       if (!bar || hasButton(bar)) continue;
       const share = bar.querySelector('svg[aria-label="Share"], svg[aria-label="Share Post"]')?.closest('div[role="button"], button');
-      const button = createButton({ site: 'instagram', compact: true, onDownload: () => download(article) });
+      const video = isVideo(article);
+      const button = createButton({
+        site: 'instagram',
+        compact: true,
+        onDownload: () => download(article),
+        onPreset: video ? (p) => download(article, p) : undefined,
+        onOpenInApp: video
+          ? () => {
+              const url = postUrl(article);
+              return url ? send({ kind: 'open', url }) : Promise.resolve({ ok: false, message: "Couldn't find this post's link." });
+            }
+          : undefined,
+      });
       if (share) share.insertAdjacentElement('afterend', button);
       else bar.appendChild(button);
       article.setAttribute(SEEN, '');

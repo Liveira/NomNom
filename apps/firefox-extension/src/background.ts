@@ -1,9 +1,10 @@
 /** The only part of the extension that talks to the NomNom app. Page scripts ask it to send a link;
  *  it checks the request, passes it to the native helper, and turns the answer into one sentence. */
 import type { Result, ToBackground } from './shared/messaging';
+import { ALL_SITES } from './shared/sites';
 
 export const HOST = 'com.nomnom.host';
-const SITES = ['youtube.com', 'x.com', 'twitter.com', 'instagram.com', 'reddit.com'];
+const SITES = ALL_SITES;
 
 export function allowedHost(url: unknown): boolean {
   if (typeof url !== 'string') return false;
@@ -129,12 +130,16 @@ function senderAllowed(sender: { id?: string; tab?: { url?: string }; url?: stri
 
 export function init(): void {
   const ownRoot = browser.runtime.getURL('');
-  browser.runtime.onMessage.addListener((raw: unknown, sender) => {
+  // Answering through `sendResponse` (and returning true) works in Firefox and in Chrome. Chrome
+  // does not accept a promise as the answer.
+  browser.runtime.onMessage.addListener((raw: unknown, sender, sendResponse: (r: Result) => void) => {
     const msg = validate(raw);
     if (!msg || !senderAllowed(sender, ownRoot)) {
-      return Promise.resolve<Result>({ ok: false, message: 'NomNom ignored an unexpected request.' });
+      sendResponse({ ok: false, message: 'NomNom ignored an unexpected request.' });
+      return false;
     }
-    return handle(msg);
+    void handle(msg).then(sendResponse);
+    return true;
   });
 }
 

@@ -7,6 +7,14 @@ use winreg::RegKey;
 
 pub const HOST_NAME: &str = "com.nomnom.host";
 pub const EXTENSION_ID: &str = "nomnom@nomnom.local";
+/// The Chrome (and Edge) extension's ID. It comes from the public key in the extension's manifest,
+/// so it is the same on every computer.
+pub const CHROME_EXTENSION_ID: &str = "kejgmoigmjpbghoihdjlahegijloeghc";
+/// Where Chrome and Edge look. They use the same manifest file as Firefox, under their own keys.
+pub const CHROMIUM_ROOTS: [&str; 2] = [
+    r"Software\Google\Chrome\NativeMessagingHosts",
+    r"Software\Microsoft\Edge\NativeMessagingHosts",
+];
 /// Where Firefox looks. Tests pass a different root so the real one is never touched.
 pub const FIREFOX_ROOT: &str = r"Software\Mozilla\NativeMessagingHosts";
 
@@ -25,6 +33,7 @@ pub fn manifest_json(host_exe: &Path) -> String {
         "path": host_exe,
         "type": "stdio",
         "allowed_extensions": [EXTENSION_ID],
+        "allowed_origins": [format!("chrome-extension://{CHROME_EXTENSION_ID}/")],
     }))
     .expect("manifest is plain data")
 }
@@ -43,11 +52,26 @@ pub fn install(host_exe: &Path, manifest_path: &Path, root: &str) -> Result<(), 
     }
     std::fs::write(manifest_path, manifest_json(host_exe))
         .map_err(|e| RegError::Io(e.to_string()))?;
+    register(manifest_path, root)
+}
+
+/// Points one browser's registry key at the manifest. Used for Chrome and Edge, which read the same
+/// manifest file as Firefox.
+pub fn register(manifest_path: &Path, root: &str) -> Result<(), RegError> {
     let (key, _) = RegKey::predef(HKEY_CURRENT_USER)
         .create_subkey(key_path(root))
         .map_err(|e| RegError::Io(e.to_string()))?;
     key.set_value("", &manifest_path.to_string_lossy().to_string())
         .map_err(|e| RegError::Io(e.to_string()))
+}
+
+/// Removes one browser's registry key (not the manifest file).
+pub fn unregister(root: &str) -> Result<(), RegError> {
+    match RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(key_path(root)) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(RegError::Io(e.to_string())),
+    }
 }
 
 /// Removes the registry key and the manifest file, but only if they are ours.
@@ -148,6 +172,11 @@ mod tests {
         assert_eq!(v["type"], "stdio");
         assert_eq!(v["allowed_extensions"], serde_json::json!([EXTENSION_ID]));
         assert_eq!(
+            v["allowed_origins"],
+            serde_json::json!([format!("chrome-extension://{CHROME_EXTENSION_ID}/")]),
+            "Chrome and Edge read this field"
+        );
+        assert_eq!(
             PathBuf::from(v["path"].as_str().unwrap()),
             host,
             "path survives JSON escaping"
@@ -157,6 +186,21 @@ mod tests {
         assert_eq!(status(&root.0), Status::NotRegistered);
         assert!(!manifest.exists());
         assert!(host.exists(), "the host program itself is never deleted");
+    }
+
+    #[test]
+    fn chrome_and_edge_keys_point_at_the_same_manifest_and_can_be_removed() {
+        let root = TestRoot::new("chromium");
+        let (_dir, host, manifest) = setup();
+        install(&host, &manifest, &root.0).unwrap();
+        let other = format!(r"{}-other", root.0);
+        let _cleanup = TestRoot(other.clone());
+        register(&manifest, &other).unwrap();
+        assert_eq!(status(&other), Status::Ready);
+        unregister(&other).unwrap();
+        assert_eq!(status(&other), Status::NotRegistered);
+        unregister(&other).unwrap(); // already gone: not an error
+        assert_eq!(status(&root.0), Status::Ready, "Firefox's key is untouched");
     }
 
     #[test]

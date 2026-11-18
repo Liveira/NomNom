@@ -68,6 +68,11 @@ function download(article: Element, preset?: DownloadPreset): Promise<Result> {
   return Promise.resolve({ ok: false, message: 'No pictures or video in this post.' });
 }
 
+function openInApp(article: Element): Promise<Result> {
+  const url = tweetUrl(article);
+  return url ? send({ kind: 'open', url }) : Promise.resolve({ ok: false, message: "Couldn't find this post's link." });
+}
+
 export function mountX(doc: Document = document): () => void {
   const scan = () => {
     for (const article of doc.querySelectorAll(`article[data-testid="tweet"]:not([${SEEN}])`)) {
@@ -79,7 +84,9 @@ export function mountX(doc: Document = document): () => void {
           site: 'x',
           compact: true,
           onDownload: () => download(article),
-          onPreset: undefined,
+          // Video posts can be saved as video or as sound; pictures have nothing to choose.
+          onPreset: hasOwnVideo(article) ? (p) => download(article, p) : undefined,
+          onOpenInApp: hasOwnVideo(article) ? () => openInApp(article) : undefined,
         }),
       );
       article.setAttribute(SEEN, '');

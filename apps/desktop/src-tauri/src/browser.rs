@@ -342,8 +342,17 @@ pub fn connect(state: &AppState) -> Result<(), String> {
         let host = host_exe()
             .ok_or("The helper program (nomnom-native-host.exe) isn't next to NomNom.")?;
         write_integration(state);
-        nomnom_win::native_host::install(&host, &manifest_path(state), &firefox_root())
-            .map_err(|e| e.to_string())
+        let manifest = manifest_path(state);
+        nomnom_win::native_host::install(&host, &manifest, &firefox_root())
+            .map_err(|e| e.to_string())?;
+        // Chrome and Edge read the same manifest. They are only registered for the real Firefox
+        // key, so a test run with its own key never touches them.
+        if firefox_root() == nomnom_win::native_host::FIREFOX_ROOT {
+            for root in nomnom_win::native_host::CHROMIUM_ROOTS {
+                nomnom_win::native_host::register(&manifest, root).map_err(|e| e.to_string())?;
+            }
+        }
+        Ok(())
     }
     #[cfg(not(windows))]
     {
@@ -364,6 +373,11 @@ pub fn connect(state: &AppState) -> Result<(), String> {
 pub fn disconnect(state: &AppState) -> Result<(), String> {
     #[cfg(windows)]
     {
+        if firefox_root() == nomnom_win::native_host::FIREFOX_ROOT {
+            for root in nomnom_win::native_host::CHROMIUM_ROOTS {
+                nomnom_win::native_host::unregister(root).map_err(|e| e.to_string())?;
+            }
+        }
         nomnom_win::native_host::uninstall(&manifest_path(state), &firefox_root())
             .map_err(|e| e.to_string())
     }

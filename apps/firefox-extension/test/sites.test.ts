@@ -55,7 +55,8 @@ describe('Instagram', () => {
     photoBtn.click();
     await settle(10);
     expect(fake.sendMessage.mock.calls[0][0]).toMatchObject({ kind: 'media', source: 'https://www.instagram.com/p/PHOTO1/' });
-    reelBtn.click();
+    reelBtn.click(); // a video opens the menu; the first choice is the plain download
+    (document.querySelector('.nomnom-menu button') as HTMLButtonElement).click();
     await settle(10);
     expect(fake.sendMessage.mock.calls[1][0]).toMatchObject({ kind: 'download', url: 'https://www.instagram.com/reel/REEL1/' });
     stop();
@@ -108,6 +109,7 @@ describe('Reddit', () => {
     await settle(10);
     expect(fake.sendMessage.mock.calls[0][0]).toEqual({ kind: 'media', source: 'https://www.reddit.com/r/cats/comments/abc/title/', media: ['https://i.redd.it/x.jpg'] });
     videoBtn.click();
+    (document.querySelector('.nomnom-menu button') as HTMLButtonElement).click();
     await settle(10);
     expect(fake.sendMessage.mock.calls[1][0]).toEqual({ kind: 'download', url: 'https://www.reddit.com/r/cats/comments/abc/title/' });
     stop();
@@ -131,10 +133,10 @@ describe('the button itself', () => {
     done({ ok: true, message: 'Added to NomNom.' });
     await settle(1);
     expect(b.dataset.state).toBe('ok');
-    expect(b.querySelector('[role="status"]')!.textContent).toBe('Added to NomNom.');
+    expect(document.querySelector('[role="status"]')!.textContent).toBe('Added to NomNom.');
     await settle(FLASH_MS + 50);
     expect(b.dataset.state).toBe('idle');
-    expect(b.querySelector('[role="status"]')).toBeNull();
+    expect(document.querySelector('[role="status"]')).toBeNull();
   });
 
   it('shows the error text when something goes wrong', async () => {
@@ -142,7 +144,7 @@ describe('the button itself', () => {
     (b.querySelector('.nomnom-main') as HTMLButtonElement).click();
     await settle(1);
     expect(b.dataset.state).toBe('error');
-    expect(b.textContent).toContain("NomNom isn't running.");
+    expect(document.body.textContent).toContain("NomNom isn't running.");
   });
 
   it('copes with the request failing outright', async () => {
@@ -175,12 +177,12 @@ describe('the button itself', () => {
     const more = b.querySelector('.nomnom-more') as HTMLButtonElement;
     more.click();
     expect(more.getAttribute('aria-expanded')).toBe('true');
-    const items = [...b.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+    const items = [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
     expect(document.activeElement).toBe(items[0]);
     items[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     expect(document.activeElement).toBe(items[1]);
     items[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(b.querySelector('[role="menu"]')).toBeNull();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
     expect(more.getAttribute('aria-expanded')).toBe('false');
   });
 
@@ -188,6 +190,56 @@ describe('the button itself', () => {
     const b = mk(async () => ({ ok: true, message: 'x' }));
     (b.querySelector('.nomnom-more') as HTMLButtonElement).click();
     document.body.click();
-    expect(b.querySelector('[role="menu"]')).toBeNull();
+    expect(document.querySelector('[role="menu"]')).toBeNull();
+  });
+});
+
+describe('options that are never cut off', () => {
+  it('the menu and the message live in their own layer, outside any clipping parent', async () => {
+    document.body.innerHTML = '<div id="bar" style="overflow:hidden;height:20px"></div>';
+    const bar = document.getElementById('bar')!;
+    const b = createButton({
+      site: 'x',
+      compact: true,
+      onDownload: async () => ({ ok: true, message: 'Added to NomNom.' }),
+      onPreset: async () => ({ ok: true, message: 'Added to NomNom.' }),
+      onOpenInApp: async () => ({ ok: true, message: 'Opened.' }),
+    });
+    bar.appendChild(b);
+    (b.querySelector('.nomnom-main') as HTMLButtonElement).click();
+    const menu = document.querySelector('.nomnom-menu') as HTMLElement;
+    expect(menu).not.toBeNull();
+    expect(bar.contains(menu)).toBe(false);
+    expect(menu.parentElement).toBe(document.body);
+    expect(menu.style.position).toBe('fixed');
+    expect([...menu.querySelectorAll('button')].map((x) => x.textContent)).toEqual(['Video', 'Audio · MP3', 'Audio · M4A', 'Choose in NomNom…']);
+    (menu.querySelectorAll('button')[0] as HTMLButtonElement).click();
+    await settle(1);
+    expect(document.querySelector('.nomnom-menu')).toBeNull();
+    const toast = document.querySelector('.nomnom-toast') as HTMLElement;
+    expect(toast.textContent).toBe('Added to NomNom.');
+    expect(bar.contains(toast)).toBe(false);
+    await settle(FLASH_MS + 50);
+    expect(document.querySelector('.nomnom-toast')).toBeNull();
+  });
+
+  it('an icon-only button without presets still downloads on a plain click', async () => {
+    document.body.innerHTML = '';
+    const go = vi.fn(async () => ({ ok: true, message: 'ok' }));
+    const b = createButton({ site: 'x', compact: true, onDownload: go });
+    document.body.appendChild(b);
+    (b.querySelector('.nomnom-main') as HTMLButtonElement).click();
+    expect(go).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('.nomnom-menu')).toBeNull();
+  });
+
+  it('picking an audio option sends that preset', async () => {
+    document.body.innerHTML = '';
+    const preset = vi.fn(async () => ({ ok: true, message: 'ok' }));
+    const b = createButton({ site: 'x', compact: true, onDownload: async () => ({ ok: true, message: 'ok' }), onPreset: preset });
+    document.body.appendChild(b);
+    (b.querySelector('.nomnom-main') as HTMLButtonElement).click();
+    (document.querySelectorAll('.nomnom-menu button')[1] as HTMLButtonElement).click();
+    expect(preset).toHaveBeenCalledWith({ kind: 'audio', format: 'mp3' });
   });
 });

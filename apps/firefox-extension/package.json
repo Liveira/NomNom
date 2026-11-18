@@ -8,7 +8,7 @@
     "check": "tsc --noEmit",
     "test": "vitest run",
     "lint": "web-ext lint --source-dir dist",
-    "package": "npm run build && web-ext build --source-dir dist --artifacts-dir ../../dist/extension --overwrite-dest"
+    "package": "npm run build && web-ext build --source-dir dist --artifacts-dir ../../dist/extension --overwrite-dest && node pack-chrome.mjs"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^143.0.1",

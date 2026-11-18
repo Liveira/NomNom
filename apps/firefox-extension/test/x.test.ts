@@ -113,6 +113,9 @@ describe('the buttons', () => {
     const stop = mountX();
     await settle();
     (document.querySelector('.nomnom-main') as HTMLButtonElement).click();
+    const choices = [...document.querySelectorAll('.nomnom-menu button')].map((b) => b.textContent);
+    expect(choices).toEqual(['Video', 'Audio · MP3', 'Audio · M4A', 'Choose in NomNom…']);
+    (document.querySelector('.nomnom-menu button') as HTMLButtonElement).click();
     await settle(10);
     expect(fake.sendMessage).toHaveBeenCalledWith({ kind: 'download', url: 'https://x.com/carol/status/333', preset: undefined });
     stop();

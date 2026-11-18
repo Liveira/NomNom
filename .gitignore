@@ -13,3 +13,4 @@ packaging/arch/pkg/
 .vscode/
 .idea/
 dev/
+dist-chrome/

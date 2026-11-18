@@ -1,7 +1,7 @@
 import type { DownloadPreset, Result } from './messaging';
 import { ensureStyles } from './styles';
 
-export type Site = 'youtube' | 'x' | 'instagram' | 'reddit';
+export type Site = 'youtube' | 'x' | 'instagram' | 'reddit' | 'player';
 export const MARK = 'data-nomnom';
 export const FLASH_MS = 1800;
 
@@ -42,6 +42,45 @@ const CHOICES: { label: string; preset: DownloadPreset }[] = [
   { label: 'Audio · M4A', preset: { kind: 'audio', format: 'm4a' } },
 ];
 
+/** Puts a menu or a message in its own layer on the page, next to `anchor`. Posts and toolbars
+ *  often clip what sticks out of them, so these are never placed inside the page's own layout. */
+export function float(doc: Document, el: HTMLElement, anchor: HTMLElement): void {
+  el.dataset.nomnomFloat = '';
+  el.style.position = 'fixed';
+  el.style.visibility = 'hidden';
+  (doc.body ?? doc.documentElement).appendChild(el);
+  const view = doc.defaultView;
+  const a = anchor.getBoundingClientRect();
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  const vw = view?.innerWidth ?? 1024;
+  const vh = view?.innerHeight ?? 768;
+  const gap = 6;
+  // Below the button when it fits, otherwise above it; lined up with the button's right edge,
+  // and always inside the window.
+  let top = a.bottom + gap;
+  if (top + h > vh - 8 && a.top - gap - h >= 8) top = a.top - gap - h;
+  let left = a.right - w;
+  left = Math.max(8, Math.min(left, vw - w - 8));
+  el.style.top = `${Math.max(8, top)}px`;
+  el.style.left = `${left}px`;
+  el.style.visibility = '';
+}
+
+/** Does the page look dark? Sites like X and Reddit have their own dark mode that doesn't follow the
+ *  system's, so the colour of the page itself is what counts. */
+export function pageIsDark(doc: Document): boolean {
+  const view = doc.defaultView;
+  for (const el of [doc.body, doc.documentElement]) {
+    if (!el || !view) continue;
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(view.getComputedStyle(el).backgroundColor);
+    if (!m || (m[4] !== undefined && parseFloat(m[4]) === 0)) continue;
+    const [r, g, b] = [+m[1], +m[2], +m[3]];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 140;
+  }
+  return view?.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+}
+
 export function createButton(opts: ButtonOptions, doc: Document = document): HTMLElement {
   ensureStyles(doc);
   const wrap = doc.createElement('span');
@@ -75,7 +114,8 @@ export function createButton(opts: ButtonOptions, doc: Document = document): HTM
     toast.className = 'nomnom-toast';
     toast.setAttribute('role', 'status');
     toast.textContent = text;
-    wrap.appendChild(toast);
+    toast.dataset.scheme = pageIsDark(doc) ? 'dark' : 'light';
+    float(doc, toast, wrap);
   };
 
   const finish = (r: Result) => {
@@ -110,38 +150,55 @@ export function createButton(opts: ButtonOptions, doc: Document = document): HTM
     e.stopPropagation();
   };
 
-  main.addEventListener('click', (e) => {
+  const plainClick = (e: Event) => {
     swallow(e);
     void run(opts.onDownload);
-  });
+  };
+  main.addEventListener('click', plainClick);
 
-  if (opts.onPreset && !opts.compact) {
-    const more = doc.createElement('button');
-    more.type = 'button';
-    more.className = 'nomnom-more';
-    more.setAttribute('aria-label', 'More download options');
-    more.setAttribute('aria-haspopup', 'menu');
-    more.setAttribute('aria-expanded', 'false');
-    more.appendChild(caretIcon(doc));
-    wrap.appendChild(more);
+  if (opts.onPreset) {
+    // Wide buttons (YouTube) have a small arrow for the menu. Icon-only buttons have no room for
+    // one, so a click on the icon itself opens the menu.
+    let opener: HTMLButtonElement = main;
+    if (!opts.compact) {
+      const more = doc.createElement('button');
+      more.type = 'button';
+      more.className = 'nomnom-more';
+      more.setAttribute('aria-label', 'More download options');
+      more.appendChild(caretIcon(doc));
+      wrap.appendChild(more);
+      opener = more;
+    }
+    opener.setAttribute('aria-haspopup', 'menu');
+    opener.setAttribute('aria-expanded', 'false');
+    if (opts.compact) {
+      main.title = 'Download with NomNom: choose video or audio';
+      main.setAttribute('aria-label', 'Download with NomNom, show options');
+    }
 
     const onOutside = (e: Event) => {
-      if (!wrap.contains(e.target as Node)) close();
+      const t = e.target as Node;
+      if (!wrap.contains(t) && !menu?.contains(t)) close();
     };
+    const onMove = () => close();
     function close() {
       if (!menu) return;
       menu.remove();
       menu = null;
-      more.setAttribute('aria-expanded', 'false');
+      opener.setAttribute('aria-expanded', 'false');
       doc.removeEventListener('click', onOutside, true);
+      doc.defaultView?.removeEventListener('scroll', onMove, true);
+      doc.defaultView?.removeEventListener('resize', onMove);
     }
     const open = () => {
+      toast?.remove();
       menu = doc.createElement('div');
       menu.className = 'nomnom-menu';
       menu.setAttribute('role', 'menu');
+      menu.dataset.scheme = pageIsDark(doc) ? 'dark' : 'light';
       const items: { label: string; go: () => Promise<Result> }[] = CHOICES.map((c) => ({
         label: c.label,
-        go: () => opts.onPreset!(c.preset),
+        go: () => (c.preset.kind === 'video' && opts.compact ? opts.onDownload() : opts.onPreset!(c.preset)),
       }));
       if (opts.onOpenInApp) items.push({ label: 'Choose in NomNom…', go: opts.onOpenInApp });
       for (const item of items) {
@@ -163,21 +220,28 @@ export function createButton(opts: ButtonOptions, doc: Document = document): HTM
         else if (e.key === 'ArrowUp') list[(i - 1 + list.length) % list.length].focus();
         else if (e.key === 'Escape') {
           close();
-          more.focus();
+          opener.focus();
         } else return;
         e.preventDefault();
         e.stopPropagation();
       });
-      wrap.appendChild(menu);
-      more.setAttribute('aria-expanded', 'true');
+      float(doc, menu, wrap);
+      opener.setAttribute('aria-expanded', 'true');
       doc.addEventListener('click', onOutside, true);
+      doc.defaultView?.addEventListener('scroll', onMove, true);
+      doc.defaultView?.addEventListener('resize', onMove);
       menu.querySelector('button')?.focus();
     };
-    more.addEventListener('click', (e) => {
+    const toggle = (e: Event) => {
       swallow(e);
       if (menu) close();
       else open();
-    });
+    };
+    opener.addEventListener('click', toggle);
+    if (opts.compact) {
+      // The icon opens the menu, so the plain-click download below must not also run.
+      main.removeEventListener('click', plainClick);
+    }
   }
   return wrap;
 }
@@ -187,5 +251,5 @@ export function hasButton(container: ParentNode): boolean {
 }
 
 export function removeButtons(root: ParentNode = document): void {
-  root.querySelectorAll(`[${MARK}]`).forEach((el) => el.remove());
+  root.querySelectorAll(`[${MARK}], [data-nomnom-float]`).forEach((el) => el.remove());
 }

@@ -35,10 +35,10 @@
 </script>
 
 <section class="group" aria-labelledby="fx">
-  <h3 id="fx">Firefox</h3>
+  <h3 id="fx">Firefox, Chrome and Edge</h3>
   <p class="intro">
     The NomNom extension adds a download button to videos and posts. It works by sending links to
-    this app, so NomNom needs to be connected to Firefox.
+    this app, so NomNom needs to be connected to your browser.
   </p>
 
   <div class="row">
@@ -53,10 +53,11 @@
     </div>
     <div class="buttons">
       {#if status?.state === 'connected'}
+        <button class="plain" disabled={busy} onclick={() => act(browserIpc.connect, 'Chrome and Edge are connected.')}>Add Chrome and Edge</button>
         <button class="plain" disabled={busy} onclick={() => act(browserIpc.disconnect, 'Disconnected.')}>Disconnect</button>
       {:else}
-        <button class="plain primary" disabled={busy || !status?.helper_found} onclick={() => act(browserIpc.connect, 'Connected. Install the extension in Firefox to finish.')}>
-          {status?.state === 'needs_repair' ? 'Repair connection' : 'Connect Firefox'}
+        <button class="plain primary" disabled={busy || !status?.helper_found} onclick={() => act(browserIpc.connect, 'Connected. Install the extension in your browser to finish.')}>
+          {status?.state === 'needs_repair' ? 'Repair connection' : 'Connect browsers'}
         </button>
       {/if}
     </div>
@@ -64,10 +65,10 @@
 
   <div class="row">
     <div>
-      <div class="label">Start NomNom in the background when Firefox sends a download</div>
+      <div class="label">Start NomNom in the background when your browser sends a download</div>
       <div class="hint">NomNom starts without opening a window. Turn this off if you only want downloads to work while NomNom is already running.</div>
     </div>
-    <Switch checked={launch} label="Start NomNom in the background when Firefox sends a download" onchange={(v) => app.update({ launchFromBrowser: v })} />
+    <Switch checked={launch} label="Start NomNom in the background when your browser sends a download" onchange={(v) => app.update({ launchFromBrowser: v })} />
   </div>
 
   <h3 class="sub">The extension</h3>
@@ -76,6 +77,11 @@
     choose This Firefox, then Load Temporary Add-on, and pick <span class="mono">manifest.json</span> from the
     extension's <span class="mono">dist</span> folder. A temporary add-on is removed when Firefox restarts. A permanent
     install needs a signed package.
+  </p>
+  <p class="hint">
+    For Chrome and Edge, unzip <span class="mono">nomnom-chrome-extension.zip</span> from the NomNom releases page,
+    open <span class="mono">chrome://extensions</span> (in Edge, <span class="mono">edge://extensions</span>), turn on
+    Developer mode, choose Load unpacked, and pick the unzipped folder.
   </p>
   {#if message}<p class="hint" role="status">{message}</p>{/if}
 </section>

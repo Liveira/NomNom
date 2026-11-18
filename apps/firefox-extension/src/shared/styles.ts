@@ -13,12 +13,16 @@ export const CSS = `
 .nomnom-wrap[data-state=sending] .nomnom-main{opacity:.6;cursor:progress}
 .nomnom-wrap[data-state=ok] .nomnom-main{color:#2ba640}
 .nomnom-wrap[data-state=error] .nomnom-main{color:#e5484d}
-.nomnom-menu{position:absolute;z-index:2147483000;top:calc(100% + 4px);right:0;min-width:180px;padding:6px;border-radius:12px;background:var(--yt-spec-menu-background,#fff);color:var(--yt-spec-text-primary,#0f0f0f);box-shadow:0 8px 28px rgba(0,0,0,.35);border:1px solid rgba(128,128,128,.25)}
+.nomnom-menu{z-index:2147483647;min-width:190px;font-family:Roboto,Arial,sans-serif;padding:6px;border-radius:12px;background:var(--yt-spec-menu-background,#fff);color:var(--yt-spec-text-primary,#0f0f0f);box-shadow:0 8px 28px rgba(0,0,0,.35);border:1px solid rgba(128,128,128,.25)}
 @media (prefers-color-scheme:dark){.nomnom-menu{background:var(--yt-spec-menu-background,#282828);color:var(--yt-spec-text-primary,#f1f1f1)}}
+.nomnom-menu[data-scheme=dark]{background:#26262b;color:#f4f4f5}
+.nomnom-menu[data-scheme=light]{background:#fff;color:#111}
+.nomnom-menu button{color:inherit}
 .nomnom-menu[hidden]{display:none}
 .nomnom-menu button{width:100%;padding:8px 10px;border-radius:8px;font-size:14px;text-align:left;justify-content:flex-start}
 .nomnom-menu button:hover{background:rgba(128,128,128,.2)}
-.nomnom-toast{position:absolute;z-index:2147483000;top:calc(100% + 4px);left:50%;transform:translateX(-50%);padding:6px 10px;border-radius:8px;font-size:13px;white-space:nowrap;background:#222;color:#fff;pointer-events:none}
+.nomnom-toast{z-index:2147483647;font-family:Roboto,Arial,sans-serif;padding:6px 10px;border-radius:8px;font-size:13px;white-space:nowrap;background:#222;color:#fff;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.nomnom-toast[data-scheme=dark]{background:#f4f4f5;color:#111}
 .nomnom-wrap[data-site=youtube]{--nn-chip:var(--yt-spec-button-chip-background,var(--yt-spec-badge-chip-background,var(--yt-spec-additive-background,rgba(128,128,128,.2))));--nn-chip-hover:var(--yt-spec-button-chip-background-hover,var(--yt-spec-mono-tonal-hover,rgba(128,128,128,.32)))}
 .nomnom-wrap[data-site=youtube] .nomnom-main{background:var(--nn-chip);color:var(--yt-spec-text-primary,currentColor);border-radius:18px 0 0 18px;padding:0 12px 0 14px}
 .nomnom-wrap[data-site=youtube] .nomnom-main:hover,.nomnom-wrap[data-site=youtube] .nomnom-more:hover{background:var(--nn-chip-hover)}
@@ -26,6 +30,9 @@ export const CSS = `
 .nomnom-wrap[data-site=youtube][data-compact] .nomnom-main{width:48px;height:48px;padding:0;justify-content:center;border-radius:50%;background:rgba(0,0,0,.3);color:#fff}
 .nomnom-wrap[data-compact]:not([data-site=youtube]) .nomnom-main{width:34px;height:34px;padding:0;justify-content:center;border-radius:50%}
 .nomnom-wrap[data-compact]:not([data-site=youtube]) .nomnom-main:hover{background:rgba(255,176,112,.18)}
+.nomnom-wrap[data-site=player] .nomnom-main{background:rgba(20,20,24,.78);color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.nomnom-wrap[data-site=player] .nomnom-main:hover{background:rgba(255,150,80,.9);color:#1a0d02}
+.nomnom-wrap[data-site=player]{margin:0}
 .nomnom-overlay{position:absolute;top:8px;right:8px;z-index:3}
 `;
 

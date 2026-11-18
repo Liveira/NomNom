@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 
 pub const HOST_NAME: &str = "com.nomnom.host";
 pub const EXTENSION_ID: &str = "nomnom@nomnom.local";
+/// The Chrome, Chromium and Edge extension's ID (it comes from the public key in the manifest).
+pub const CHROME_EXTENSION_ID: &str = "kejgmoigmjpbghoihdjlahegijloeghc";
 pub const MANIFEST_FILE: &str = "com.nomnom.host.json";
 
 #[derive(Debug, thiserror::Error)]
@@ -35,6 +37,29 @@ fn companion_librewolf_dir(mozilla_hosts_dir: &Path) -> Option<PathBuf> {
     lw.is_dir().then(|| lw.join("native-messaging-hosts"))
 }
 
+/// The folders where Chromium-based browsers read host manifests, for the browsers that are
+/// installed (their settings folder exists).
+fn companion_chromium_dirs(mozilla_hosts_dir: &Path) -> Vec<PathBuf> {
+    let Some(home) = mozilla_hosts_dir
+        .parent()
+        .filter(|m| m.file_name().and_then(|n| n.to_str()) == Some(".mozilla"))
+        .and_then(Path::parent)
+    else {
+        return Vec::new();
+    };
+    [
+        "google-chrome",
+        "chromium",
+        "microsoft-edge",
+        "BraveSoftware/Brave-Browser",
+    ]
+    .iter()
+    .map(|b| home.join(".config").join(b))
+    .filter(|d| d.is_dir())
+    .map(|d| d.join("NativeMessagingHosts"))
+    .collect()
+}
+
 pub fn manifest_json(host_exe: &Path) -> String {
     serde_json::to_string_pretty(&serde_json::json!({
         "name": HOST_NAME,
@@ -42,6 +67,7 @@ pub fn manifest_json(host_exe: &Path) -> String {
         "path": host_exe,
         "type": "stdio",
         "allowed_extensions": [EXTENSION_ID],
+        "allowed_origins": [format!("chrome-extension://{CHROME_EXTENSION_ID}/")],
     }))
     .expect("manifest is plain data")
 }
@@ -60,6 +86,10 @@ pub fn install(host_exe: &Path, hosts_dir: &Path) -> Result<(), RegError> {
     if let Some(lw_hosts) = companion_librewolf_dir(hosts_dir) {
         let _ = std::fs::create_dir_all(&lw_hosts);
         let _ = std::fs::write(lw_hosts.join(MANIFEST_FILE), &body);
+    }
+    for dir in companion_chromium_dirs(hosts_dir) {
+        let _ = std::fs::create_dir_all(&dir);
+        let _ = std::fs::write(dir.join(MANIFEST_FILE), &body);
     }
     Ok(())
 }
@@ -87,6 +117,9 @@ pub fn uninstall(hosts_dir: &Path) -> Result<(), RegError> {
     remove_if_ours(&hosts_dir.join(MANIFEST_FILE))?;
     if let Some(lw_hosts) = companion_librewolf_dir(hosts_dir) {
         let _ = remove_if_ours(&lw_hosts.join(MANIFEST_FILE));
+    }
+    for dir in companion_chromium_dirs(hosts_dir) {
+        let _ = remove_if_ours(&dir.join(MANIFEST_FILE));
     }
     Ok(())
 }

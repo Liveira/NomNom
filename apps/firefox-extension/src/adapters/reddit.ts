@@ -1,5 +1,5 @@
 import { createButton, hasButton, removeButtons } from '../shared/button';
-import { send, type Result } from '../shared/messaging';
+import { send, type DownloadPreset, type Result } from '../shared/messaging';
 import { watch } from '../shared/observe';
 import type { Adapter } from '../shared/run';
 
@@ -41,11 +41,11 @@ export function hasMedia(post: Element): boolean {
   return type === 'video' || type === 'image' || type === 'gallery';
 }
 
-function download(post: Element): Promise<Result> {
+function download(post: Element, preset?: DownloadPreset): Promise<Result> {
   const link = postLink(post);
   if (!link) return Promise.resolve({ ok: false, message: "Couldn't find this post's link." });
   const type = post.getAttribute('post-type');
-  if (type === 'video') return send({ kind: 'download', url: link });
+  if (type === 'video') return send({ kind: 'download', url: link, preset });
   const images = postImages(post);
   if (images.length > 0) return send({ kind: 'media', source: link, media: images });
   return Promise.resolve({ ok: false, message: 'This post has no media NomNom can download.' });
@@ -61,7 +61,21 @@ export function mountReddit(doc: Document = document): () => void {
       if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
       const holder = doc.createElement('span');
       holder.className = 'nomnom-overlay';
-      holder.appendChild(createButton({ site: 'reddit', compact: true, onDownload: () => download(post) }));
+      const video = post.getAttribute('post-type') === 'video';
+      holder.appendChild(
+        createButton({
+          site: 'reddit',
+          compact: true,
+          onDownload: () => download(post),
+          onPreset: video ? (p) => download(post, p) : undefined,
+          onOpenInApp: video
+            ? () => {
+                const link = postLink(post);
+                return link ? send({ kind: 'open', url: link }) : Promise.resolve({ ok: false, message: "Couldn't find this post's link." });
+              }
+            : undefined,
+        }),
+      );
       post.appendChild(holder);
       post.setAttribute(SEEN, '');
     }
