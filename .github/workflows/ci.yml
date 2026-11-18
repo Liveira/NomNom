@@ -20,6 +20,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build -w apps/desktop
+      # The Linux bundle lists the native messaging host as a resource, so it has to exist first.
+      - run: cargo build --release -p nomnom-native-host
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - name: cargo test

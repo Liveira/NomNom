@@ -204,14 +204,11 @@ fn the_menu_works_the_way_explorer_uses_it() {
     let analyze = sub(&cmd, "Analyze disk space");
     unsafe { analyze.Invoke(&folder_sel, None).unwrap() };
     let args: Vec<String> = wait_for(&argdump).lines().map(String::from).collect();
+    assert_eq!(args[..3], ["--shell-action", "analyze", "--files"]);
+    assert_eq!(args.len(), 4);
     assert_eq!(
-        args,
-        [
-            "--shell-action",
-            "analyze",
-            "--files",
-            &pics.to_string_lossy()
-        ]
+        std::fs::canonicalize(&args[3]).unwrap(),
+        std::fs::canonicalize(&pics).unwrap()
     );
     std::fs::remove_file(&argdump).unwrap();
 
