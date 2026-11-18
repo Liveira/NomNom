@@ -1,6 +1,5 @@
-//! Disk Analyzer inside the app: drives, scans (start, pause, resume, cancel, rescan one folder),
-//! and the questions the window asks of a scan (children, rankings). The scan itself and the index
-//! live in `nomnom-storage`; this file only exposes them.
+//! Disk Analyzer inside the app: drives, scans (start, elevated start, pause, resume, cancel,
+//! rescan one folder, save/load scan files), and the questions the window asks of a scan.
 
 use crate::state::AppState;
 use nomnom_storage::analyze::{self, Filter, FolderMode, Group, Page, SortKey};
@@ -8,7 +7,7 @@ use nomnom_storage::drives::{self, Drive, DriveKind, Media};
 use nomnom_storage::index::NodeId;
 use nomnom_storage::scan::{ScanError, State as ScanState};
 use nomnom_storage::{NodeView, ScanOptions, Session};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -25,6 +24,8 @@ pub struct StorageState {
     pub(crate) op_running: std::sync::atomic::AtomicBool,
     pub(crate) dupes: Mutex<Option<(u64, Arc<nomnom_storage::dupes::Job>)>>,
     pub(crate) schedule: crate::storage_history::ScheduleState,
+    /// Folders sent from the Explorer right-click "Analyze disk space" action.
+    pub(crate) inbox: Mutex<Vec<PathBuf>>,
 }
 
 impl StorageState {
@@ -47,13 +48,16 @@ pub struct Progress {
     pub dirs: u64,
     pub bytes: u64,
     /// Space the files take on disk (whole clusters, compression, shared copies counted once).
-    /// This is the number that can be compared with what Windows reports as used.
     pub allocated: u64,
     pub errors: u64,
     pub elapsed_ms: u64,
-    /// Used space of the drive the scan is on, when the root is on a lettered drive.
+    pub elevated: bool,
+    pub mft_bytes: u64,
+    /// Used, free and total space of the drive the scan is on, when on a lettered drive.
     pub drive_used: Option<u64>,
+    pub drive_free: Option<u64>,
     pub drive_total: Option<u64>,
+    pub drive_fs: Option<String>,
 }
 
 fn progress_of(s: &Session, drive: &Option<Drive>) -> Progress {
@@ -73,8 +77,12 @@ fn progress_of(s: &Session, drive: &Option<Drive>) -> Progress {
             .unwrap_or(0),
         errors: s.stats.errors.load(Ordering::Relaxed),
         elapsed_ms: s.elapsed().as_millis() as u64,
+        elevated: s.elevated.load(Ordering::Relaxed),
+        mft_bytes: s.mft_bytes.load(Ordering::Relaxed),
         drive_used: drive.as_ref().map(|d| d.used),
+        drive_free: drive.as_ref().map(|d| d.free),
         drive_total: drive.as_ref().map(|d| d.total),
+        drive_fs: drive.as_ref().map(|d| d.filesystem.clone()),
     }
 }
 
@@ -83,6 +91,15 @@ pub async fn st_drives() -> Result<Vec<Drive>, String> {
     tauri::async_runtime::spawn_blocking(drives::list)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn st_take_inbox(state: State<'_, AppState>) -> Vec<String> {
+    let mut inbox = state.storage.inbox.lock().unwrap();
+    std::mem::take(&mut *inbox)
+        .into_iter()
+        .map(|p| p.to_string_lossy().to_string())
+        .collect()
 }
 
 /// Scans keep the disk busy; more workers help an SSD and hurt a spinning disk or a network share.
@@ -108,11 +125,21 @@ fn emit_progress_until_done(app: AppHandle, session: Arc<Session>, drive: Option
     });
 }
 
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct ScanStartOpts {
+    pub elevated: bool,
+    pub collect_owners: Option<bool>,
+    pub collect_streams: Option<bool>,
+    pub exclude: Vec<String>,
+}
+
 #[tauri::command]
 pub async fn st_scan_start(
     app: AppHandle,
     state: State<'_, AppState>,
     root: String,
+    options: Option<ScanStartOpts>,
 ) -> Result<u64, String> {
     let path = PathBuf::from(&root);
     if !path.is_absolute() || nomnom_organizer::pathutil::has_traversal(&path) {
@@ -121,15 +148,24 @@ pub async fn st_scan_start(
     if !path.is_dir() {
         return Err("That folder couldn't be found.".into());
     }
+    let req = options.unwrap_or_default();
     let drive = drives::drive_of(&path);
     let opts = ScanOptions {
         workers: workers_for(&drive),
         cluster: drive.as_ref().map(|d| d.cluster).unwrap_or(4096),
         volume_serial: drive.as_ref().map(|d| d.serial).unwrap_or(0),
+        collect_owners: req.collect_owners.unwrap_or(true),
+        collect_streams: req.collect_streams.unwrap_or(false),
+        exclude: req.exclude,
         ..ScanOptions::default()
     };
     let id = state.storage.next.fetch_add(1, Ordering::SeqCst) + 1;
-    let session = Session::start(id, path, opts);
+    let session = if req.elevated && !nomnom_storage::ntfs::is_elevated() {
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        nomnom_storage::elevate::spawn_elevated_scan(&exe, id, path, opts)?
+    } else {
+        Session::start(id, path, opts)
+    };
     state
         .storage
         .sessions
@@ -137,6 +173,48 @@ pub async fn st_scan_start(
         .unwrap()
         .insert(id, session.clone());
     emit_progress_until_done(app, session, drive);
+    Ok(id)
+}
+
+#[tauri::command]
+pub async fn st_scan_save(
+    state: State<'_, AppState>,
+    id: u64,
+    path: String,
+) -> Result<u64, String> {
+    let s = state.storage.get(id)?;
+    let target = crate::storage_tools::checked_target(&state, &path, "json")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        nomnom_storage::elevate::save_scan_file(&s, &target)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn st_scan_load(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<u64, String> {
+    let p = PathBuf::from(&path);
+    if !p.is_absolute() || !p.is_file() {
+        return Err("Choose a saved NomNom scan file (.json).".into());
+    }
+    let id = state.storage.next.fetch_add(1, Ordering::SeqCst) + 1;
+    let session = tauri::async_runtime::spawn_blocking(move || {
+        nomnom_storage::elevate::load_scan_file(id, &p)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    let drive = drives::drive_of(&session.root);
+    state
+        .storage
+        .sessions
+        .lock()
+        .unwrap()
+        .insert(id, session.clone());
+    let _ = app.emit("storage://progress", progress_of(&session, &drive));
     Ok(id)
 }
 
@@ -218,6 +296,7 @@ pub async fn st_children(
     offset: usize,
     limit: usize,
     text: Option<String>,
+    only: Option<String>,
 ) -> Result<Page, String> {
     let s = state.storage.get(id)?;
     tauri::async_runtime::spawn_blocking(move || {
@@ -225,7 +304,7 @@ pub async fn st_children(
         if idx.node(node).is_none() {
             return Err("That item isn't in the scan.".to_string());
         }
-        Ok(analyze::children_page(
+        Ok(analyze::children_filtered(
             &idx,
             node,
             sort,
@@ -233,6 +312,7 @@ pub async fn st_children(
             offset,
             limit.min(5000),
             text.as_deref(),
+            only.as_deref(),
         ))
     })
     .await
@@ -316,6 +396,8 @@ pub async fn st_top_folders(
 pub struct Stats {
     pub extensions: Vec<Group>,
     pub categories: Vec<Group>,
+    pub owners: Vec<Group>,
+    pub sizes: Vec<Group>,
 }
 
 #[tauri::command]
@@ -329,6 +411,8 @@ pub async fn st_stats(state: State<'_, AppState>, id: u64, node: NodeId) -> Resu
         Ok(Stats {
             extensions: analyze::by_extension(&idx, node, 200),
             categories: analyze::by_category(&idx, node),
+            owners: analyze::by_owner(&idx, node, 100),
+            sizes: analyze::by_size_bucket(&idx, node),
         })
     })
     .await
@@ -356,7 +440,7 @@ pub fn st_paths(
         .collect())
 }
 
-/// Nested sizes for the treemap.
+/// Nested sizes for the treemap and sunburst.
 #[tauri::command]
 pub async fn st_treemap(
     state: State<'_, AppState>,
@@ -374,7 +458,7 @@ pub async fn st_treemap(
         Ok(analyze::treemap(
             &idx,
             node,
-            depth.clamp(1, 4),
+            depth.clamp(1, 6),
             max_children.clamp(10, 400),
         ))
     })

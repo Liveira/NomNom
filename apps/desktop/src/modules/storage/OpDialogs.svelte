@@ -3,7 +3,7 @@
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import { save as saveFile, open as pickFolder } from '@tauri-apps/plugin-dialog';
   import { formatBytes } from '../../lib/format';
-  import { stTools, type StRenameRow, type StRenameRule, type StReportSpec } from '../../lib/ipc';
+  import { stTools, type StOpKind, type StRenameRow, type StRenameRule, type StReportSpec } from '../../lib/ipc';
   import { attributeLabels } from './logic';
   import { storage } from './store.svelte';
 
@@ -17,7 +17,6 @@
   let preview = $state<StRenameRow[]>([]);
   let previewError = $state('');
   let previewSeq = 0;
-  /** An emptied number box reads as nothing; the app needs real numbers. */
   function cleanRule(r: StRenameRule): StRenameRule {
     const n = (v: unknown, min: number, fallback: number) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Math.max(min, Math.floor(Number(v))) : fallback);
     return { ...r, start: n(r.start, 0, 1), step: n(r.step, 1, 1), pad: Math.min(12, n(r.pad, 0, 0)) };
@@ -28,22 +27,56 @@
   let zipName = $state('');
 
   // Export
-  type ReportType = 'tree' | 'top_files' | 'top_folders' | 'extensions' | 'categories' | 'age' | 'duplicates';
+  type ReportType = 'tree' | 'top_files' | 'top_folders' | 'extensions' | 'categories' | 'owners' | 'sizes' | 'age' | 'duplicates';
   let reportType = $state<ReportType>('tree');
   let format = $state<StReportSpec['format']>('csv');
   let depth = $state(3);
   let topN = $state(100);
   let folderMode = $state<'inclusive' | 'exclusive'>('exclusive');
   let scopeHere = $state(false);
-  let columns = $state<Record<string, boolean>>({ name: true, path: true, type: true, size: true, alloc: true, files: true, dirs: true, modified: true, percent: true });
+  let columns = $state<Record<string, boolean>>({
+    name: true,
+    path: true,
+    type: true,
+    size: true,
+    alloc: true,
+    own_size: false,
+    files: true,
+    dirs: true,
+    owner: true,
+    modified: true,
+    created: false,
+    accessed: false,
+    attributes: false,
+    path_len: false,
+    percent: true,
+  });
   let exporting = $state(false);
-  const COLUMN_LABELS: Record<string, string> = { name: 'Name', path: 'Path', type: 'Type', size: 'Size', alloc: 'On disk', files: 'Files', dirs: 'Folders', modified: 'Modified', percent: '% of folder' };
+  const COLUMN_LABELS: Record<string, string> = {
+    name: 'Name',
+    path: 'Path',
+    type: 'Type',
+    size: 'Size',
+    alloc: 'On disk',
+    own_size: 'Own size',
+    files: 'Files',
+    dirs: 'Folders',
+    owner: 'Owner',
+    modified: 'Modified',
+    created: 'Created',
+    accessed: 'Last opened',
+    attributes: 'Attributes',
+    path_len: 'Path length',
+    percent: '% of folder',
+  };
   const REPORT_LABELS: Record<ReportType, string> = {
     tree: 'Folder tree down to a depth',
     top_files: 'Biggest files',
     top_folders: 'Biggest folders',
     extensions: 'Space by file type',
     categories: 'Space by kind of file',
+    owners: 'Space by owner (account)',
+    sizes: 'Files by size range',
     age: 'Files by age',
     duplicates: 'Duplicates (search for them first)',
   };
@@ -51,14 +84,12 @@
 
   const dlg = $derived(storage.dialog);
 
-  // Reset the fields whenever a different dialog opens.
   $effect(() => {
     if (dlg?.type === 'confirm') {
       typed = '';
       readonly = false;
     }
     if (dlg?.type === 'rename') newName = dlg.node.name;
-    // These keep what the person typed when the same window shows an error, so reset only when it newly opens.
     const opened = dlg?.type !== shown;
     shown = dlg?.type ?? '';
     if (opened && dlg?.type === 'batchrename') {
@@ -74,7 +105,6 @@
   });
   let shown = '';
 
-  // The preview follows every change of the rule.
   $effect(() => {
     if (dlg?.type !== 'batchrename' || storage.sessionId == null) return;
     const id = storage.sessionId;
@@ -135,6 +165,8 @@
       case 'top_folders': return { kind: 'top_folders', n: topN, mode: folderMode, ...base };
       case 'extensions': return { kind: 'extensions', ...base };
       case 'categories': return { kind: 'categories', ...base };
+      case 'owners': return { kind: 'owners', ...base };
+      case 'sizes': return { kind: 'sizes', ...base };
       case 'age': return { kind: 'age', field: 'modified', ...base };
       case 'duplicates': return { kind: 'duplicates', ...base };
     }
@@ -164,7 +196,7 @@
     storage.dialog = null;
   }
 
-  const verbs = {
+  const verbs: Record<StOpKind, string> = {
     recycle: 'Move to the Recycle Bin',
     delete: 'Delete permanently',
     copy: 'Copy',
@@ -172,8 +204,11 @@
     rename: 'Rename',
     batch_rename: 'Rename',
     zip: 'Make ZIP file',
-  } as const;
-  const titles = {
+    compress: 'Compress on disk',
+    decompress: 'Uncompress',
+    hardlink: 'Replace with hardlinks',
+  };
+  const titles: Record<StOpKind, string> = {
     recycle: 'Move to the Recycle Bin?',
     delete: 'Delete permanently?',
     copy: 'Copy these items?',
@@ -181,7 +216,10 @@
     rename: 'Rename?',
     batch_rename: 'Rename these items?',
     zip: 'Add these items to a ZIP file?',
-  } as const;
+    compress: 'Compress these items on disk (NTFS)?',
+    decompress: 'Uncompress these items on disk?',
+    hardlink: 'Replace duplicate copies with hardlinks?',
+  };
 
   async function confirm() {
     if (dlg?.type !== 'confirm' || dlg.busy) return;
@@ -199,6 +237,10 @@
   <Dialog title={titles[p.kind]} onclose={close} locked={dlg.busy}>
     {#if permanent}
       <p class="danger" role="alert"><strong>These items will NOT go to the Recycle Bin.</strong> They can't be brought back by Windows.</p>
+    {:else if p.kind === 'compress'}
+      <p class="hint">Windows NTFS compression shrinks files transparently on disk. Every program still reads and writes them normally.</p>
+    {:else if p.kind === 'hardlink'}
+      <p class="hint">Each marked copy is verified byte for byte against the kept file, then linked to the same data on disk so all paths stay in place.</p>
     {/if}
     <p>
       {p.item_count.toLocaleString()} {p.item_count === 1 ? 'item' : 'items'}, {p.total_files.toLocaleString()} {p.total_files === 1 ? 'file' : 'files'}, {formatBytes(p.total_size)}
@@ -379,11 +421,18 @@
   <Dialog title="Properties" onclose={close}>
     <dl>
       <dt>Name</dt><dd>{n.name}</dd>
-      <dt>Location</dt><dd class="mono">{dlg.path}</dd>
+      <dt>Location</dt><dd class="mono">{dlg.path}{#if n.path_len != null} <span class="hint">({n.path_len} chars)</span>{/if}</dd>
       <dt>Type</dt><dd>{n.is_link ? 'Link (not followed)' : n.is_dir ? 'Folder' : 'File'}</dd>
+      {#if n.owner}<dt>Owner</dt><dd>{n.owner}</dd>{/if}
       <dt>Size</dt><dd class="tabular">{formatBytes(n.size)} ({n.size.toLocaleString()} bytes)</dd>
       <dt>On disk</dt><dd class="tabular">{formatBytes(n.alloc)}</dd>
-      {#if n.is_dir}<dt>Contains</dt><dd class="tabular">{n.files.toLocaleString()} files, {n.dirs.toLocaleString()} folders</dd>{/if}
+      {#if n.is_dir}
+        <dt>Own files</dt><dd class="tabular">{formatBytes(n.own_size ?? 0)} in {(n.own_files ?? 0).toLocaleString()} direct files</dd>
+        <dt>Contains</dt><dd class="tabular">{n.files.toLocaleString()} files, {n.dirs.toLocaleString()} folders</dd>
+      {/if}
+      {#if (n.ads_count ?? 0) > 0}
+        <dt>Streams</dt><dd class="tabular">{n.ads_count} alternate streams ({formatBytes(n.ads_size ?? 0)})</dd>
+      {/if}
       <dt>Created</dt><dd>{when(n.ctime)}</dd>
       <dt>Modified</dt><dd>{when(n.mtime)}</dd>
       <dt>Last opened</dt><dd>{when(n.atime)} <span class="hint">(Windows may not keep this up to date)</span></dd>

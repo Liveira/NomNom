@@ -140,21 +140,24 @@ pub struct KeepGroup {
     pub remove: Vec<NodeId>,
 }
 
-/// Plans deleting the chosen copies. The window must name the copy that stays in every group.
+/// Plans deleting or hardlink-deduplicating the chosen copies. The window must name the copy that stays in every group.
 #[tauri::command]
 pub fn st_dupes_plan(
     state: State<'_, AppState>,
     id: u64,
     permanent: bool,
     groups: Vec<KeepGroup>,
+    hardlink: Option<bool>,
 ) -> Result<PlanView, String> {
     let s = gate(&state, id)?;
     if groups.iter().any(|g| g.remove.is_empty()) {
-        return Err("Pick which copies to remove.".into());
+        return Err("Pick which copies to act on.".into());
     }
     let pairs: Vec<(NodeId, Vec<NodeId>)> =
         groups.into_iter().map(|g| (g.keep, g.remove)).collect();
-    let kind = if permanent {
+    let kind = if hardlink.unwrap_or(false) {
+        Kind::Hardlink
+    } else if permanent {
         Kind::Delete
     } else {
         Kind::Recycle
@@ -240,6 +243,8 @@ pub enum ReportKind {
     TopFolders { n: usize, mode: FolderMode },
     Extensions,
     Categories,
+    Owners,
+    Sizes,
     Age { field: DateField },
     Duplicates,
 }
@@ -315,10 +320,12 @@ pub async fn st_export(
             return Err("That item isn't in the scan.".into());
         }
         let table = match spec.what {
-            ReportKind::Tree { depth } => report::tree_table(&idx, node, depth.clamp(1, 12)),
-            ReportKind::TopFiles { n } => report::top_files_table(&idx, node, n.clamp(1, 100_000)),
+            ReportKind::Tree { depth } => report::tree_table_ext(&idx, node, depth.clamp(1, 12)),
+            ReportKind::TopFiles { n } => {
+                report::top_files_table_ext(&idx, node, n.clamp(1, 100_000))
+            }
             ReportKind::TopFolders { n, mode } => {
-                report::top_folders_table(&idx, node, n.clamp(1, 100_000), mode)
+                report::top_folders_table_ext(&idx, node, n.clamp(1, 100_000), mode)
             }
             ReportKind::Extensions => report::groups_table(
                 "Space by file type",
@@ -329,6 +336,16 @@ pub async fn st_export(
                 "Space by kind of file",
                 "Kind",
                 &analyze::by_category(&idx, node),
+            ),
+            ReportKind::Owners => report::groups_table(
+                "Space by owner",
+                "Owner",
+                &analyze::by_owner(&idx, node, 5000),
+            ),
+            ReportKind::Sizes => report::groups_table(
+                "Files by size range",
+                "Size range",
+                &analyze::by_size_bucket(&idx, node),
             ),
             ReportKind::Age { field } => report::groups_table(
                 "Files by age",

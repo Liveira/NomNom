@@ -1,14 +1,23 @@
 <script lang="ts">
   import VirtualList from '../../lib/ui/VirtualList.svelte';
-  import { formatBytes } from '../../lib/format';
   import { stIpc, stTools, type StFound, type StNode } from '../../lib/ipc';
-  import { formatDate, nextSelection } from './logic';
-  import { buildQuery, newRow, parseSaved, ROW_LABELS, type Row, type RowType, type Saved } from './queryBuilder';
+  import { formatDate, formatUnitBytes, nextSelection } from './logic';
+  import {
+    buildQuery,
+    newRow,
+    parseSaved,
+    ROW_LABELS,
+    SEARCH_PRESETS,
+    type Row,
+    type RowType,
+    type Saved,
+    type SearchPreset,
+  } from './queryBuilder';
   import { storage } from './store.svelte';
 
   const KEY = 'nomnom.storage.searches';
   const KINDS = ['video', 'image', 'audio', 'document', 'executable', 'archive', 'temp', 'other'];
-  const ATTRS = ['hidden', 'system', 'readonly', 'compressed', 'encrypted', 'offline', 'sparse'];
+  const ATTRS = ['hidden', 'system', 'readonly', 'archive', 'compressed', 'encrypted', 'offline', 'sparse', 'link', 'hardlink', 'streams'];
 
   let rows = $state<Row[]>([newRow('name')]);
   let join = $state<'and' | 'or'>('and');
@@ -19,7 +28,6 @@
   let paths = $state<Record<number, string>>({});
   let selected = $state(new Set<number>());
   let anchor = $state<number | null>(null);
-  /** The row the keyboard is on. */
   let cursor = $state(-1);
   let list = $state<ReturnType<typeof VirtualList<StNode>> | null>(null);
   let error = $state('');
@@ -42,6 +50,24 @@
     }
   }
   $effect(readSaved);
+
+  // Pick up queries sent over by Charts (by owner, by age, by size range).
+  $effect(() => {
+    const incoming = storage.pendingSearch;
+    if (incoming) {
+      rows = incoming.rows;
+      join = incoming.join;
+      storage.pendingSearch = null;
+      void run();
+    }
+  });
+
+  function applyPreset(p: SearchPreset) {
+    rows = p.make();
+    join = p.join;
+    error = '';
+    void run();
+  }
 
   function add(type: RowType = 'name') {
     rows = [...rows, newRow(type)];
@@ -68,12 +94,13 @@
       const r = await stTools.search(id, scope === 'here' ? storage.current : 0, q.query, 5000);
       if (mine !== seq) return;
       found = r;
+      storage.registerNodes(r.items);
       ranOnce = true;
       selected = new Set();
       cursor = -1;
       anchor = null;
-      const list = await stIpc.paths(id, r.items.map((n) => n.id));
-      if (mine === seq) paths = Object.fromEntries(r.items.map((n, i) => [n.id, list[i]]));
+      const listPaths = await stIpc.paths(id, r.items.map((n) => n.id));
+      if (mine === seq) paths = Object.fromEntries(r.items.map((n, i) => [n.id, listPaths[i]]));
     } catch (e) {
       if (mine === seq) error = String(e);
     } finally {
@@ -110,7 +137,6 @@
     pick(i, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
   }
 
-  /** Arrow keys, Home, End, Ctrl+A and Enter on the list itself. Keys pressed on a button inside a row stay with the button. */
   function onKey(e: KeyboardEvent) {
     if (!found || e.target !== e.currentTarget) return;
     const n = found.items.length;
@@ -138,11 +164,9 @@
   }
 
   async function afterAction() {
-    // The plan finished or was cancelled; search again so removed items disappear from the list.
     if (ranOnce && storage.dialog == null) await run();
   }
 
-  // When something changed on disk through NomNom, refresh the results.
   let lastVersion = storage.version;
   $effect(() => {
     const v = storage.version;
@@ -161,6 +185,13 @@
 
 <div class="wrap">
   <form class="builder" onsubmit={(e) => { e.preventDefault(); void run(); }} aria-label="Search conditions">
+    <div class="line presets" role="group" aria-label="Quick searches">
+      <span class="hint">Quick find:</span>
+      {#each SEARCH_PRESETS as p (p.id)}
+        <button type="button" class="preset" onclick={() => applyPreset(p)}>{p.label}</button>
+      {/each}
+    </div>
+
     <div class="line">
       <span>Find items that match</span>
       <select bind:value={join} aria-label="How conditions combine">
@@ -181,13 +212,17 @@
         <select value={r.type} onchange={(e) => setType(r, e.currentTarget.value as RowType)} aria-label="Condition">
           {#each Object.entries(ROW_LABELS) as [k, label] (k)}<option value={k}>{label}</option>{/each}
         </select>
-        {#if r.type === 'name' || r.type === 'path'}
+        {#if r.type === 'name' || r.type === 'path' || r.type === 'owner'}
           <select bind:value={r.mode} aria-label="How to compare">
             <option value="contains">contains</option>
             <option value="wildcard">matches (* and ?)</option>
             <option value="regex">regular expression</option>
           </select>
-          <input class="grow" bind:value={r.text} aria-label="Text" placeholder={r.mode === 'wildcard' ? '*.log' : r.mode === 'regex' ? '^backup-\\d+' : 'report'} />
+          <input class="grow" bind:value={r.text} aria-label="Text" placeholder={r.type === 'owner' ? 'Administrators' : r.mode === 'wildcard' ? '*.log' : r.mode === 'regex' ? '^backup-\\d+' : 'report'} />
+        {:else if r.type === 'path_len'}
+          <span class="pair">from <input class="num" bind:value={r.min} inputmode="numeric" placeholder="260" aria-label="Shortest path length" /> to <input class="num" bind:value={r.max} inputmode="numeric" aria-label="Longest path length" /> characters</span>
+        {:else if r.type === 'empty_folder'}
+          <span class="hint">Folders with 0 files and 0 subfolders inside</span>
         {:else if r.type === 'ext'}
           <input class="grow" bind:value={r.text} aria-label="File types" placeholder="mp4, mkv" />
         {:else if r.type === 'size'}
@@ -229,18 +264,19 @@
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
-  <div class="head" role="row"><span class="n">Name and location</span><span class="s right">Size</span><span class="m">Modified</span><span class="go"></span></div>
+  <div class="head" role="row"><span class="n">Name and location</span><span class="o">Owner</span><span class="s right">Size</span><span class="m">Modified</span><span class="go"></span></div>
   <div class="list">
     {#if !found}
-      <p class="empty">Build a search above, then press Search.</p>
+      <p class="empty">Pick a quick search or build conditions above, then press Search.</p>
     {:else if found.items.length === 0}
       <p class="empty">{loading ? 'Searching…' : 'Nothing matches.'}</p>
     {:else}
       <VirtualList bind:this={list} items={found.items} rowHeight={34} label="Search results" onkeydown={onKey}>
         {#snippet row(n: StNode, i: number)}
           <div class="tr" class:sel={selected.has(n.id)} class:cur={i === cursor} role="option" aria-selected={selected.has(n.id)} tabindex="-1" onclick={(e) => click(i, e)} ondblclick={() => show(n)} onkeydown={() => {}}>
-            <span class="n"><span class="nm" title={n.name}>{n.name}{n.is_dir ? ' (folder)' : ''}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}</span></span>
-            <span class="s right tabular">{formatBytes(n.size)}</span>
+            <span class="n"><span class="nm" title={n.name}>{n.name}{n.is_dir ? ' (folder)' : ''}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{(n.path_len ?? 0) >= 260 ? ` · ${n.path_len} chars` : ''}</span></span>
+            <span class="o" title={n.owner ?? ''}>{n.owner ?? ''}</span>
+            <span class="s right tabular">{formatUnitBytes(n.size, storage.unit)}</span>
             <span class="m">{formatDate(n.mtime)}</span>
             <span class="go"><button class="link" onclick={(e) => { e.stopPropagation(); void show(n); }}>Show in folder</button></span>
           </div>
@@ -255,7 +291,8 @@
     </span>
     <span class="acts">
       <button class="plain" disabled={!chosen.length} onclick={copyPaths}>Copy paths</button>
-      <button class="plain" disabled={!chosen.length} onclick={() => storage.savePaths(chosen)}>Save list of paths…</button>
+      <button class="plain" disabled={!chosen.length} onclick={() => storage.savePaths(chosen)}>Save paths…</button>
+      <button class="plain" disabled={!chosen.length} onclick={() => storage.compressSelection(true, chosen)}>Compress (NTFS)…</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.startZip(chosen)}>Add to ZIP…</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.startBatchRename(chosen)}>Rename in batch…</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.remove(false, chosen)}>Move to Recycle Bin</button>
@@ -268,6 +305,8 @@
   .wrap { display: grid; grid-template-rows: auto auto auto minmax(150px, 1fr) auto; height: 100%; min-height: 0; gap: 8px; overflow: auto; }
   .builder { display: grid; gap: 6px; }
   .line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--text-2); }
+  .presets { gap: 6px; }
+  .preset { padding: 3px 10px; font-size: 12px; border-radius: 999px; }
   .plainlabel { display: inline-flex; gap: 6px; align-items: center; }
   .spacer { flex: 1; }
   .cond { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 6px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--surface-1); }
@@ -286,7 +325,7 @@
   .chip { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-s); overflow: hidden; background: var(--surface-2); }
   .chip button { border: 0; border-radius: 0; background: none; padding: 4px 10px; }
   .error { color: var(--danger); margin: 0; }
-  .head, .tr { display: grid; grid-template-columns: 1fr 100px 110px 120px; align-items: center; gap: 8px; padding: 0 8px; }
+  .head, .tr { display: grid; grid-template-columns: 1fr 120px 100px 110px 120px; align-items: center; gap: 8px; padding: 0 8px; }
   .head { color: var(--text-2); font-weight: 600; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
   .tr { height: 100%; border-radius: 4px; cursor: default; }
   .tr:hover { background: var(--surface-2); }
@@ -295,6 +334,7 @@
   .tr.cur.sel { outline: 2px solid var(--accent); }
   .right { text-align: right; }
   .n { min-width: 0; display: grid; }
+  .o { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 12.5px; }
   .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: text; }
   .where { color: var(--text-3); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .list { min-height: 0; }

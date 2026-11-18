@@ -223,7 +223,11 @@ pub struct ShellAction {
 pub fn parse_shell_args(args: &[String]) -> Option<ShellAction> {
     let i = args.iter().position(|a| a == "--shell-action")?;
     let action = args.get(i + 1)?.clone();
-    if !(action == "choose" || action.starts_with("convert:") || action.starts_with("preset:")) {
+    if !(action == "choose"
+        || action == "analyze"
+        || action.starts_with("convert:")
+        || action.starts_with("preset:"))
+    {
         return None;
     }
     let mut files: Vec<PathBuf> = Vec::new();
@@ -273,6 +277,15 @@ fn read_list(list: &Path) -> Vec<PathBuf> {
 
 pub fn handle_shell_action(app: &AppHandle, action: ShellAction) {
     let state = app.state::<AppState>();
+    if action.action == "analyze" {
+        let dirs: Vec<PathBuf> = action.files.into_iter().filter(|p| p.is_dir()).collect();
+        if !dirs.is_empty() {
+            state.storage.inbox.lock().unwrap().extend(dirs);
+            crate::windows::open_main(app);
+            let _ = app.emit("storage://inbox", ());
+        }
+        return;
+    }
     if action.action == "choose" {
         state.filetools.inbox.lock().unwrap().extend(action.files);
         crate::windows::open_main(app);

@@ -1,6 +1,19 @@
 /** What the Disk Analyzer shows and says. Pure, so it can be tested. */
-import type { StDrive, StProgress, StSort } from '../../lib/ipc';
+import type { StDrive, StNode, StProgress, StSort } from '../../lib/ipc';
 import { formatBytes } from '../../lib/format';
+
+export type DisplayUnit = 'auto' | 'GB' | 'MB' | 'KB' | 'B';
+
+export function formatUnitBytes(bytes: number, unit: DisplayUnit = 'auto'): string {
+  if (unit === 'auto') return formatBytes(bytes);
+  if (unit === 'B') return `${Math.round(bytes).toLocaleString()} B`;
+  const div = unit === 'KB' ? 1024 : unit === 'MB' ? 1024 ** 2 : 1024 ** 3;
+  const val = bytes / div;
+  if (val === 0) return `0 ${unit}`;
+  if (val >= 100) return `${val.toFixed(0)} ${unit}`;
+  if (val >= 1) return `${val.toFixed(1)} ${unit}`;
+  return `${val.toFixed(2)} ${unit}`;
+}
 
 export function usagePercent(used: number, total: number): number {
   return total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0;
@@ -57,17 +70,36 @@ export function isBusy(p: Pick<StProgress, 'state'> | null): boolean {
   return p != null && (p.state === 'running' || p.state === 'paused');
 }
 
+export interface DriveSpaceAccount {
+  freeBytes: number;
+  systemBytes: number;
+  mftBytes: number;
+  totalBytes: number;
+}
+
+export function driveAccounting(p: StProgress | null, isWholeDrive: boolean): DriveSpaceAccount | null {
+  if (!p || !isWholeDrive || p.drive_total == null || p.drive_used == null) return null;
+  const freeBytes = Math.max(0, p.drive_free ?? p.drive_total - p.drive_used);
+  const systemBytes = Math.max(0, p.drive_used - p.allocated);
+  return {
+    freeBytes,
+    systemBytes,
+    mftBytes: p.mft_bytes ?? 0,
+    totalBytes: p.drive_total,
+  };
+}
+
 /**
  * Compares what was found with what Windows says is used. Only says something once the scan is
  * over, and only reports the real numbers: a gap is explained, never hidden or padded.
  */
 export function completenessNote(p: StProgress, isWholeDrive: boolean): string | null {
   if (!isWholeDrive || p.drive_used == null || p.state === 'running' || p.state === 'paused') return null;
-  // Windows counts whole clusters, so the on-disk size is what its "used" figure compares with.
   const found = p.allocated;
   const used = p.drive_used;
   const gap = used - found;
-  const head = `Found ${formatBytes(p.bytes)} in files, ${formatBytes(found)} on disk. Windows reports ${formatBytes(used)} used on this drive.`;
+  const mft = p.mft_bytes ? ` NTFS file table: ${formatBytes(p.mft_bytes)}.` : '';
+  const head = `Found ${formatBytes(p.bytes)} in files, ${formatBytes(found)} on disk.${mft} Windows reports ${formatBytes(used)} used on this drive.`;
   if (p.state === 'cancelled') return `${head} The scan was stopped, so the result is partial.`;
   if (Math.abs(gap) < Math.max(used * 0.01, 50 * 1024 * 1024)) return head;
   const why =
@@ -83,6 +115,7 @@ export interface Column {
   width: number;
   align: 'left' | 'right';
   sort: StSort | null;
+  defaultHidden?: boolean;
 }
 
 export const COLUMNS: Column[] = [
@@ -90,9 +123,17 @@ export const COLUMNS: Column[] = [
   { key: 'size', label: 'Size', width: 100, align: 'right', sort: 'size' },
   { key: 'alloc', label: 'On disk', width: 100, align: 'right', sort: 'alloc' },
   { key: 'percent', label: '% of folder', width: 130, align: 'left', sort: 'percent' },
+  { key: 'own_size', label: 'Own size', width: 100, align: 'right', sort: 'own_size', defaultHidden: true },
+  { key: 'wasted', label: 'Slack / saved', width: 110, align: 'right', sort: 'wasted', defaultHidden: true },
   { key: 'files', label: 'Files', width: 80, align: 'right', sort: 'files' },
   { key: 'dirs', label: 'Folders', width: 80, align: 'right', sort: 'dirs' },
+  { key: 'owner', label: 'Owner', width: 130, align: 'left', sort: 'owner', defaultHidden: true },
   { key: 'modified', label: 'Modified', width: 120, align: 'left', sort: 'modified' },
+  { key: 'created', label: 'Created', width: 120, align: 'left', sort: 'created', defaultHidden: true },
+  { key: 'accessed', label: 'Last opened', width: 120, align: 'left', sort: 'accessed', defaultHidden: true },
+  { key: 'type', label: 'Type', width: 90, align: 'left', sort: 'type', defaultHidden: true },
+  { key: 'attributes', label: 'Attributes', width: 90, align: 'left', sort: null, defaultHidden: true },
+  { key: 'path_len', label: 'Path length', width: 95, align: 'right', sort: 'path_len', defaultHidden: true },
 ];
 
 export interface ColumnState {
@@ -104,7 +145,11 @@ export interface ColumnState {
 export const MIN_COLUMN_WIDTH = 50;
 
 export function defaultColumnState(): ColumnState {
-  return { widths: {}, hidden: [], order: COLUMNS.map((c) => c.key) };
+  return {
+    widths: {},
+    hidden: COLUMNS.filter((c) => c.defaultHidden).map((c) => c.key),
+    order: COLUMNS.map((c) => c.key),
+  };
 }
 
 /** Columns in the user's order, minus hidden ones, with their widths. "Name" is always shown. */
@@ -131,13 +176,81 @@ export function parseColumnState(text: string | null): ColumnState {
   if (!text) return base;
   try {
     const v = JSON.parse(text);
+    const knownOrder = Array.isArray(v.order) ? v.order.filter((k: unknown) => typeof k === 'string') : null;
+    const savedHidden = Array.isArray(v.hidden) ? v.hidden.filter((k: unknown) => typeof k === 'string') : null;
+    // Newly added optional columns that weren't in an older saved `order` stay hidden until ticked.
+    const extraHidden =
+      knownOrder && savedHidden
+        ? COLUMNS.filter((c) => c.defaultHidden && !knownOrder.includes(c.key) && !savedHidden.includes(c.key)).map((c) => c.key)
+        : [];
     return {
       widths: typeof v.widths === 'object' && v.widths ? v.widths : {},
-      hidden: Array.isArray(v.hidden) ? v.hidden.filter((k: unknown) => typeof k === 'string') : [],
-      order: Array.isArray(v.order) ? v.order.filter((k: unknown) => typeof k === 'string') : base.order,
+      hidden: savedHidden ? [...savedHidden, ...extraHidden] : base.hidden,
+      order: knownOrder ?? base.order,
     };
   } catch {
     return base;
+  }
+}
+
+export function compactAttributes(attrs: number, flags: number): string {
+  let out = '';
+  if (attrs & 0x1) out += 'R';
+  if (attrs & 0x2) out += 'H';
+  if (attrs & 0x4) out += 'S';
+  if (attrs & 0x20) out += 'A';
+  if (attrs & 0x800 || flags & 64) out += 'C';
+  if (attrs & 0x4000) out += 'E';
+  if (attrs & 0x200 || flags & 32) out += 'P';
+  if (flags & 2) out += 'L';
+  if (flags & 128) out += '+';
+  return out;
+}
+
+export function itemTypeLabel(n: Pick<StNode, 'name' | 'is_dir' | 'is_link'>): string {
+  if (n.is_link) return 'Link';
+  if (n.is_dir) return 'Folder';
+  const dot = n.name.lastIndexOf('.');
+  return dot > 0 && dot + 1 < n.name.length ? `.${n.name.slice(dot + 1).toLowerCase()}` : 'File';
+}
+
+export function formatSlack(size: number, alloc: number, unit: DisplayUnit = 'auto'): { text: string; kind: 'saved' | 'slack' | 'even' } {
+  const diff = alloc - size;
+  if (Math.abs(diff) < 64) return { text: '0 B', kind: 'even' };
+  if (diff < 0) return { text: `−${formatUnitBytes(-diff, unit)}`, kind: 'saved' };
+  return { text: `+${formatUnitBytes(diff, unit)}`, kind: 'slack' };
+}
+
+export function cellText(colKey: string, n: StNode, unit: DisplayUnit = 'auto'): string {
+  switch (colKey) {
+    case 'size':
+      return formatUnitBytes(n.size, unit);
+    case 'alloc':
+      return n.is_dir || n.alloc > 0 ? formatUnitBytes(n.alloc, unit) : '0 B';
+    case 'own_size':
+      return formatUnitBytes(n.is_dir ? (n.own_size ?? 0) : n.size, unit);
+    case 'wasted':
+      return formatSlack(n.size, n.alloc, unit).text;
+    case 'files':
+      return n.is_dir ? n.files.toLocaleString() : '';
+    case 'dirs':
+      return n.is_dir ? n.dirs.toLocaleString() : '';
+    case 'owner':
+      return n.owner ?? '';
+    case 'modified':
+      return formatDate(n.mtime);
+    case 'created':
+      return formatDate(n.ctime);
+    case 'accessed':
+      return formatDate(n.atime);
+    case 'type':
+      return itemTypeLabel(n);
+    case 'attributes':
+      return compactAttributes(n.attrs, n.flags);
+    case 'path_len':
+      return n.path_len != null ? String(n.path_len) : '';
+    default:
+      return '';
   }
 }
 
@@ -216,9 +329,12 @@ export function attributeLabels(attrs: number, flags: number): string[] {
   if (attrs & 0x4) out.push('System');
   if (attrs & 0x20) out.push('Ready to archive');
   if (attrs & 0x800 || flags & 64) out.push('Compressed');
+  if (attrs & 0x4000) out.push('Encrypted');
+  if (attrs & 0x1000) out.push('Cloud placeholder');
   if (attrs & 0x200 || flags & 32) out.push('Sparse');
   if (flags & 2) out.push('Link (not followed)');
   if (flags & 4) out.push('Same data as another name');
   if (flags & 16) out.push('Partly unreadable');
+  if (flags & 128) out.push('Has alternate streams');
   return out;
 }

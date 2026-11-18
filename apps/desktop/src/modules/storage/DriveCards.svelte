@@ -4,9 +4,11 @@
   import { driveKindLabel, driveTitle, usagePercent } from './logic';
   import { storage } from './store.svelte';
 
-  async function chooseFolder() {
+  let showOpts = $state(false);
+
+  async function chooseFolder(elevated = false) {
     const picked = await open({ directory: true, multiple: false });
-    if (typeof picked === 'string') await storage.start(picked);
+    if (typeof picked === 'string') await storage.start(picked, elevated);
   }
 </script>
 
@@ -14,10 +16,26 @@
   <div class="head">
     <h2>Choose what to analyze</h2>
     <div class="buttons">
+      <button class="plain" onclick={() => (showOpts = !showOpts)} aria-expanded={showOpts}>Scan options</button>
+      <button class="plain" onclick={() => storage.openScanFile()}>Open saved scan…</button>
       <button class="plain" onclick={() => storage.loadDrives()} disabled={storage.drivesLoading}>Refresh drives</button>
-      <button class="plain" onclick={chooseFolder}>Choose a folder…</button>
+      <button class="plain" onclick={() => chooseFolder(false)}>Choose a folder…</button>
+      <button class="plain" onclick={() => chooseFolder(true)} title="Ask Windows for Administrator permission to read protected folders">Folder as Admin…</button>
     </div>
   </div>
+
+  {#if showOpts}
+    <div class="opts" role="region" aria-label="Scan options">
+      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectOwners} /> Read NTFS file owners</label>
+      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectStreams} /> Check NTFS alternate data streams</label>
+      <label class="excl">Skip names or patterns
+        <input bind:value={storage.scanExcludeText} placeholder="node_modules, .git, *.tmp" aria-label="Names or patterns to skip" />
+      </label>
+    </div>
+  {/if}
+
+  {#if storage.error}<p class="error" role="alert">{storage.error}</p>{/if}
+
   {#if storage.drives.length === 0}
     <p class="hint">{storage.drivesLoading ? 'Looking for drives…' : 'No drives found.'}</p>
   {/if}
@@ -38,7 +56,10 @@
         {:else}
           <p class="hint">Not ready (no disk or no access).</p>
         {/if}
-        <button class="primary" disabled={d.total === 0} onclick={() => storage.start(d.root)}>Analyze {d.letter}:</button>
+        <div class="cardbtns">
+          <button class="primary grow" disabled={d.total === 0} onclick={() => storage.start(d.root, false)}>Analyze {d.letter}:</button>
+          <button class="plain" disabled={d.total === 0} onclick={() => storage.start(d.root, true)} title="Scan as Administrator to include protected Windows folders and NTFS file table size">As Admin</button>
+        </div>
       </div>
     {/each}
   </div>
@@ -46,9 +67,14 @@
 
 <style>
   section { margin-bottom: 18px; }
-  .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+  .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
   h2 { font-size: 16px; }
-  .buttons { display: flex; gap: 8px; }
+  .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+  .opts { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 10px 14px; margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+  .chk { display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); font-size: 13px; cursor: pointer; }
+  .excl { display: inline-flex; gap: 8px; align-items: center; color: var(--text-2); font-size: 13px; flex: 1; min-width: 260px; }
+  .excl input { flex: 1; padding: 5px 8px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); }
+  .error { color: var(--danger); margin: 0 0 10px; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
   .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 14px 16px; display: grid; gap: 8px; }
   .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
@@ -57,6 +83,8 @@
   .fill { height: 100%; background: var(--accent); border-radius: 4px; }
   .full .fill { background: var(--danger); }
   .nums { display: flex; justify-content: space-between; gap: 8px; color: var(--text-2); font-size: 12.5px; }
+  .cardbtns { display: flex; gap: 6px; }
+  .grow { flex: 1; }
   .hint { color: var(--text-3); margin: 0; }
   button { padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; }
   button:hover:not(:disabled) { background: var(--surface-3); }

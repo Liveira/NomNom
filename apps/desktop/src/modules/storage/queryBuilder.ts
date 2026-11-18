@@ -2,7 +2,9 @@
 import type { StDateField, StQuery, StTextMode } from '../../lib/ipc';
 import { parseSize } from './logic';
 
-export type RowType = 'name' | 'path' | 'ext' | 'size' | 'age' | 'date' | 'attr' | 'kind' | 'item';
+export type RowType =
+  | 'name' | 'path' | 'ext' | 'size' | 'age' | 'date' | 'attr' | 'kind' | 'item'
+  | 'owner' | 'path_len' | 'empty_folder';
 
 export interface Row {
   id: number;
@@ -27,14 +29,91 @@ export interface Row {
 let counter = 0;
 export function newRow(type: RowType = 'name'): Row {
   return {
-    id: ++counter, type, not: false, text: '', mode: 'contains', min: '', max: '', unit: 'MB', field: 'modified',
-    days: '', dir: 'older', after: '', before: '', attr: 'hidden', category: 'video', what: 'file',
+    id: ++counter,
+    type,
+    not: false,
+    text: '',
+    mode: 'contains',
+    min: type === 'path_len' ? '260' : '',
+    max: '',
+    unit: 'MB',
+    field: 'modified',
+    days: '',
+    dir: 'older',
+    after: '',
+    before: '',
+    attr: 'hidden',
+    category: 'video',
+    what: 'file',
   };
 }
 
 export const ROW_LABELS: Record<RowType, string> = {
-  name: 'Name', path: 'Path', ext: 'Type (extension)', size: 'Size', age: 'Age', date: 'Date', attr: 'Attribute', kind: 'Kind of file', item: 'File or folder',
+  name: 'Name',
+  path: 'Path',
+  ext: 'Type (extension)',
+  size: 'Size',
+  age: 'Age',
+  date: 'Date',
+  owner: 'Owner (account)',
+  path_len: 'Path length (chars)',
+  empty_folder: 'Empty folder',
+  attr: 'Attribute',
+  kind: 'Kind of file',
+  item: 'File or folder',
 };
+
+export interface SearchPreset {
+  id: string;
+  label: string;
+  join: 'and' | 'or';
+  make: () => Row[];
+}
+
+export const SEARCH_PRESETS: SearchPreset[] = [
+  {
+    id: 'large',
+    label: 'Large files (> 100 MB)',
+    join: 'and',
+    make: () => [
+      { ...newRow('item'), what: 'file' },
+      { ...newRow('size'), min: '100', unit: 'MB' },
+    ],
+  },
+  {
+    id: 'old',
+    label: 'Untouched (> 1 year)',
+    join: 'and',
+    make: () => [
+      { ...newRow('item'), what: 'file' },
+      { ...newRow('age'), field: 'modified', dir: 'older', days: '365' },
+    ],
+  },
+  {
+    id: 'temp',
+    label: 'Temporary and logs',
+    join: 'and',
+    make: () => [{ ...newRow('kind'), category: 'temp' }],
+  },
+  {
+    id: 'long_path',
+    label: 'Long paths (260+ chars)',
+    join: 'and',
+    make: () => [{ ...newRow('path_len'), min: '260', max: '' }],
+  },
+  {
+    id: 'empty_dirs',
+    label: 'Empty folders',
+    join: 'and',
+    make: () => [newRow('empty_folder')],
+  },
+  {
+    id: 'compressed',
+    label: 'NTFS compressed',
+    join: 'and',
+    make: () => [{ ...newRow('attr'), attr: 'compressed' }],
+  },
+];
 
 function day(text: string, endOfDay: boolean): number | null | 'bad' {
   const t = text.trim();
@@ -49,7 +128,19 @@ function one(r: Row): StQuery | string {
   switch (r.type) {
     case 'name':
     case 'path':
+    case 'owner':
       return r.text.trim() ? { type: r.type, text: r.text.trim(), mode: r.mode } : `Type some text for the ${r.type} condition.`;
+    case 'path_len': {
+      const parseLen = (s: string) => (s.trim() === '' ? null : /^\d+$/.test(s.trim()) ? Number(s.trim()) : 'bad');
+      const min = parseLen(r.min);
+      const max = parseLen(r.max);
+      if (min === 'bad' || max === 'bad') return 'Path lengths must be whole numbers, like 260.';
+      if (min == null && max == null) return 'Give a shortest or a longest path length.';
+      if (min != null && max != null && min > max) return 'The shortest length is bigger than the longest.';
+      return { type: 'path_len', min, max };
+    }
+    case 'empty_folder':
+      return { type: 'empty_folder' };
     case 'ext': {
       const values = r.text.split(/[\s,;]+/).map((e) => e.replace(/^\./, '').toLowerCase()).filter(Boolean);
       return values.length ? { type: 'ext', values } : 'Type at least one file type, like mp4 or zip.';

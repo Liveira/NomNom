@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { StDupGroup } from '../../lib/ipc';
-import { defaultKeep, initialChoice, setKeep, summarize, toggleRemove, toRequest } from './dupes';
+import { applyRuleToGroups, defaultKeep, initialChoice, setKeep, summarize, toggleRemove, toRequest } from './dupes';
 
 const group = (copies: [number, string, number | null, number?][], size = 1000): StDupGroup => ({
-  size, sha256: 'x', recoverable: size * (copies.length - 1),
+  size,
+  sha256: 'x',
+  recoverable: size * (copies.length - 1),
   copies: copies.map(([node, path, mtime, names]) => ({ node, path, mtime, names: names ?? 1 })),
 });
 
@@ -29,11 +31,21 @@ describe('which copy stays', () => {
     c = toggleRemove(c, 3);
     expect(c.remove.has(3)).toBe(true);
   });
+  it('applies auto-mark rules for newest, path length, preferred folder and clear', () => {
+    const groups = [g];
+    const base = new Map([[0, initialChoice(g)]]);
+    expect(applyRuleToGroups(groups, base, 'newest').get(0)!.keep).toBe(1);
+    expect(applyRuleToGroups(groups, base, 'longest_path').get(0)!.keep).toBe(3);
+    const inB = applyRuleToGroups(groups, base, 'in_folder', 'C:\\b').get(0)!;
+    expect(inB.keep).toBe(1);
+    expect([...inB.remove].sort()).toEqual([2, 3]);
+    expect(applyRuleToGroups(groups, base, 'clear').get(0)!.remove.size).toBe(0);
+  });
 });
 
 describe('summary and request', () => {
   const g1 = group([[1, 'a', 1], [2, 'b', 2], [3, 'c', 3]], 1000);
-  const g2 = group([[4, 'd', 1], [5, 'e', 2, 2]], 500); // 5 has two names: removing one name frees nothing
+  const g2 = group([[4, 'd', 1], [5, 'e', 2, 2]], 500);
   const groups = [g1, g2];
   const choices = new Map([[0, initialChoice(g1)], [1, initialChoice(g2)]]);
   it('counts files and only the space that really comes back', () => {

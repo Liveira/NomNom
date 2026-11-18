@@ -1,8 +1,7 @@
 <script lang="ts">
   import VirtualList from '../../lib/ui/VirtualList.svelte';
-  import { formatBytes } from '../../lib/format';
   import { stIpc, type StFilter, type StNode } from '../../lib/ipc';
-  import { formatDate, OVERLAP_NOTE, parseSize } from './logic';
+  import { formatDate, formatUnitBytes, OVERLAP_NOTE, parseSize } from './logic';
   import { storage } from './store.svelte';
 
   let what = $state<'files' | 'folders'>('files');
@@ -161,9 +160,9 @@
         {#snippet row(n: StNode, i: number)}
           <div class="tr">
             <span class="rank tabular">{i + 1}</span>
-            <span class="n"><span class="nm" title={n.name}>{n.name}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{n.is_dir ? ` · ${n.files.toLocaleString()} files, ${n.dirs.toLocaleString()} folders` : ''}</span></span>
-            <span class="s right tabular">{formatBytes(n.size)}</span>
-            <span class="a right tabular">{what === 'files' ? formatBytes(n.alloc) : ''}</span>
+            <span class="n"><span class="nm" title={n.name}>{n.name}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{n.owner ? ` · ${n.owner}` : ''}{n.is_dir ? ` · ${n.files.toLocaleString()} files, ${n.dirs.toLocaleString()} folders` : ''}</span></span>
+            <span class="s right tabular">{formatUnitBytes(n.size, storage.unit)}</span>
+            <span class="a right tabular">{what === 'files' ? formatUnitBytes(n.alloc, storage.unit) : ''}</span>
             <span class="m">{formatDate(n.mtime)}</span>
             <span class="go"><button class="link" onclick={() => show(n)}>Show in folder</button></span>
           </div>
@@ -172,7 +171,7 @@
     {/if}
   </div>
   <p class="foot tabular">
-    {items.length.toLocaleString()} {what === 'files' ? 'files' : 'folders'} · {formatBytes(total)}{what === 'folders' && mode === 'inclusive' ? ' (overlapping, not a real total)' : ''}
+    {items.length.toLocaleString()} {what === 'files' ? 'files' : 'folders'} · {formatUnitBytes(total, storage.unit)}{what === 'folders' && mode === 'inclusive' ? ' (overlapping, not a real total)' : ''}
   </p>
 </div>
 

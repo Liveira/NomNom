@@ -229,6 +229,51 @@ fn update_index(session: &std::sync::Arc<nomnom_storage::Session>, plan: &Plan, 
                         idx.rename_node(item.node, n);
                     }
                 }
+                (Kind::Compress, Status::Done) => {
+                    if item.is_dir {
+                        rescan.push(item.node);
+                    } else {
+                        let new_alloc =
+                            nomnom_storage::scan::compressed_size(&item.path).unwrap_or(item.size);
+                        idx.update_file_alloc(
+                            item.node,
+                            new_alloc,
+                            nomnom_storage::index::F_COMPRESSED,
+                            0,
+                            0x800,
+                            0,
+                        );
+                    }
+                }
+                (Kind::Decompress, Status::Done) => {
+                    if item.is_dir {
+                        rescan.push(item.node);
+                    } else {
+                        let cluster = nomnom_storage::drives::drive_of(&item.path)
+                            .map(|d| d.cluster)
+                            .unwrap_or(4096);
+                        let new_alloc = nomnom_storage::scan::compressed_size(&item.path)
+                            .unwrap_or_else(|| nomnom_storage::scan::round_up(item.size, cluster));
+                        idx.update_file_alloc(
+                            item.node,
+                            new_alloc,
+                            0,
+                            nomnom_storage::index::F_COMPRESSED,
+                            0,
+                            0x800,
+                        );
+                    }
+                }
+                (Kind::Hardlink, Status::Done) => {
+                    idx.update_file_alloc(
+                        item.node,
+                        0,
+                        nomnom_storage::index::F_HARDLINK_DUP,
+                        0,
+                        0,
+                        0,
+                    );
+                }
                 // Part of a folder may be gone; look again at that folder only.
                 (_, Status::Failed) if item.is_dir => rescan.push(item.node),
                 _ => {}

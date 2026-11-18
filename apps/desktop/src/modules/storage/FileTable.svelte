@@ -1,9 +1,17 @@
 <script lang="ts">
   import Icon from '../../lib/icons/Icon.svelte';
   import VirtualList from '../../lib/ui/VirtualList.svelte';
-  import { formatBytes } from '../../lib/format';
   import type { StNode } from '../../lib/ipc';
-  import { COLUMNS, defaultColumnState, formatDate, moveColumn, parseColumnState, visibleColumns, type ColumnState } from './logic';
+  import {
+    cellText,
+    COLUMNS,
+    defaultColumnState,
+    formatSlack,
+    moveColumn,
+    parseColumnState,
+    visibleColumns,
+    type ColumnState,
+  } from './logic';
   import { storage } from './store.svelte';
 
   const KEY = 'nomnom.storage.columns';
@@ -94,7 +102,6 @@
       e.preventDefault();
       storage.selectAll();
     } else if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
-      // The menu key and Shift+F10 open the same menu a right click does, at the current row.
       e.preventDefault();
       if (n === 0) return;
       if (cursor < 0) cursor = 0;
@@ -104,17 +111,6 @@
       storage.menu = { x: Math.round(r.left + 24), y: Math.round(r.bottom) };
     }
   }
-
-  const cell = (c: string, n: StNode): string => {
-    switch (c) {
-      case 'size': return formatBytes(n.size);
-      case 'alloc': return n.is_dir || n.alloc > 0 ? formatBytes(n.alloc) : '0 B';
-      case 'files': return n.is_dir ? n.files.toLocaleString() : '';
-      case 'dirs': return n.is_dir ? n.dirs.toLocaleString() : '';
-      case 'modified': return formatDate(n.mtime);
-      default: return '';
-    }
-  };
 </script>
 
 <div class="table" role="presentation">
@@ -167,6 +163,8 @@
                   <Icon name={n.is_dir ? 'organizer' : 'convert'} size={14} />
                   <span class="text">{n.name}</span>
                   {#if n.is_link}<span class="tag">link</span>{/if}
+                  {#if n.flags & 64}<span class="tag ok" title="NTFS compressed">compressed</span>{/if}
+                  {#if n.flags & 128}<span class="tag" title="Has NTFS alternate data streams">streams</span>{/if}
                   {#if n.flags & 16}<span class="tag warn" title="Some of this folder couldn't be read">partial</span>{/if}
                   {#if n.flags & 4}<span class="tag" title="Another name for data already counted">same data</span>{/if}
                 </div>
@@ -175,8 +173,13 @@
                   <div class="bar"><div style:width="{Math.min(100, n.percent)}%"></div></div>
                   <span class="tabular">{n.percent < 0.1 ? '<0.1' : n.percent.toFixed(1)}%</span>
                 </div>
+              {:else if c.key === 'wasted'}
+                {@const sl = formatSlack(n.size, n.alloc, storage.unit)}
+                <div class="td tabular right" class:saved={sl.kind === 'saved'}>{sl.text}</div>
+              {:else if c.key === 'path_len'}
+                <div class="td tabular right" class:warnpath={(n.path_len ?? 0) >= 260}>{cellText(c.key, n, storage.unit)}</div>
               {:else}
-                <div class="td tabular" class:right={c.align === 'right'}>{cell(c.key, n)}</div>
+                <div class="td tabular" class:right={c.align === 'right'}>{cellText(c.key, n, storage.unit)}</div>
               {/if}
             {/each}
           </div>
@@ -185,7 +188,7 @@
     {/if}
   </div>
   <div class="foot">
-    <button class="link" onclick={() => (menuOpen = !menuOpen)} aria-expanded={menuOpen}>Columns</button>
+    <button class="link" onclick={() => (menuOpen = !menuOpen)} aria-expanded={menuOpen}>Columns ({shown.length}/{COLUMNS.length})</button>
     {#if storage.truncated}<span class="hint">Showing the first {storage.rows.length.toLocaleString()} of {storage.total.toLocaleString()}. Use the filter to narrow the list.</span>{/if}
     {#if menuOpen}
       <div class="menu" role="group" aria-label="Choose columns">
@@ -200,7 +203,7 @@
 
 <style>
   .table { display: grid; grid-template-rows: auto 1fr auto; height: 100%; min-height: 0; overflow-x: auto; position: relative; }
-  .header { display: grid; position: sticky; top: 0; background: var(--surface-1); border-bottom: 1px solid var(--border); }
+  .header { display: grid; position: sticky; top: 0; background: var(--surface-1); border-bottom: 1px solid var(--border); z-index: 2; }
   .th { position: relative; display: flex; align-items: center; padding: 0 4px; }
   .th.right { justify-content: flex-end; }
   .sortbtn { border: 0; background: none; color: var(--text-2); font-weight: 600; padding: 6px 4px; cursor: pointer; white-space: nowrap; }
@@ -213,18 +216,21 @@
   .tr.cur { outline: 1px dotted var(--text-3); outline-offset: -1px; }
   .td { padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .td.right { text-align: right; }
+  .td.saved { color: var(--ok); }
+  .td.warnpath { color: var(--danger); font-weight: 600; }
   .name { display: flex; gap: 6px; align-items: center; user-select: text; }
   .text { overflow: hidden; text-overflow: ellipsis; }
   .tag { font-size: 11px; color: var(--info); border: 1px solid var(--border-strong); border-radius: 8px; padding: 0 6px; flex: none; }
+  .tag.ok { color: var(--ok); }
   .tag.warn { color: var(--danger); }
   .pct { display: flex; gap: 8px; align-items: center; }
   .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
   .bar div { height: 100%; background: var(--accent); }
   .pct span { width: 44px; text-align: right; color: var(--text-2); font-size: 12px; }
   .empty { color: var(--text-3); padding: 16px; margin: 0; }
-  .foot { display: flex; gap: 14px; align-items: center; padding: 6px 4px; border-top: 1px solid var(--border); position: relative; }
+  .foot { display: flex; gap: 14px; align-items: center; padding: 6px 8px; border-top: 1px solid var(--border); position: relative; }
   .hint { color: var(--text-3); font-size: 12.5px; }
   .link { border: 0; background: none; color: var(--accent-text); text-decoration: underline; cursor: pointer; padding: 0; }
-  .menu { position: absolute; bottom: 100%; left: 4px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 8px 12px; display: grid; gap: 4px; z-index: 5; }
-  .menu label { display: flex; gap: 8px; align-items: center; }
+  .menu { position: absolute; bottom: 100%; left: 4px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 8px 12px; display: grid; grid-template-columns: repeat(2, auto); gap: 4px 16px; z-index: 5; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+  .menu label { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
 </style>

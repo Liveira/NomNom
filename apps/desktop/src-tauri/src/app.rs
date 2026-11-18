@@ -44,6 +44,14 @@ fn wants_background(args: &[String]) -> bool {
 pub fn run() {
     let started = Instant::now();
     let args: Vec<String> = std::env::args().collect();
+    if let Some(pos) = args.iter().position(|a| a == "--elevated-scan") {
+        let pipe = args.get(pos + 1).map(String::as_str).unwrap_or("");
+        let root = args.get(pos + 2).map(String::as_str).unwrap_or("");
+        let opts = args.get(pos + 3).map(String::as_str).unwrap_or("{}");
+        std::process::exit(nomnom_storage::elevate::run_elevated_helper(
+            pipe, root, opts,
+        ));
+    }
     let background = wants_background(&args);
 
     let paths = Paths::resolve().expect("couldn't locate the user's known folders");
@@ -142,7 +150,10 @@ pub fn run() {
             filetools::ft_take_inbox,
             filetools::ft_open,
             storage::st_drives,
+            storage::st_take_inbox,
             storage::st_scan_start,
+            storage::st_scan_save,
+            storage::st_scan_load,
             storage::st_scan_pause,
             storage::st_scan_resume,
             storage::st_scan_cancel,

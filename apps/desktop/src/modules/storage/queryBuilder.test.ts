@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildQuery, newRow, parseSaved, type Row } from './queryBuilder';
+import { buildQuery, newRow, parseSaved, SEARCH_PRESETS, type Row } from './queryBuilder';
 
 const row = (patch: Partial<Row>): Row => ({ ...newRow(patch.type ?? 'name'), ...patch });
 
@@ -23,6 +23,20 @@ describe('buildQuery', () => {
         ],
       },
     });
+  });
+  it('builds owner, path_len, empty_folder and every quick preset', () => {
+    expect(buildQuery([row({ type: 'owner', text: 'Admin' })], 'and')).toEqual({
+      query: { type: 'owner', text: 'Admin', mode: 'contains' },
+    });
+    expect(buildQuery([row({ type: 'path_len', min: '260', max: '' })], 'and')).toEqual({
+      query: { type: 'path_len', min: 260, max: null },
+    });
+    expect(buildQuery([row({ type: 'empty_folder' })], 'and')).toEqual({
+      query: { type: 'empty_folder' },
+    });
+    for (const p of SEARCH_PRESETS) {
+      expect('query' in buildQuery(p.make(), p.join)).toBe(true);
+    }
   });
   it('a single condition is not wrapped, and NOT wraps one condition', () => {
     expect(buildQuery([row({ text: 'report' })], 'or')).toEqual({ query: { type: 'name', text: 'report', mode: 'contains' } });

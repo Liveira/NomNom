@@ -1,4 +1,4 @@
-import { open as pickFolder, save as saveFile } from '@tauri-apps/plugin-dialog';
+import { open as pickDialog, save as saveFile } from '@tauri-apps/plugin-dialog';
 import {
   stIpc,
   stTools,
@@ -12,9 +12,11 @@ import {
   type StPlan,
   type StProgress,
   type StReport,
+  type StScanStartOpts,
   type StSort,
 } from '../../lib/ipc';
-import { isBusy, nextSelection } from './logic';
+import { isBusy, nextSelection, type DisplayUnit } from './logic';
+import type { Row } from './queryBuilder';
 
 export type Dialog =
   | { type: 'confirm'; plan: StPlan; busy: boolean; error: string }
@@ -36,19 +38,28 @@ class StorageStore {
   current = $state(0);
   detail = $state<StDetail | null>(null);
   rows = $state<StNode[]>([]);
+  /** Known nodes currently visible in TreeGrid or FileTable so multi-level selections resolve. */
+  knownNodes = new Map<number, StNode>();
   total = $state(0);
   sort = $state<StSort>('size');
   desc = $state(true);
   text = $state('');
+  unit = $state<DisplayUnit>('auto');
   selected = $state(new Set<number>());
   anchor = $state<number | null>(null);
-  /** Goes up whenever the scan's data changed, so views that cache (the tree) reload. */
+  /** Goes up whenever the scan's data changed, so views that cache reload. */
   version = $state(0);
   tab = $state<'explorer' | 'rankings' | 'charts' | 'search' | 'duplicates' | 'history'>('explorer');
-  view = $state<'table' | 'treemap'>('table');
-  /** Set by the charts so the rankings open already filtered; the rankings clear them. */
+  view = $state<'treegrid' | 'table' | 'treemap' | 'sunburst'>('treegrid');
+  /** Set by the charts so the rankings or search open already filtered. */
   rankingCategory = $state('');
   rankingExtension = $state('');
+  pendingSearch = $state<{ rows: Row[]; join: 'and' | 'or' } | null>(null);
+  /** Scan preferences configured on the start screen. */
+  scanCollectOwners = $state(true);
+  scanCollectStreams = $state(false);
+  scanExcludeText = $state('');
+
   clipboard = $state<{ session: number; nodes: number[]; cut: boolean } | null>(null);
   dialog = $state<Dialog | null>(null);
   menu = $state<{ x: number; y: number } | null>(null);
@@ -74,6 +85,12 @@ class StorageStore {
     return !!p && /^[A-Za-z]:\\?$/.test(p.root);
   }
 
+  registerNodes(list: StNode[]) {
+    for (const n of list) {
+      if (n.id >= 0) this.knownNodes.set(n.id, n);
+    }
+  }
+
   async init() {
     if (this.listening) return;
     this.listening = true;
@@ -81,6 +98,14 @@ class StorageStore {
     await onStorageOp((p) => (this.opProgress = p));
     const existing = await stIpc.drives().catch(() => []);
     this.drives = existing;
+    await this.checkInbox();
+  }
+
+  async checkInbox() {
+    const folders = await stIpc.takeInbox().catch(() => []);
+    for (const folder of folders) {
+      await this.start(folder);
+    }
   }
 
   async loadDrives() {
@@ -101,7 +126,6 @@ class StorageStore {
     if (p.id !== this.sessionId) return;
     const finished = p.state === 'done' || p.state === 'cancelled';
     const now = Date.now();
-    // Partial results are browsable: refresh about once a second while scanning, and once at the end.
     if (finished || now - this.lastReload > 1000) {
       this.lastReload = now;
       this.version++;
@@ -109,14 +133,28 @@ class StorageStore {
     }
   }
 
-  async start(root: string) {
+  buildScanOpts(elevated = false): StScanStartOpts {
+    const exclude = this.scanExcludeText
+      .split(/[,;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return {
+      elevated,
+      collect_owners: this.scanCollectOwners,
+      collect_streams: this.scanCollectStreams,
+      exclude,
+    };
+  }
+
+  async start(root: string, elevated = false) {
     this.error = '';
     try {
-      const id = await stIpc.start(root);
+      const id = await stIpc.start(root, this.buildScanOpts(elevated));
       this.sessionId = id;
       this.current = 0;
       this.detail = null;
       this.rows = [];
+      this.knownNodes.clear();
       this.total = 0;
       this.selected = new Set();
       this.tab = 'explorer';
@@ -125,6 +163,46 @@ class StorageStore {
       if (!this.sessions.some((s) => s.id === id)) {
         this.sessions = [...this.sessions, await stIpc.progress(id)];
       }
+      await this.reload();
+    } catch (e) {
+      this.error = String(e);
+    }
+  }
+
+  async saveScanFile() {
+    const id = this.sessionId;
+    if (id == null) return;
+    const path = await saveFile({
+      title: 'Save scan file',
+      defaultPath: 'scan.json',
+      filters: [{ name: 'NomNom scan (.json)', extensions: ['json'] }],
+    });
+    if (typeof path !== 'string') return;
+    try {
+      const bytes = await stIpc.saveScan(id, path);
+      this.say(`Scan file saved (${Math.max(1, Math.round(bytes / 1024)).toLocaleString()} KB).`);
+    } catch (e) {
+      this.error = String(e);
+    }
+  }
+
+  async openScanFile() {
+    const picked = await pickDialog({
+      directory: false,
+      multiple: false,
+      title: 'Open saved scan',
+      filters: [{ name: 'NomNom scan (.json)', extensions: ['json'] }],
+    });
+    if (typeof picked !== 'string') return;
+    this.error = '';
+    try {
+      const id = await stIpc.loadScan(picked);
+      const prog = await stIpc.progress(id);
+      if (!this.sessions.some((s) => s.id === id)) {
+        this.sessions = [...this.sessions, prog];
+      }
+      await this.select(id);
+      this.say('Opened saved scan.');
     } catch (e) {
       this.error = String(e);
     }
@@ -134,6 +212,7 @@ class StorageStore {
     this.sessionId = id;
     this.current = 0;
     this.selected = new Set();
+    this.knownNodes.clear();
     this.version++;
     await this.reload();
   }
@@ -145,6 +224,7 @@ class StorageStore {
       this.sessionId = this.sessions[0]?.id ?? null;
       this.current = 0;
       this.rows = [];
+      this.knownNodes.clear();
       this.detail = null;
       this.version++;
       if (this.sessionId != null) await this.reload();
@@ -166,10 +246,10 @@ class StorageStore {
     const p = this.progress;
     if (!p || this.busy) return;
     if (whole || this.current === 0) {
-      // A fresh scan starts on the Explorer, but refreshing from another tab should stay where it is.
       const tab = this.tab;
+      const elevated = !!p.elevated;
       await this.close(p.id);
-      await this.start(p.root);
+      await this.start(p.root, elevated);
       this.tab = tab;
       return;
     }
@@ -181,6 +261,7 @@ class StorageStore {
   }
 
   async go(node: number) {
+    if (node < 0) return;
     this.current = node;
     this.selected = new Set();
     this.anchor = null;
@@ -197,15 +278,24 @@ class StorageStore {
     if (this.sort === key) this.desc = !this.desc;
     else {
       this.sort = key;
-      this.desc = key !== 'name';
+      this.desc = key !== 'name' && key !== 'owner' && key !== 'type';
     }
+    this.version++;
     void this.reload();
   }
 
   setText(t: string) {
     this.text = t;
     if (this.reloadTimer) clearTimeout(this.reloadTimer);
-    this.reloadTimer = setTimeout(() => void this.reload(), 200);
+    this.reloadTimer = setTimeout(() => {
+      this.version++;
+      void this.reload();
+    }, 200);
+  }
+
+  jumpToSearch(rows: Row[], join: 'and' | 'or' = 'and') {
+    this.pendingSearch = { rows, join };
+    this.tab = 'search';
   }
 
   async reload() {
@@ -220,21 +310,24 @@ class StorageStore {
       this.rows = page.items;
       this.total = page.total;
       this.detail = detail;
-      const present = new Set(page.items.map((r) => r.id));
-      this.selected = new Set([...this.selected].filter((s) => present.has(s)));
+      this.registerNodes(page.items);
+      this.registerNodes(detail.trail);
     } catch (e) {
       this.error = String(e);
     }
   }
 
-  clickRow(index: number, mods: { ctrl: boolean; shift: boolean }) {
-    const r = nextSelection(this.selected, this.anchor, this.rows.map((x) => x.id), index, mods);
-    this.selected = r.selected;
-    this.anchor = r.anchor;
+  clickRow(index: number, mods: { ctrl: boolean; shift: boolean }, idList?: number[]) {
+    const ids = idList ?? this.rows.map((x) => x.id);
+    const r = nextSelection(this.selected, this.anchor, ids, index, mods);
+    // Virtual rows (id < 0) cannot be selected for file operations.
+    this.selected = new Set([...r.selected].filter((id) => id >= 0));
+    this.anchor = r.anchor != null && r.anchor >= 0 ? r.anchor : null;
   }
 
-  selectAll() {
-    this.selected = new Set(this.rows.map((r) => r.id));
+  selectAll(idList?: number[]) {
+    const ids = (idList ?? this.rows.map((r) => r.id)).filter((id) => id >= 0);
+    this.selected = new Set(ids);
   }
 
   // ---- file operations: plan, confirm, run ---------------------------------------------------
@@ -246,21 +339,26 @@ class StorageStore {
   }
 
   get selectedRows(): StNode[] {
-    return this.rows.filter((r) => this.selected.has(r.id));
+    const out: StNode[] = [];
+    for (const id of this.selected) {
+      const fromRows = this.rows.find((r) => r.id === id) ?? this.knownNodes.get(id);
+      if (fromRows) out.push(fromRows);
+    }
+    return out;
   }
 
   async plan(kind: StOpKind, nodes: number[], dest?: string, newName?: string): Promise<StPlan | null> {
     const id = this.sessionId;
-    if (id == null || nodes.length === 0) return null;
+    const valid = nodes.filter((n) => n >= 0);
+    if (id == null || valid.length === 0) return null;
     try {
-      return await stIpc.opPlan(id, kind, nodes, dest, newName);
+      return await stIpc.opPlan(id, kind, valid, dest, newName);
     } catch (e) {
       this.error = String(e);
       return null;
     }
   }
 
-  /** Runs a plan the app made. `typed` is what the person typed when the plan asked for it. */
   async runPlan(plan: StPlan, confirmed: boolean, typed?: string, includeReadonly = false): Promise<StReport | null> {
     this.opProgress = { done: 0, total: plan.item_count, current: '' };
     try {
@@ -285,7 +383,7 @@ class StorageStore {
     if (done < report.results.length || report.cancelled) {
       this.dialog = { type: 'result', report, kind };
     } else {
-      const verb = {
+      const verb: Record<StOpKind, string> = {
         recycle: 'Moved to the Recycle Bin',
         delete: 'Deleted',
         copy: 'Copied',
@@ -293,21 +391,21 @@ class StorageStore {
         rename: 'Renamed',
         batch_rename: 'Renamed',
         zip: 'Added to a ZIP file',
-      }[kind];
-      this.say(`${verb}: ${done} ${done === 1 ? 'item' : 'items'}.`);
+        compress: 'Compressed on disk',
+        decompress: 'Uncompressed on disk',
+        hardlink: 'Linked identical copies',
+      };
+      this.say(`${verb[kind]}: ${done} ${done === 1 ? 'item' : 'items'}.`);
     }
   }
 
-  /** Shows what a plan would do and waits for the person to confirm. */
   show(plan: StPlan) {
     this.dialog = plan.item_count === 0 ? { type: 'refused', plan } : { type: 'confirm', plan, busy: false, error: '' };
   }
 
-  /** Delete key (to the Recycle Bin) or Shift+Delete (permanent, always asks). `nodes` lets other tabs act on their own list. */
   async remove(permanent: boolean, nodes: number[] = [...this.selected]) {
     const plan = await this.plan(permanent ? 'delete' : 'recycle', nodes);
     if (!plan) return;
-    // The Recycle Bin can be undone in Windows, so it needs no extra click unless something is unusual.
     if (!permanent && plan.item_count > 0 && plan.refused.length === 0 && plan.warnings.length === 0) {
       await this.runPlan(plan, false);
       return;
@@ -315,8 +413,13 @@ class StorageStore {
     this.show(plan);
   }
 
+  async compressSelection(compress: boolean, nodes: number[] = [...this.selected]) {
+    const plan = await this.plan(compress ? 'compress' : 'decompress', nodes);
+    if (plan) this.show(plan);
+  }
+
   copySelection(cut: boolean) {
-    const nodes = [...this.selected];
+    const nodes = [...this.selected].filter((n) => n >= 0);
     if (nodes.length === 0 || this.sessionId == null) return;
     this.clipboard = { session: this.sessionId, nodes, cut };
     this.say(`${nodes.length} ${nodes.length === 1 ? 'item' : 'items'} ${cut ? 'cut' : 'copied'}. Open a folder and paste.`);
@@ -330,11 +433,10 @@ class StorageStore {
     if (plan) this.show(plan);
   }
 
-  /** "Copy to…" and "Move to…": choose a folder first. */
   async sendTo(kind: 'copy' | 'move') {
-    const nodes = [...this.selected];
+    const nodes = [...this.selected].filter((n) => n >= 0);
     if (nodes.length === 0) return;
-    const dest = await pickFolder({ directory: true, multiple: false, title: kind === 'copy' ? 'Copy to…' : 'Move to…' });
+    const dest = await pickDialog({ directory: true, multiple: false, title: kind === 'copy' ? 'Copy to…' : 'Move to…' });
     if (typeof dest !== 'string') return;
     const plan = await this.plan(kind, nodes, dest);
     if (plan) this.show(plan);
@@ -360,27 +462,28 @@ class StorageStore {
     }
   }
 
-  /** Opens the batch rename window for the chosen items. */
   startBatchRename(nodes: number[] = [...this.selected]) {
-    if (nodes.length > 0) this.dialog = { type: 'batchrename', nodes };
+    const valid = nodes.filter((n) => n >= 0);
+    if (valid.length > 0) this.dialog = { type: 'batchrename', nodes: valid };
   }
 
   startZip(nodes: number[] = [...this.selected]) {
-    if (nodes.length > 0) this.dialog = { type: 'zip', nodes, error: '' };
+    const valid = nodes.filter((n) => n >= 0);
+    if (valid.length > 0) this.dialog = { type: 'zip', nodes: valid, error: '' };
   }
 
   startExport() {
     if (this.sessionId != null) this.dialog = { type: 'export', error: '' };
   }
 
-  /** Writes the full paths of the chosen items to a text file the person picks. */
   async savePaths(nodes: number[] = [...this.selected]) {
     const id = this.sessionId;
-    if (id == null || nodes.length === 0) return;
+    const valid = nodes.filter((n) => n >= 0);
+    if (id == null || valid.length === 0) return;
     const path = await saveFile({ title: 'Save the list of paths', defaultPath: 'paths.txt', filters: [{ name: 'Text file', extensions: ['txt'] }] });
     if (typeof path !== 'string') return;
     try {
-      const n = await stTools.exportPaths(id, nodes, path);
+      const n = await stTools.exportPaths(id, valid, path);
       this.say(`Saved ${n} ${n === 1 ? 'path' : 'paths'}.`);
     } catch (e) {
       this.error = String(e);
@@ -390,7 +493,7 @@ class StorageStore {
   async showProperties() {
     const first = this.selectedRows[0]?.id ?? this.current;
     const id = this.sessionId;
-    if (id == null) return;
+    if (id == null || first < 0) return;
     const d = await stIpc.node(id, first);
     this.dialog = { type: 'props', node: d.node, path: d.path };
   }
@@ -398,7 +501,7 @@ class StorageStore {
   async openSelected(reveal: boolean) {
     const id = this.sessionId;
     const first = this.selectedRows[0];
-    if (id == null || !first) return;
+    if (id == null || !first || first.id < 0) return;
     try {
       await stIpc.open(id, first.id, reveal);
     } catch (e) {
@@ -408,8 +511,9 @@ class StorageStore {
 
   async copyPath() {
     const id = this.sessionId;
-    if (id == null || this.selected.size === 0) return;
-    const paths = await stIpc.paths(id, [...this.selected]);
+    const valid = [...this.selected].filter((n) => n >= 0);
+    if (id == null || valid.length === 0) return;
+    const paths = await stIpc.paths(id, valid);
     await navigator.clipboard.writeText(paths.join('\r\n'));
     this.say(paths.length === 1 ? 'Path copied.' : `${paths.length} paths copied.`);
   }

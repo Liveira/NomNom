@@ -431,8 +431,12 @@ export interface StProgress {
   allocated: number;
   errors: number;
   elapsed_ms: number;
+  elevated?: boolean;
+  mft_bytes?: number;
   drive_used: number | null;
+  drive_free?: number | null;
   drive_total: number | null;
+  drive_fs?: string | null;
 }
 export interface StNode {
   id: number;
@@ -441,6 +445,9 @@ export interface StNode {
   is_link: boolean;
   size: number;
   alloc: number;
+  own_size?: number;
+  own_alloc?: number;
+  own_files?: number;
   files: number;
   dirs: number;
   mtime: number | null;
@@ -450,6 +457,10 @@ export interface StNode {
   flags: number;
   percent: number;
   parent: number | null;
+  owner?: string | null;
+  ads_count?: number;
+  ads_size?: number;
+  path_len?: number;
 }
 export interface StPage {
   total: number;
@@ -465,7 +476,9 @@ export interface StError {
   code: number;
   message: string;
 }
-export type StSort = 'name' | 'size' | 'alloc' | 'files' | 'dirs' | 'modified' | 'percent';
+export type StSort =
+  | 'name' | 'size' | 'alloc' | 'own_size' | 'wasted' | 'files' | 'dirs'
+  | 'modified' | 'created' | 'accessed' | 'owner' | 'path_len' | 'type' | 'percent';
 export interface StFilter {
   min_size?: number;
   max_size?: number;
@@ -474,6 +487,7 @@ export interface StFilter {
   modified_after?: number;
   modified_before?: number;
   name_contains?: string;
+  owner_contains?: string;
 }
 export interface StGroup {
   key: string;
@@ -481,10 +495,19 @@ export interface StGroup {
   alloc: number;
   files: number;
 }
+export interface StScanStartOpts {
+  elevated?: boolean;
+  collect_owners?: boolean;
+  collect_streams?: boolean;
+  exclude?: string[];
+}
 
 export const stIpc = {
   drives: () => invoke<StDrive[]>('st_drives'),
-  start: (root: string) => invoke<number>('st_scan_start', { root }),
+  takeInbox: () => invoke<string[]>('st_take_inbox'),
+  start: (root: string, options?: StScanStartOpts) => invoke<number>('st_scan_start', { root, options }),
+  saveScan: (id: number, path: string) => invoke<number>('st_scan_save', { id, path }),
+  loadScan: (path: string) => invoke<number>('st_scan_load', { path }),
   pause: (id: number) => invoke<void>('st_scan_pause', { id }),
   resume: (id: number) => invoke<void>('st_scan_resume', { id }),
   cancel: (id: number) => invoke<void>('st_scan_cancel', { id }),
@@ -492,8 +515,16 @@ export const stIpc = {
   close: (id: number) => invoke<void>('st_close', { id }),
   progress: (id: number) => invoke<StProgress>('st_progress', { id }),
   errors: (id: number) => invoke<StError[]>('st_errors', { id }),
-  children: (id: number, node: number, sort: StSort, desc: boolean, offset: number, limit: number, text?: string) =>
-    invoke<StPage>('st_children', { id, node, sort, desc, offset, limit, text }),
+  children: (
+    id: number,
+    node: number,
+    sort: StSort,
+    desc: boolean,
+    offset: number,
+    limit: number,
+    text?: string,
+    only?: 'dirs' | 'files',
+  ) => invoke<StPage>('st_children', { id, node, sort, desc, offset, limit, text, only }),
   node: (id: number, node: number) => invoke<StDetail>('st_node', { id, node }),
   topFiles: (id: number, node: number, n: number, filter: StFilter) =>
     invoke<StNode[]>('st_top_files', { id, node, n, filter }),
@@ -508,13 +539,19 @@ export const stIpc = {
   treemap: (id: number, node: number, depth: number, maxChildren: number) =>
     invoke<StTree>('st_treemap', { id, node, depth, maxChildren }),
   paths: (id: number, nodes: number[]) => invoke<string[]>('st_paths', { id, nodes }),
-  stats: (id: number, node: number) => invoke<{ extensions: StGroup[]; categories: StGroup[] }>('st_stats', { id, node }),
+  stats: (id: number, node: number) =>
+    invoke<{ extensions: StGroup[]; categories: StGroup[]; owners: StGroup[]; sizes: StGroup[] }>('st_stats', { id, node }),
 };
 export function onStorageProgress(handler: (p: StProgress) => void): Promise<UnlistenFn> {
   return listen<StProgress>('storage://progress', (e) => handler(e.payload));
 }
+export function onStorageInbox(handler: () => void): Promise<UnlistenFn> {
+  return listen('storage://inbox', () => handler());
+}
 
-export type StOpKind = 'recycle' | 'delete' | 'copy' | 'move' | 'rename' | 'batch_rename' | 'zip';
+export type StOpKind =
+  | 'recycle' | 'delete' | 'copy' | 'move' | 'rename' | 'batch_rename' | 'zip'
+  | 'compress' | 'decompress' | 'hardlink';
 export interface StPlanItem {
   path: string;
   is_dir: boolean;
@@ -567,6 +604,9 @@ export interface StTree {
   is_dir: boolean;
   size: number;
   alloc: number;
+  files?: number;
+  mtime?: number | null;
+  ext?: string;
   category: string;
   children: StTree[];
   hidden_count: number;
@@ -583,6 +623,9 @@ export type StQuery =
   | { type: 'not'; item: StQuery }
   | { type: 'name'; text: string; mode: StTextMode }
   | { type: 'path'; text: string; mode: StTextMode }
+  | { type: 'owner'; text: string; mode: StTextMode }
+  | { type: 'path_len'; min: number | null; max: number | null }
+  | { type: 'empty_folder' }
   | { type: 'ext'; values: string[] }
   | { type: 'size'; min: number | null; max: number | null }
   | { type: 'date'; field: StDateField; after: number | null; before: number | null }
@@ -641,6 +684,8 @@ export type StReportSpec = (
   | { kind: 'top_folders'; n: number; mode: 'inclusive' | 'exclusive' }
   | { kind: 'extensions' }
   | { kind: 'categories' }
+  | { kind: 'owners' }
+  | { kind: 'sizes' }
   | { kind: 'age'; field: StDateField }
   | { kind: 'duplicates' }
 ) & { format: 'csv' | 'json' | 'html' | 'xlsx' | 'pdf'; columns: string[] };
@@ -652,7 +697,8 @@ export const stTools = {
   dupesProgress: () => invoke<[number, StDupProgress] | null>('st_dupes_progress'),
   dupesGroups: (offset: number, limit: number) => invoke<StDupGroup[]>('st_dupes_groups', { offset, limit }),
   dupesCancel: () => invoke<void>('st_dupes_cancel'),
-  dupesPlan: (id: number, permanent: boolean, groups: { keep: number; remove: number[] }[]) => invoke<StPlan>('st_dupes_plan', { id, permanent, groups }),
+  dupesPlan: (id: number, permanent: boolean, groups: { keep: number; remove: number[] }[], hardlink = false) =>
+    invoke<StPlan>('st_dupes_plan', { id, permanent, groups, hardlink }),
   renamePreview: (id: number, nodes: number[], rule: StRenameRule) => invoke<StRenameRow[]>('st_rename_preview', { id, nodes, rule }),
   renamePlan: (id: number, nodes: number[], rule: StRenameRule) => invoke<StPlan>('st_rename_plan', { id, nodes, rule }),
   export: (id: number, node: number, spec: StReportSpec, path: string) => invoke<number>('st_export', { id, node, spec, path }),

@@ -1,16 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import type { StProgress } from '../../lib/ipc';
 import {
-  completenessNote, defaultColumnState, driveKindLabel, formatElapsed, moveColumn, nextSelection,
-  parseColumnState, parseSize, usagePercent, visibleColumns,
+  attributeLabels,
+  compactAttributes,
+  completenessNote,
+  defaultColumnState,
+  driveAccounting,
+  driveKindLabel,
+  formatElapsed,
+  formatSlack,
+  formatUnitBytes,
+  moveColumn,
+  nextSelection,
+  parseColumnState,
+  parseSize,
+  shortcutAction,
+  shortcutsActive,
+  usagePercent,
+  visibleColumns,
 } from './logic';
 
 const prog = (p: Partial<StProgress>): StProgress => ({
-  id: 1, root: 'C:\\', state: 'done', files: 10, dirs: 2, bytes: 1000, allocated: 1000, errors: 0, elapsed_ms: 1000,
-  drive_used: 1000, drive_total: 5000, ...p,
+  id: 1,
+  root: 'C:\\',
+  state: 'done',
+  files: 10,
+  dirs: 2,
+  bytes: 1000,
+  allocated: 1000,
+  errors: 0,
+  elapsed_ms: 1000,
+  drive_used: 1000,
+  drive_total: 5000,
+  ...p,
 });
 
-describe('numbers', () => {
+describe('numbers and units', () => {
   it('keeps the usage percentage inside 0 to 100', () => {
     expect(usagePercent(50, 200)).toBe(25);
     expect(usagePercent(300, 200)).toBe(100);
@@ -19,6 +44,22 @@ describe('numbers', () => {
   it('formats elapsed time', () => {
     expect(formatElapsed(65_000)).toBe('1:05');
     expect(formatElapsed(3_725_000)).toBe('1:02:05');
+  });
+  it('formats explicit display units', () => {
+    expect(formatUnitBytes(1024 ** 2 * 2.5, 'MB')).toBe('2.5 MB');
+    expect(formatUnitBytes(1024 ** 3, 'GB')).toBe('1.0 GB');
+    expect(formatUnitBytes(0, 'KB')).toBe('0 KB');
+    expect(formatUnitBytes(512, 'B')).toContain('512 B');
+  });
+  it('computes slack space and NTFS compression savings', () => {
+    expect(formatSlack(4096, 4096)).toEqual({ text: '0 B', kind: 'even' });
+    expect(formatSlack(10_000, 2048, 'KB').kind).toBe('saved');
+    expect(formatSlack(500, 4096, 'KB').kind).toBe('slack');
+  });
+  it('accounts for free and system space on whole drives', () => {
+    const a = driveAccounting(prog({ allocated: 2000, drive_used: 3500, drive_free: 1500, drive_total: 5000, mft_bytes: 256 }), true)!;
+    expect(a).toEqual({ freeBytes: 1500, systemBytes: 1500, mftBytes: 256, totalBytes: 5000 });
+    expect(driveAccounting(prog({}), false)).toBeNull();
   });
   it('reads typed sizes', () => {
     expect(parseSize('', 'MB')).toBeNull();
@@ -55,18 +96,20 @@ describe('completeness note', () => {
 });
 
 describe('columns', () => {
-  it('always shows Name, hides what is hidden and keeps a minimum width', () => {
-    const s = { ...defaultColumnState(), hidden: ['name', 'files'], widths: { size: 10 } };
+  it('always shows Name, hides default-hidden and user-hidden columns, and keeps a minimum width', () => {
+    const base = defaultColumnState();
+    expect(visibleColumns(base).map((c) => c.key)).toEqual(['name', 'size', 'alloc', 'percent', 'files', 'dirs', 'modified']);
+    const s = { ...base, hidden: [...base.hidden, 'name', 'files'], widths: { size: 10 } };
     const cols = visibleColumns(s);
     expect(cols.map((c) => c.key)).toEqual(['name', 'size', 'alloc', 'percent', 'dirs', 'modified']);
     expect(cols.find((c) => c.key === 'size')!.w).toBe(50);
   });
-  it('reorders and survives damaged saved state', () => {
+  it('reorders, enables extra columns and survives damaged saved state', () => {
     expect(moveColumn(['a', 'b', 'c'], 'c', 'a')).toEqual(['c', 'a', 'b']);
     expect(moveColumn(['a', 'b'], 'x', 'a')).toEqual(['a', 'b']);
     expect(parseColumnState('not json')).toEqual(defaultColumnState());
-    const s = parseColumnState(JSON.stringify({ order: ['size', 'bogus'], hidden: ['dirs'], widths: { size: 200 } }));
-    expect(visibleColumns(s).map((c) => c.key).slice(0, 2)).toEqual(['size', 'name']);
+    const s = parseColumnState(JSON.stringify({ order: ['size', 'owner', 'bogus'], hidden: ['dirs'], widths: { size: 200 } }));
+    expect(visibleColumns(s).map((c) => c.key).slice(0, 3)).toEqual(['size', 'owner', 'name']);
   });
 });
 
@@ -91,9 +134,7 @@ describe('selection', () => {
   });
 });
 
-import { attributeLabels, shortcutAction, shortcutsActive } from './logic';
-
-describe('shortcuts', () => {
+describe('shortcuts and attributes', () => {
   const k = (key: string, m: Partial<{ ctrl: boolean; shift: boolean; alt: boolean }> = {}) => shortcutAction({ key, ctrl: false, shift: false, alt: false, ...m });
   it('maps the documented keys', () => {
     expect(k('Delete')).toBe('recycle');
@@ -121,8 +162,9 @@ describe('shortcuts', () => {
       expect(shortcutsActive({ ...base, ...off })).toBe(false);
     }
   });
-  it('describes attributes in words', () => {
+  it('describes attributes in words and compact codes', () => {
     expect(attributeLabels(0x1 | 0x2, 0)).toEqual(['Read-only', 'Hidden']);
-    expect(attributeLabels(0, 2 | 4)).toEqual(['Link (not followed)', 'Same data as another name']);
+    expect(attributeLabels(0, 2 | 4 | 128)).toEqual(['Link (not followed)', 'Same data as another name', 'Has alternate streams']);
+    expect(compactAttributes(0x1 | 0x800, 128)).toBe('RC+');
   });
 });
