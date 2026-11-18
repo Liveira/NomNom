@@ -11,6 +11,7 @@ pub mod model;
 pub mod naming;
 pub mod office;
 pub mod pdf;
+pub mod pdf_tools;
 pub mod presets;
 
 pub use batch::{run, Event, Outcome, Request, Status};

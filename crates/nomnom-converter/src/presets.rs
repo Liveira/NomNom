@@ -59,6 +59,32 @@ pub fn presets() -> Vec<Preset> {
             options: Options::default(),
         },
         Preset {
+            id: "photos-email",
+            name: "Photos for email and chat",
+            description: "JPG, up to 1600 pixels, small enough to send. Camera and location details are removed.",
+            kind: Kind::Image,
+            target: Target::Jpg,
+            options: Options {
+                max_width: Some(1600),
+                max_height: Some(1600),
+                image_quality: 80,
+                keep_metadata: false,
+                ..Options::default()
+            },
+        },
+        Preset {
+            id: "strip-location",
+            name: "Remove camera and location details",
+            description: "Saved as JPG at high quality, with the camera and location details removed.",
+            kind: Kind::Image,
+            target: Target::Jpg,
+            options: Options {
+                image_quality: 95,
+                keep_metadata: false,
+                ..Options::default()
+            },
+        },
+        Preset {
             id: "webp-80",
             name: "WebP, quality 80",
             description: "Smaller pictures for the web.",

@@ -92,7 +92,7 @@ pub struct RunArgs {
 
 /// Results may be written next to the source or into a chosen folder, but never inside system,
 /// program or NOMNOM data folders.
-fn output_problem(
+pub(crate) fn output_problem(
     state: &AppState,
     files: &[PathBuf],
     out_dir: &Option<PathBuf>,

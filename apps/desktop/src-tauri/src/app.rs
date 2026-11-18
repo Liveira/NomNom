@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
     activity, browser, commands, events, filetools, focus, integrations, modules, notifier,
-    organizer, pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup,
+    organizer, pdftools, pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup,
     storage_history, storage_ops, storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
@@ -211,6 +211,9 @@ pub fn run() {
             storage_history::st_snapshot_trend,
             storage_history::st_schedule_status,
             storage_cleanup::st_cleanup_spots,
+            pdftools::pdf_info,
+            pdftools::pdf_merge,
+            pdftools::pdf_split,
             focus::focus_start,
             focus::focus_stop,
             focus::focus_status,

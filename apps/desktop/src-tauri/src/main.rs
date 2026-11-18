@@ -13,6 +13,7 @@ mod integrations;
 mod modules;
 mod notifier;
 mod organizer;
+mod pdftools;
 mod pipe_server;
 mod quick;
 mod shortcuts;

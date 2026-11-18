@@ -950,3 +950,16 @@ export const focusIpc = {
 export function onFocusChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('focus://changed', () => handler());
 }
+
+// ---- File Tools: PDF tools ----------------------------------------------------------------------
+export interface PdfInfo {
+  path: string;
+  name: string;
+  pages: number | null;
+  problem: string | null;
+}
+export const pdfIpc = {
+  info: (paths: string[]) => invoke<PdfInfo[]>('pdf_info', { paths }),
+  merge: (paths: string[]) => invoke<string>('pdf_merge', { paths }),
+  split: (path: string, mode: 'each' | 'pages', pages: string) => invoke<string[]>('pdf_split', { path, mode, pages }),
+};

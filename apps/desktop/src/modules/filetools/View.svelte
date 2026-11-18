@@ -276,6 +276,7 @@
     ];
     return () => unlisteners.forEach((u) => void u.then((f) => f()));
   });
+  import PdfTools from './PdfTools.svelte';
 </script>
 
 <h1>File Tools</h1>
@@ -484,6 +485,8 @@
     {#if openError}<p class="error" role="alert">{openError}</p>{/if}
   </section>
 {/if}
+
+<PdfTools />
 
 <style>
   h1 { margin-bottom: 18px; }
