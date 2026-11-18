@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
-export type Theme = 'system' | 'dark' | 'light' | 'aurora' | 'synthwave' | 'sakura' | 'ocean' | 'forest';
+export type Theme = 'system' | 'dark' | 'light' | 'aurora' | 'synthwave' | 'sakura' | 'ocean' | 'forest' | 'nebula' | 'sunset' | 'matcha' | 'lavender' | 'ember' | 'frost' | 'matrix' | 'cyberpunk' | 'candy' | 'graphite';
 export type Motion = 'full' | 'calm' | 'off';
 
 export interface Settings {

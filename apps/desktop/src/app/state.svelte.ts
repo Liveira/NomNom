@@ -1,5 +1,6 @@
 import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings, type SettingsPatch, type TaskInfo, type Theme, type Motion } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
+import { isLight } from '../lib/themes';
 import { discoverModules } from './discover';
 
 class AppState {
@@ -102,7 +103,7 @@ class AppState {
     const palette = theme === 'system' ? (dark ? 'dark' : 'light') : theme;
     const root = document.documentElement;
     root.dataset.theme = palette;
-    root.dataset.scheme = palette === 'light' || palette === 'sakura' ? 'light' : 'dark';
+    root.dataset.scheme = isLight(palette) ? 'light' : 'dark';
     this.palette = palette;
   }
 

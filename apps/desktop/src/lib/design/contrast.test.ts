@@ -14,7 +14,7 @@ function block(selector: RegExp): Record<string, string> {
   return out;
 }
 
-export const THEME_IDS = ['dark', 'light', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest'] as const;
+export const THEME_IDS = ['dark', 'light', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest', 'nebula', 'sunset', 'matcha', 'lavender', 'ember', 'frost', 'matrix', 'cyberpunk', 'candy', 'graphite'] as const;
 
 /** The colours of one theme: the `dark` block is also the page default. */
 function theme(id: string): Record<string, string> {

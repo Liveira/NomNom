@@ -25,10 +25,11 @@ describe('settings search', () => {
 });
 
 describe('theme list', () => {
-  it('has system plus seven palettes, each once', () => {
+  it('has system plus every palette, each once', () => {
     const ids = THEMES.map((t) => t.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).toEqual(['system', 'dark', 'light', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest']);
+    expect(ids).toHaveLength(18);
+    expect(ids.slice(0, 8)).toEqual(['system', 'dark', 'light', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest']);
   });
   it('offers three motion levels', () => {
     expect(MOTIONS.map((m) => m.id)).toEqual(['full', 'calm', 'off']);

@@ -3,7 +3,7 @@
   import Backdrop from '../../lib/fx/Backdrop.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import type { Motion, Theme } from '../../lib/ipc';
-  import { MOTIONS, THEMES } from './themes';
+  import { MOTIONS, THEME_GROUPS, THEMES_IN_ORDER } from './themes';
 
   const theme = $derived(app.settings?.appearance.theme ?? 'system');
   const motion = $derived(app.settings?.appearance.motion ?? 'full');
@@ -17,13 +17,13 @@
 
   /** Arrow keys move between the theme cards, like any radio group. */
   function arrows(e: KeyboardEvent, i: number) {
-    const all = THEMES.length;
+    const all = THEMES_IN_ORDER.length;
     let next = -1;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % all;
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + all) % all;
     if (next < 0) return;
     e.preventDefault();
-    const cards = (e.currentTarget as HTMLElement).parentElement?.querySelectorAll<HTMLElement>('[role=radio]');
+    const cards = (e.currentTarget as HTMLElement).closest('.gallery')?.querySelectorAll<HTMLElement>('[role=radio]');
     cards?.[next]?.focus();
   }
 </script>
@@ -33,45 +33,51 @@
   <p class="lead">Pick how NomNom looks. Move the pointer over a card to see its background move.</p>
 
   <div class="gallery" role="radiogroup" aria-label="Theme">
-    {#each THEMES as t, i (t.id)}
-      {@const on = theme === t.id}
-      <button
-        class="card-theme"
-        class:on
-        role="radio"
-        aria-checked={on}
-        tabindex={on || (theme === 'system' && i === 0) ? 0 : -1}
-        style:--i={i}
-        onclick={(e) => pick(t.id, e)}
-        onkeydown={(e) => arrows(e, i)}
-        onmouseenter={() => (hovered = t.id)}
-        onmouseleave={() => (hovered = null)}
-        onfocus={() => (hovered = t.id)}
-        onblur={() => (hovered = null)}
-      >
-        <span class="mini" data-theme={t.id === 'system' ? 'dark' : t.id}>
-          {#if t.id === 'system'}
-            <span class="half" data-theme="light"></span>
-          {/if}
-          <Backdrop
-            theme={t.id === 'system' ? 'dark' : t.id}
-            motion={hovered === t.id || on ? (app.motion === 'off' ? 'off' : 'full') : 'calm'}
-            contained
-          />
-          <span class="mock">
-            <span class="mside"><i></i><i></i><i></i></span>
-            <span class="mbody">
-              <span class="mcard"><b></b><u></u></span>
-              <span class="mbtn"></span>
+    {#each THEME_GROUPS as g (g.label)}
+      <h4 class="gtitle">{g.label}</h4>
+      <div class="grid">
+      {#each g.items as t (t.id)}
+        {@const i = THEMES_IN_ORDER.indexOf(t)}
+        {@const on = theme === t.id}
+        <button
+          class="card-theme"
+          class:on
+          role="radio"
+          aria-checked={on}
+          tabindex={on || (theme === 'system' && i === 0) ? 0 : -1}
+          style:--i={i}
+          onclick={(e) => pick(t.id, e)}
+          onkeydown={(e) => arrows(e, i)}
+          onmouseenter={() => (hovered = t.id)}
+          onmouseleave={() => (hovered = null)}
+          onfocus={() => (hovered = t.id)}
+          onblur={() => (hovered = null)}
+        >
+          <span class="mini" data-theme={t.id === 'system' ? 'dark' : t.id}>
+            {#if t.id === 'system'}
+              <span class="half" data-theme="light"></span>
+            {/if}
+            <Backdrop
+              theme={t.id === 'system' ? 'dark' : t.id}
+              motion={hovered === t.id || on ? (app.motion === 'off' ? 'off' : 'full') : 'calm'}
+              contained
+            />
+            <span class="mock">
+              <span class="mside"><i></i><i></i><i></i></span>
+              <span class="mbody">
+                <span class="mcard"><b></b><u></u></span>
+                <span class="mbtn"></span>
+              </span>
             </span>
           </span>
-        </span>
-        <span class="meta">
-          <span class="name"><Icon name={t.icon} size={15} /> {t.name}</span>
-          <span class="tag">{t.tagline}</span>
-        </span>
-        {#if on}<span class="check" aria-hidden="true"><Icon name="check" size={13} stroke={3} /></span>{/if}
-      </button>
+          <span class="meta">
+            <span class="name"><Icon name={t.icon} size={15} /> {t.name}</span>
+            <span class="tag">{t.tagline}</span>
+          </span>
+          {#if on}<span class="check" aria-hidden="true"><Icon name="check" size={13} stroke={3} /></span>{/if}
+        </button>
+      {/each}
+      </div>
     {/each}
   </div>
 </section>
@@ -93,7 +99,9 @@
 
 <style>
   .lead { margin: 0 0 14px; color: var(--text-2); font-size: 13px; }
-  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+  .gallery { display: grid; gap: 10px; }
+  .gtitle { margin: 8px 0 0; font-family: var(--font-ui); font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
   .card-theme {
     position: relative; display: grid; gap: 10px; padding: 10px; text-align: left; cursor: pointer;
     border-radius: var(--radius-m); border: 1px solid var(--border-strong); background: var(--surface-2);

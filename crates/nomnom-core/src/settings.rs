@@ -20,6 +20,16 @@ pub enum Theme {
     Sakura,
     Ocean,
     Forest,
+    Nebula,
+    Sunset,
+    Matcha,
+    Lavender,
+    Ember,
+    Frost,
+    Matrix,
+    Cyberpunk,
+    Candy,
+    Graphite,
 }
 
 /// How much the interface moves. "Full" animates the background and the interface, "calm" keeps
@@ -413,6 +423,16 @@ mod tests {
             Theme::Sakura,
             Theme::Ocean,
             Theme::Forest,
+            Theme::Nebula,
+            Theme::Sunset,
+            Theme::Matcha,
+            Theme::Lavender,
+            Theme::Ember,
+            Theme::Frost,
+            Theme::Matrix,
+            Theme::Cyberpunk,
+            Theme::Candy,
+            Theme::Graphite,
         ] {
             store
                 .update("appearance", |s| {
@@ -426,6 +446,6 @@ mod tests {
         }
         // The names in the file are the ones the interface uses.
         let text = std::fs::read_to_string(&path).unwrap();
-        assert!(text.contains("\"theme\": \"forest\""), "{text}");
+        assert!(text.contains("\"theme\": \"graphite\""), "{text}");
     }
 }

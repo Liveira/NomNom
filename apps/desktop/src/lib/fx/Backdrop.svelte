@@ -40,6 +40,19 @@
   const bubbles = $derived(make(count(18), 37));
   const flies = $derived(make(count(26), 53));
   const motes = $derived(make(count(16), 71));
+  const sparks = $derived(make(count(30), 89));
+  const flakes = $derived(make(count(40), 97));
+  const leaves = $derived(make(count(18), 101));
+  const hearts = $derived(make(count(18), 113));
+  const shooters = $derived(make(3, 127));
+  const clouds = $derived(make(5, 131));
+  const GLYPHS = '01<>/{}[]$#@*+=-~';
+  const rain = $derived(
+    make(count(26), 139).map((c) => {
+      const r = rng(Math.floor(c.s * 1e6) + 7);
+      return { ...c, text: Array.from({ length: 22 }, () => GLYPHS[Math.floor(r() * GLYPHS.length)]).join('\n') };
+    }),
+  );
 </script>
 
 <div class="backdrop" class:contained class:still={!live} data-theme={theme} data-fx={theme} aria-hidden="true">
@@ -87,6 +100,59 @@
         style="left:{f.x}%; top:{20 + f.y * 0.7}%; --s:{3 + f.s * 4}px; --d:{11 + f.d * 12}s; --b:{2.2 + f.u * 3}s; --t:{-f.t * 20}s; --ax:{(f.u - 0.5) * 140}px; --ay:{(f.s - 0.5) * 100}px; --bx:{(f.d - 0.5) * 160}px; --by:{(f.t - 0.5) * 120}px"
       ></i>
     {/each}
+  {:else if theme === 'nebula'}
+    <i class="blob b1 neb1"></i><i class="blob b2 neb2"></i><i class="blob b3 neb3"></i>
+    {#each stars as s, i (i)}
+      <i class="star" style="left:{s.x}%; top:{s.y}%; --s:{1 + s.s * 2.4}px; --d:{2 + s.d * 4}s; --t:{-s.t * 6}s"></i>
+    {/each}
+    {#if live}
+      {#each shooters as s, i (i)}
+        <i class="shooter" style="left:{20 + s.x * 0.7}%; top:{s.y * 0.4}%; --d:{7 + s.d * 6}s; --t:{-s.t * 10}s"></i>
+      {/each}
+    {/if}
+  {:else if theme === 'sunset'}
+    <i class="skyglow"></i>
+    <i class="dusksun"></i>
+    {#each clouds as c, i (i)}
+      <i class="cloud" style="top:{8 + c.y * 0.5}%; --w:{180 + c.s * 260}px; --d:{60 + c.d * 70}s; --t:{-c.t * 90}s; --o:{0.12 + c.u * 0.16}"></i>
+    {/each}
+  {:else if theme === 'matcha'}
+    <i class="blob b1 mat1"></i><i class="blob b2 mat2"></i>
+    {#each leaves as p, i (i)}
+      <i class="petal leaf" style="left:{p.x}%; --s:{12 + p.s * 14}px; --d:{11 + p.d * 11}s; --t:{-p.t * 22}s; --sway:{26 + p.u * 50}px; --rot:{p.u * 360}deg"><b></b></i>
+    {/each}
+  {:else if theme === 'lavender'}
+    <i class="blob b1"></i><i class="blob b3"></i>
+    {#each motes as m, i (i)}
+      <i class="mote pollen" style="left:{m.x}%; top:{30 + m.y * 0.7}%; --s:{5 + m.s * 9}px; --d:{8 + m.d * 10}s; --t:{-m.t * 14}s; --dx:{(m.u - 0.5) * 120}px"></i>
+    {/each}
+  {:else if theme === 'ember'}
+    <i class="heat"></i>
+    {#each sparks as p, i (i)}
+      <i class="spark" style="left:{p.x}%; --s:{2 + p.s * 4}px; --d:{5 + p.d * 7}s; --t:{-p.t * 12}s; --sway:{(p.u - 0.5) * 120}px"></i>
+    {/each}
+  {:else if theme === 'frost'}
+    <i class="blob b1 ice1"></i><i class="blob b2 ice2"></i>
+    {#each flakes as p, i (i)}
+      <i class="flake" style="left:{p.x}%; --s:{3 + p.s * 7}px; --d:{9 + p.d * 14}s; --t:{-p.t * 22}s; --sway:{(p.u - 0.5) * 70}px"></i>
+    {/each}
+  {:else if theme === 'matrix'}
+    <i class="crt"></i>
+    {#each rain as c, i (i)}
+      <i class="code" style="left:{c.x}%; --d:{6 + c.d * 9}s; --t:{-c.t * 15}s; --f:{9 + c.s * 7}px; --o:{0.35 + c.u * 0.55}">{c.text}</i>
+    {/each}
+  {:else if theme === 'cyberpunk'}
+    <i class="neonbar nb1"></i><i class="neonbar nb2"></i><i class="neonbar nb3"></i>
+    <i class="glitch"></i>
+    <i class="scan"></i>
+  {:else if theme === 'candy'}
+    <i class="blob b1 can1"></i><i class="blob b2 can2"></i>
+    {#each hearts as p, i (i)}
+      <i class="bubble candy" style="left:{p.x}%; --s:{10 + p.s * 26}px; --d:{10 + p.d * 14}s; --t:{-p.t * 24}s; --sway:{16 + p.u * 40}px; --h:{p.u * 360}"></i>
+    {/each}
+  {:else if theme === 'graphite'}
+    <i class="beam gb1"></i><i class="beam gb2"></i>
+    <i class="grain"></i>
   {/if}
 </div>
 
@@ -214,6 +280,87 @@
   }
   @keyframes blink { 0%, 100% { opacity: 0.1; } 45%, 60% { opacity: 1; } }
   @keyframes mist { to { transform: translateX(8%) scale(1.1); } }
+
+  /* ----- Nebula, Sunset, Matcha, Lavender -------------------------------------------------------- */
+  .neb1 { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .neb2 { background: color-mix(in srgb, var(--blush) 24%, transparent); }
+  .neb3 { background: color-mix(in srgb, var(--lavender) 22%, transparent); }
+  .shooter {
+    width: 130px; height: 2px; border-radius: 2px; opacity: 0;
+    background: linear-gradient(90deg, transparent, var(--text));
+    transform: rotate(28deg); animation: shoot var(--d) ease-in var(--t) infinite;
+  }
+  @keyframes shoot { 0%, 86% { opacity: 0; transform: translate3d(0, 0, 0) rotate(28deg); } 90% { opacity: 1; } 100% { opacity: 0; transform: translate3d(36vw, 22vh, 0) rotate(28deg); } }
+
+  .skyglow { inset: 0; background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--blush) 22%, transparent) 78%, color-mix(in srgb, var(--accent) 30%, transparent) 100%); animation: skyshift 18s ease-in-out infinite alternate; }
+  .dusksun {
+    width: min(34vw, 300px); aspect-ratio: 1; left: 62%; bottom: -8%; border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, #ffe29a, var(--accent) 55%, var(--blush) 100%);
+    filter: blur(1px) drop-shadow(0 0 60px var(--accent)); opacity: 0.6; animation: sunbob 14s ease-in-out infinite alternate;
+  }
+  .cloud {
+    left: -30%; width: var(--w); height: calc(var(--w) * 0.22); border-radius: 50%; opacity: var(--o);
+    background: color-mix(in srgb, var(--text) 70%, var(--blush)); filter: blur(22px);
+    animation: cloud var(--d) linear var(--t) infinite; will-change: transform;
+  }
+  @keyframes skyshift { to { opacity: 0.65; } }
+  @keyframes sunbob { to { transform: translateY(-6%) scale(1.06); opacity: 0.75; } }
+  @keyframes cloud { to { transform: translateX(160vw); } }
+
+  .mat1 { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+  .mat2 { background: color-mix(in srgb, var(--blush) 22%, transparent); }
+  .leaf b { border-radius: 0 100% 0 100%; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #2f5d1a)); opacity: 0.75; }
+  .pollen { background: var(--lavender); filter: blur(0.5px); box-shadow: 0 0 10px var(--lavender); }
+
+  /* ----- Ember, Frost ----------------------------------------------------------------------------- */
+  .heat { left: 0; right: 0; bottom: -12%; height: 46%; background: radial-gradient(70% 100% at 50% 100%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 72%); animation: heat 3.6s ease-in-out infinite alternate; }
+  @keyframes heat { to { transform: scaleY(1.18); opacity: 0.75; } }
+  .spark {
+    bottom: -3%; width: var(--s); height: var(--s); border-radius: 50%;
+    background: var(--blush); box-shadow: 0 0 calc(var(--s) * 3) var(--accent);
+    animation: spark var(--d) ease-out var(--t) infinite;
+  }
+  @keyframes spark { 0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate3d(var(--sway), -95vh, 0) scale(0.2); opacity: 0; } }
+
+  .ice1 { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+  .ice2 { background: color-mix(in srgb, var(--blush) 26%, transparent); }
+  .flake {
+    top: -4%; width: var(--s); height: var(--s); border-radius: 50%; background: #fff; opacity: 0.85;
+    box-shadow: 0 0 6px rgba(120, 170, 220, 0.7); animation: snow var(--d) linear var(--t) infinite;
+  }
+  @keyframes snow { from { transform: translate3d(0, -4vh, 0); } 50% { transform: translate3d(var(--sway), 54vh, 0); } to { transform: translate3d(calc(var(--sway) * -0.6), 106vh, 0); } }
+
+  /* ----- Matrix, Cyberpunk, Candy, Graphite ------------------------------------------------------- */
+  .crt { inset: 0; background: repeating-linear-gradient(180deg, rgba(0, 255, 127, 0.05) 0 1px, transparent 1px 3px); }
+  .code {
+    top: -60%; width: 1.1em; font: 700 var(--f) / 1.15 var(--font-mono); color: var(--accent); white-space: pre; opacity: var(--o);
+    text-shadow: 0 0 8px var(--accent); animation: codefall var(--d) linear var(--t) infinite; will-change: transform;
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 85%); mask-image: linear-gradient(180deg, transparent, #000 85%);
+  }
+  @keyframes codefall { from { transform: translateY(0); } to { transform: translateY(190vh); } }
+
+  .neonbar { height: 3px; width: 46%; border-radius: 3px; opacity: 0.8; filter: drop-shadow(0 0 8px currentColor); will-change: transform; }
+  .nb1 { top: 22%; left: -50%; color: var(--accent); background: currentColor; animation: sweep 7s ease-in-out infinite; }
+  .nb2 { top: 54%; right: -50%; color: var(--blush); background: currentColor; animation: sweep2 9s ease-in-out -3s infinite; }
+  .nb3 { top: 80%; left: -50%; color: var(--lavender); background: currentColor; animation: sweep 11s ease-in-out -6s infinite; }
+  @keyframes sweep { 0% { transform: translateX(0); } 100% { transform: translateX(300%); } }
+  @keyframes sweep2 { 0% { transform: translateX(0); } 100% { transform: translateX(-300%); } }
+  .glitch { inset: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--blush) 10%, transparent), transparent 30%, transparent 70%, color-mix(in srgb, var(--lavender) 10%, transparent)); animation: glitch 6s steps(1) infinite; }
+  @keyframes glitch { 0%, 93%, 100% { opacity: 0.6; transform: none; } 94% { opacity: 1; transform: translateX(-6px) skewX(2deg); } 96% { opacity: 0.8; transform: translateX(8px); } 98% { opacity: 1; transform: translateX(-3px); } }
+
+  .can1 { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+  .can2 { background: color-mix(in srgb, var(--blush) 28%, transparent); }
+  .candy { border-color: hsl(var(--h) 90% 65% / 0.7); background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), hsl(var(--h) 90% 75% / 0.45) 70%); }
+
+  .beam { width: 60%; height: 140%; top: -20%; filter: blur(60px); opacity: 0.22; background: linear-gradient(90deg, transparent, #fff, transparent); will-change: transform; }
+  .gb1 { left: -20%; transform: rotate(18deg); animation: beam1 24s ease-in-out infinite alternate; }
+  .gb2 { right: -25%; transform: rotate(-16deg); opacity: 0.14; animation: beam2 31s ease-in-out infinite alternate; }
+  @keyframes beam1 { to { transform: translateX(70%) rotate(10deg); } }
+  @keyframes beam2 { to { transform: translateX(-80%) rotate(-8deg); } }
+  .grain { inset: -50%; opacity: 0.05; background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 3px 3px; animation: grain 0.9s steps(4) infinite; }
+  @keyframes grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-3px, 2px); } 50% { transform: translate(2px, -3px); } 75% { transform: translate(-2px, -1px); } 100% { transform: translate(0, 0); } }
+
+  .backdrop.still .shooter, .backdrop.still .spark, .backdrop.still .flake, .backdrop.still .code, .backdrop.still .cloud { display: none; }
 
   /* ----- Calm and Off: the colour is kept, the movement is not ----------------------------------- */
   .backdrop.still * { animation: none !important; }
