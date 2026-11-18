@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/nomnom-core", "crates/nomnom-tools", "crates/nomnom-downloads", "crates/nomnom-ipc", "crates/nomnom-native-host", "crates/nomnom-win", "crates/nomnom-linux", "crates/nomnom-organizer", "crates/nomnom-converter", "crates/nomnom-shell", "crates/nomnom-storage", "crates/nomnom-activity", "apps/desktop/src-tauri"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT"
 rust-version = "1.80"

@@ -140,6 +140,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The app's bundle lists the native messaging host as a resource, so it has to exist first.
+      - run: cargo build --release -p nomnom-native-host
       - run: cargo test --workspace --no-fail-fast
       - name: Build .deb and .AppImage
         env:
