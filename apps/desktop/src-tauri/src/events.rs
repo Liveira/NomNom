@@ -1,6 +1,7 @@
 //! Forwards task updates to the UI and the tray, coalesced so a burst of progress callbacks
 //! becomes at most ~8 UI events per second. With no window open, nothing is emitted.
 
+use crate::i18n::{self, Lang};
 use crate::{state::AppState, tray, windows};
 use nomnom_core::tasks::{Task, TaskState};
 use std::collections::HashMap;
@@ -10,25 +11,28 @@ use tokio::sync::broadcast::error::RecvError;
 
 const TICK: Duration = Duration::from_millis(125);
 
+#[cfg(test)]
 pub fn status_text(tasks: &[Task]) -> String {
+    status_line(Lang::En, tasks).0
+}
+
+/// The tray's status text in a language, and whether nothing is running.
+pub fn status_line(lang: Lang, tasks: &[Task]) -> (String, bool) {
     let active: Vec<&Task> = tasks
         .iter()
         .filter(|t| matches!(t.state, TaskState::Running | TaskState::Queued))
         .collect();
     if active.is_empty() {
-        return "Nothing downloading".to_string();
+        return (i18n::tr(lang, "Nothing downloading"), true);
     }
     let known: Vec<f32> = active.iter().filter_map(|t| t.progress).collect();
-    if known.is_empty() {
-        format!("{} active", active.len())
+    let percent = if known.is_empty() {
+        None
     } else {
         let avg = known.iter().sum::<f32>() / known.len() as f32;
-        format!(
-            "{} active · {}%",
-            active.len(),
-            (avg * 100.0).round() as u32
-        )
-    }
+        Some((avg * 100.0).round() as u32)
+    };
+    (i18n::active_count(lang, active.len(), percent), false)
 }
 
 pub fn spawn_forwarder(app: AppHandle) {
@@ -53,9 +57,10 @@ pub fn spawn_forwarder(app: AppHandle) {
                 let updates: Vec<&Task> = batch.values().collect();
                 let _ = app.emit("tasks://batch", updates);
             }
-            let text = status_text(&app.state::<AppState>().tasks.list());
+            let lang = i18n::lang_of(&app.state::<AppState>().settings.get());
+            let (text, idle) = status_line(lang, &app.state::<AppState>().tasks.list());
             if text != last_status {
-                tray::set_status(&app, &text);
+                tray::set_status(&app, &text, idle);
                 last_status = text;
             }
         }

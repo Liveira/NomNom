@@ -250,7 +250,7 @@
     <ul class="items" aria-label="Items">
       {#each p.items.slice(0, 15) as it (it.path)}
         <li class:warn={it.warn}>
-          <span class="mono" title={it.path}>{it.path}{#if it.new_name} → {it.new_name}{/if}{#if it.keep}<br /><span class="hint">identical to the copy kept: {it.keep}</span>{/if}</span>
+          <span class="mono" translate="no" title={it.path}>{it.path}{#if it.new_name} → {it.new_name}{/if}{#if it.keep}<br /><span class="hint">identical to the copy kept: {it.keep}</span>{/if}</span>
           <span class="sz tabular">{formatBytes(it.size)}</span>
         </li>
       {/each}
@@ -261,7 +261,7 @@
     {/if}
     {#if p.refused.length}
       <div class="box" role="note"><strong>Left out ({p.refused.length})</strong>
-        {#each p.refused.slice(0, 5) as r (r.path + r.reason)}<div><span class="mono">{r.path}</span><br /><span class="hint">{r.reason}</span></div>{/each}
+        {#each p.refused.slice(0, 5) as r (r.path + r.reason)}<div><span class="mono" translate="no">{r.path}</span><br /><span class="hint">{r.reason}</span></div>{/each}
       </div>
     {/if}
     {#if permanent}
@@ -296,7 +296,7 @@
   </Dialog>
 {:else if dlg?.type === 'rename'}
   <Dialog title="Rename" onclose={close}>
-    <label class="typed">New name for <strong>{dlg.node.name}</strong>
+    <label class="typed">New name for <strong translate="no">{dlg.node.name}</strong>
       <input bind:value={newName} aria-label="New name" onkeydown={(e) => e.key === 'Enter' && storage.doRename(newName)} />
     </label>
     {#if dlg.error}<p class="error" role="alert">{dlg.error}</p>{/if}
@@ -412,7 +412,7 @@
     <p>{done} done, {r.filter((x) => x.status === 'failed').length} failed, {r.filter((x) => x.status === 'skipped').length} skipped.{dlg.report.cancelled ? ' You stopped it before the end.' : ''}</p>
     <ul class="items">
       {#each r.filter((x) => x.status !== 'done').slice(0, 30) as x (x.path)}
-        <li><span><span class="mono" title={x.path}>{x.path}</span><br /><span class="hint">{x.status === 'failed' ? 'Failed' : 'Skipped'}: {x.message}</span></span></li>
+        <li><span><span class="mono" translate="no" title={x.path}>{x.path}</span><br /><span class="hint">{x.status === 'failed' ? 'Failed' : 'Skipped'}: {x.message}</span></span></li>
       {/each}
     </ul>
     {#snippet actions()}<button class="primary" onclick={close}>OK</button>{/snippet}
@@ -421,7 +421,7 @@
   {@const n = dlg.node}
   <Dialog title="Properties" onclose={close}>
     <dl>
-      <dt>Name</dt><dd>{n.name}</dd>
+      <dt>Name</dt><dd translate="no">{n.name}</dd>
       <dt>Location</dt><dd class="mono">{dlg.path}{#if n.path_len != null} <span class="hint">({n.path_len} chars)</span>{/if}</dd>
       <dt>Type</dt><dd>{n.is_link ? 'Link (not followed)' : n.is_dir ? 'Folder' : 'File'}</dd>
       {#if n.owner}<dt>Owner</dt><dd>{n.owner}</dd>{/if}

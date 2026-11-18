@@ -148,7 +148,7 @@
       <h3>Biggest folders <span class="hint">(files directly inside, non-overlapping)</span></h3>
       {#each folders as f (f.id)}
         <button class="bar" onclick={() => { storage.tab = 'explorer'; void storage.go(f.id); }} title={`Open ${f.name}`}>
-          <span class="label">{f.name}</span>
+          <span class="label" translate="no">{f.name}</span>
           <span class="track"><span class="fill" style:width="{(f.size / maxFolder) * 100}%"></span></span>
           <span class="tabular val">{formatUnitBytes(f.size, storage.unit)}</span>
         </button>

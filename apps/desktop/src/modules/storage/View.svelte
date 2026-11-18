@@ -246,7 +246,7 @@
               <nav class="crumbs" aria-label="Location">
                 {#each trail as t, i (t.id)}
                   {#if i > 0}<span class="sep" aria-hidden="true">›</span>{/if}
-                  <button class="crumb" onclick={() => storage.go(t.id)} aria-current={i === trail.length - 1 ? 'location' : undefined}>{i === 0 ? p.root : t.name}</button>
+                  <button class="crumb" translate="no" onclick={() => storage.go(t.id)} aria-current={i === trail.length - 1 ? 'location' : undefined}>{i === 0 ? p.root : t.name}</button>
                 {/each}
               </nav>
               <div class="right">
@@ -305,7 +305,7 @@
     {#if note}<p class="notice">{note}</p>{/if}
     {#if errors}
       <div class="errlist" role="region" aria-label="Places that couldn't be read">
-        {#each errors.slice(0, 200) as e (e.path)}<div><span class="mono">{e.path}</span> <span class="hint">{e.message}</span></div>{/each}
+        {#each errors.slice(0, 200) as e (e.path)}<div><span class="mono" translate="no">{e.path}</span> <span class="hint">{e.message}</span></div>{/each}
         {#if errors.length > 200}<div class="hint">and {errors.length - 200} more</div>{/if}
         {#if !p.elevated}
           <p class="hint">NomNom runs with normal user permissions by default. Use "Scan as {adminName}" if you want to read protected system folders too.</p>

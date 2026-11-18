@@ -160,7 +160,7 @@
         {#snippet row(n: StNode, i: number)}
           <div class="tr">
             <span class="rank tabular">{i + 1}</span>
-            <span class="n"><span class="nm" title={n.name}>{n.name}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{n.owner ? ` · ${n.owner}` : ''}{n.is_dir ? ` · ${n.files.toLocaleString()} files, ${n.dirs.toLocaleString()} folders` : ''}</span></span>
+            <span class="n" translate="no"><span class="nm" title={n.name}>{n.name}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{n.owner ? ` · ${n.owner}` : ''}{n.is_dir ? ` · ${n.files.toLocaleString()} files, ${n.dirs.toLocaleString()} folders` : ''}</span></span>
             <span class="s right tabular">{formatUnitBytes(n.size, storage.unit)}</span>
             <span class="a right tabular">{what === 'files' ? formatUnitBytes(n.alloc, storage.unit) : ''}</span>
             <span class="m">{formatDate(n.mtime)}</span>

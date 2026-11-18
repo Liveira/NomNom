@@ -275,7 +275,7 @@
       <VirtualList bind:this={list} items={found.items} rowHeight={34} label="Search results" onkeydown={onKey}>
         {#snippet row(n: StNode, i: number)}
           <div class="tr" class:sel={selected.has(n.id)} class:cur={i === cursor} role="option" aria-selected={selected.has(n.id)} tabindex="-1" onclick={(e) => click(i, e)} ondblclick={() => show(n)} onkeydown={() => {}}>
-            <span class="n"><span class="nm" title={n.name}>{n.name}{n.is_dir ? ' (folder)' : ''}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{(n.path_len ?? 0) >= 260 ? ` · ${n.path_len} chars` : ''}</span></span>
+            <span class="n" translate="no"><span class="nm" title={n.name}>{n.name}{n.is_dir ? ' (folder)' : ''}</span><span class="where" title={paths[n.id]}>{paths[n.id] ?? ''}{(n.path_len ?? 0) >= 260 ? ` · ${n.path_len} chars` : ''}</span></span>
             <span class="o" title={n.owner ?? ''}>{n.owner ?? ''}</span>
             <span class="s right tabular">{formatUnitBytes(n.size, storage.unit)}</span>
             <span class="m">{formatDate(n.mtime)}</span>

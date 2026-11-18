@@ -49,7 +49,7 @@
     {/if}
     <button class="label" onclick={() => storage.go(node.id)} title={node.name}>
       <Icon name="organizer" size={14} />
-      <span class="name">{node.name}</span>
+      <span class="name" translate="no">{node.name}</span>
       <span class="size tabular">{formatBytes(node.size)}</span>
     </button>
     <div class="bar" aria-hidden="true"><div style:width="{Math.max(1, node.percent)}%"></div></div>

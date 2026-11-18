@@ -45,7 +45,7 @@
       {@const pct = usagePercent(d.used, d.total)}
       <div class="card" class:full={pct > 90}>
         <div class="top">
-          <strong>{driveTitle(d)}</strong>
+          <strong translate="no">{driveTitle(d)}</strong>
           <span class="kind">{driveKindLabel(d)}{d.filesystem ? ` · ${d.filesystem}` : ''}</span>
         </div>
         {#if d.total > 0}

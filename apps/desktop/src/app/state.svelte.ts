@@ -1,5 +1,6 @@
 import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings, type SettingsPatch, type TaskInfo, type Theme, type Motion } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
+import { i18n } from '../lib/i18n/index.svelte';
 import { isLight } from '../lib/themes';
 import { discoverModules } from './discover';
 
@@ -69,6 +70,12 @@ class AppState {
       this.applyTheme(theme);
     }
     this.settings = await ipc.updateSettings({ theme });
+  }
+
+  async setLanguage(language: 'auto' | 'en' | 'pt' | 'es') {
+    this.settings = this.settings ? { ...this.settings, general: { ...this.settings.general, language } } : this.settings;
+    i18n.apply(language);
+    this.settings = await ipc.updateSettings({ language });
   }
 
   async setMotion(motion: Motion) {

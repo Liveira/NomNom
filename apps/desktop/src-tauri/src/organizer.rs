@@ -398,16 +398,15 @@ fn organize_new(
             );
             let _ = app.emit("organizer://changed", ());
             if state.settings.get().downloads.notify {
-                let body = if report.moved == 1 {
-                    "Moved 1 new download to your organized folders. You can undo it in NomNom."
-                        .to_string()
-                } else {
-                    format!("Moved {} new downloads to your organized folders. You can undo this in NomNom.", report.moved)
-                };
+                let lang = crate::i18n::lang_of(&state.settings.get());
+                let body = crate::i18n::organized_toast(lang, report.moved);
                 let _ = app
                     .notification()
                     .builder()
-                    .title("Files organized")
+                    .title(crate::i18n::tr(
+                        crate::i18n::lang_of(&state.settings.get()),
+                        "Files organized",
+                    ))
                     .body(body)
                     .show();
             }

@@ -297,7 +297,7 @@
     <ul class="files">
       {#each files as f (f.path)}
         <li class:bad={!!f.problem}>
-          <span class="name" title={f.path}>{f.name}</span>
+          <span class="name" translate="no" title={f.path}>{f.name}</span>
           <span class="meta">
             {#if f.problem}{f.problem}{:else}{f.kind ? KIND_NAMES[f.kind] : ''} · {sizeOf(f.size)}{/if}
           </span>

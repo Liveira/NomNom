@@ -206,7 +206,7 @@
               <div class="copy">
                 <label class="keep"><input type="radio" name={`keep-${index}`} checked={c?.keep === x.node} onchange={() => keep(index, x.node)} /> Keep</label>
                 <label class="rm"><input type="checkbox" checked={c?.remove.has(x.node) ?? false} disabled={c?.keep === x.node} onchange={() => toggle(index, x.node)} /> Mark</label>
-                <span class="p" title={x.path}>{x.path}</span>
+                <span class="p" translate="no" title={x.path}>{x.path}</span>
                 <span class="d hint">{when(x.mtime)}{x.names > 1 ? ` · ${x.names} names for the same data` : ''}</span>
               </div>
             {/each}

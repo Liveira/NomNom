@@ -23,6 +23,8 @@ pub struct SettingsPatch {
     close_to_tray: Option<bool>,
     theme: Option<Theme>,
     motion: Option<nomnom_core::settings::Motion>,
+    /// One of: auto, en, pt, es.
+    language: Option<String>,
     sidebar_collapsed: Option<bool>,
     max_concurrent: Option<u8>,
     /// Empty string resets to the Downloads folder.
@@ -66,6 +68,11 @@ pub fn update_settings(
     state: State<'_, AppState>,
     patch: SettingsPatch,
 ) -> CmdResult<Settings> {
+    if let Some(l) = patch.language.as_deref() {
+        if !matches!(l, "auto" | "en" | "pt" | "es") {
+            return Err("Pick Automatic, English, Portugues or Espanol.".into());
+        }
+    }
     if let Some(c) = patch.organizer_conflict.as_deref() {
         if c != "skip" && c != "keep_both" {
             return Err("Pick Skip or Keep both.".into());
@@ -207,6 +214,9 @@ pub fn update_settings(
             if let Some(v) = patch.motion {
                 s.appearance.motion = v;
             }
+            if let Some(v) = &patch.language {
+                s.general.language = v.clone();
+            }
             if let Some(v) = patch.sidebar_collapsed {
                 s.appearance.sidebar_collapsed = v;
             }
@@ -232,6 +242,9 @@ pub fn update_settings(
     }
     if patch.autostart.is_some() {
         crate::integrations::apply_autostart(&state);
+    }
+    if patch.language.is_some() {
+        crate::tray::relabel(&app);
     }
     if patch.quick_keep_ready.is_some() {
         crate::quick::apply_keep_ready(&app);

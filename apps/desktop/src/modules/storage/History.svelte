@@ -183,7 +183,7 @@
         {#each [...snapshots].reverse() as s (s.id)}
           <div class="snap" role="listitem">
             <label class="pick"><input type="checkbox" checked={picked.includes(s.id)} onchange={() => toggle(s.id)} aria-label={`Select the snapshot from ${dateTimeText(s.created_at)}`} />
-              <span><strong>{s.label || dateTimeText(s.created_at)}</strong>{s.label ? ` · ${dateTimeText(s.created_at)}` : ''}</span></label>
+              <span><strong translate="no">{s.label || dateTimeText(s.created_at)}</strong>{s.label ? ` · ${dateTimeText(s.created_at)}` : ''}</span></label>
             <span class="tabular">{formatBytes(s.bytes)}</span>
             <span class="tabular hint">{s.files.toLocaleString()} files</span>
             <span class="hint">{s.source === 'scheduled' ? 'Scheduled' : 'Saved by you'}{errorsNote(s) ? ` · ${errorsNote(s)}` : ''}</span>
@@ -219,7 +219,7 @@
           {#each c.dirs as r (r.path)}
             <button class="row" role="row" onclick={() => showTrend(r.path)} title="Show this folder over time">
               <span class="tag {r.change}">{rowText(r)}</span>
-              <span class="p" title={r.path}>{r.path}</span>
+              <span class="p" translate="no" title={r.path}>{r.path}</span>
               <span class="tabular n">{r.before == null ? '' : formatBytes(r.before)}</span>
               <span class="tabular n">{r.after == null ? '' : formatBytes(r.after)}</span>
               <span class="tabular n d" class:up={r.delta > 0} class:down={r.delta < 0}>{signedBytes(r.delta)}</span>
@@ -233,7 +233,7 @@
           {#each c.files as r (r.path)}
             <div class="row static" role="row">
               <span class="tag {r.change}">{rowText(r)}</span>
-              <span class="p" title={r.path}>{r.path}</span>
+              <span class="p" translate="no" title={r.path}>{r.path}</span>
               <span class="tabular n">{r.before == null ? '' : formatBytes(r.before)}</span>
               <span class="tabular n">{r.after == null ? '' : formatBytes(r.after)}</span>
               <span class="tabular n d" class:up={r.delta > 0} class:down={r.delta < 0}>{signedBytes(r.delta)}</span>

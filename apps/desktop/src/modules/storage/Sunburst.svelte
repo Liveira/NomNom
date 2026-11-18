@@ -154,7 +154,7 @@
                 onclick={() => (a.is_dir && a.id >= 0 ? storage.go(a.id) : a.id >= 0 && (storage.selected = new Set([a.id])))}
               >
                 <i style:background={resolveColor(a, colorMode)}></i>
-                <span class="nm" title={a.name}>{a.name}</span>
+                <span class="nm" translate="no" title={a.name}>{a.name}</span>
                 <span class="tabular">{formatUnitBytes(a.value, storage.unit)}</span>
               </button>
             </li>

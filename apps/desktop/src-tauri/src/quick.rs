@@ -46,7 +46,10 @@ pub fn trigger(app: &AppHandle) {
                 let _ = app
                     .notification()
                     .builder()
-                    .title("No supported link on the clipboard")
+                    .title(crate::i18n::tr(
+                        crate::i18n::lang_of(&app.state::<AppState>().settings.get()),
+                        "No supported link on the clipboard",
+                    ))
                     .body(reason.message())
                     .show();
             }

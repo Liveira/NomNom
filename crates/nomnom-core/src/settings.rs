@@ -49,12 +49,15 @@ pub struct General {
     /// Closing the main window keeps NOMNOM running in the tray.
     pub close_to_tray: bool,
     pub tray_notice_shown: bool,
+    /// "auto" (the computer's language), "en", "pt" or "es".
+    pub language: String,
 }
 impl Default for General {
     fn default() -> Self {
         General {
             close_to_tray: true,
             tray_notice_shown: false,
+            language: "auto".into(),
         }
     }
 }

@@ -88,7 +88,7 @@
       {:else if data?.live}
         <span class="live-pill active">
           <span class="pulse"></span>
-          Focused: <strong>{data.live.name}</strong> · <span class="tabular">{formatHours(data.live.session_secs)}</span>
+          Focused: <strong translate="no">{data.live.name}</strong> · <span class="tabular">{formatHours(data.live.session_secs)}</span>
         </span>
       {:else}
         <span class="live-pill"><span class="pulse calm"></span> Watching active foreground window</span>
@@ -165,7 +165,7 @@
         <div class="top-mini">
           <AppBadge name={topApp.name} category={topApp.category} iconUrl={topApp.icon_url} size={34} />
           <div class="top-text">
-            <div class="top-name" title={topApp.name}>{topApp.name}</div>
+            <div class="top-name" translate="no" title={topApp.name}>{topApp.name}</div>
             <div class="k-sub tabular">{formatHours(topApp.range_secs)} · {Math.round(topApp.share * 100)}%</div>
           </div>
         </div>
@@ -380,7 +380,7 @@
               <button class="session-row" onclick={() => (selectedAppId = s.app_id)}>
                 <AppBadge name={s.app_name} category={s.category} iconUrl={s.icon_url} size={32} />
                 <div class="s-body">
-                  <div class="s-name">{s.app_name}</div>
+                  <div class="s-name" translate="no">{s.app_name}</div>
                   <div class="s-when">{formatSessionSpan(s.started_at, s.ended_at)}</div>
                 </div>
                 <strong class="s-dur tabular">{formatHours(s.active_secs)}</strong>

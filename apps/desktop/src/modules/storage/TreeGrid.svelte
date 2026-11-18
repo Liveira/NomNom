@@ -492,7 +492,7 @@
                       <span class="twist"></span>
                     {/if}
                     <Icon name={n.is_dir || r.kind === 'files_group' ? 'folder' : 'file'} size={14} />
-                    <span class="text">{n.name}</span>
+                    <span class="text" translate="no">{n.name}</span>
                     {#if n.is_link}<span class="tag">link</span>{/if}
                     {#if n.flags & 64}<span class="tag ok" title="NTFS compressed">compressed</span>{/if}
                     {#if n.flags & 128}<span class="tag" title="Has NTFS alternate data streams">streams</span>{/if}

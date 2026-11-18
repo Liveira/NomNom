@@ -6,7 +6,7 @@ export type Motion = 'full' | 'calm' | 'off';
 
 export interface Settings {
   version: number;
-  general: { close_to_tray: boolean; tray_notice_shown: boolean };
+  general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es' };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
@@ -44,6 +44,7 @@ export interface SettingsPatch {
   closeToTray?: boolean;
   theme?: Theme;
   motion?: Motion;
+  language?: 'auto' | 'en' | 'pt' | 'es';
   sidebarCollapsed?: boolean;
   maxConcurrent?: number;
   outputDir?: string;

@@ -3,6 +3,7 @@ import type { Component } from 'svelte';
 import IArrowUp from '@lucide/svelte/icons/arrow-up';
 import IArrowDown from '@lucide/svelte/icons/arrow-down';
 import IFile from '@lucide/svelte/icons/file';
+import ILanguages from '@lucide/svelte/icons/languages';
 import IHouse from '@lucide/svelte/icons/house';
 import IDownload from '@lucide/svelte/icons/download';
 import IGamepad2 from '@lucide/svelte/icons/gamepad-2';
@@ -89,6 +90,7 @@ import ISearchX from '@lucide/svelte/icons/search-x';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ICONS: Record<string, Component<any>> = {
   'home': IHouse,
+  'languages': ILanguages,
   'arrow-up': IArrowUp,
   'arrow-down': IArrowDown,
   'file': IFile,

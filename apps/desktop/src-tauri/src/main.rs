@@ -7,6 +7,7 @@ mod browser;
 mod commands;
 mod events;
 mod filetools;
+mod i18n;
 mod integrations;
 mod modules;
 mod notifier;

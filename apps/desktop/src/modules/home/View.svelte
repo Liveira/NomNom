@@ -128,7 +128,7 @@
             <AppBadge name={item.name} category={item.category} iconUrl={item.icon_url} size={36} />
             <div class="m-body">
               <div class="m-line">
-                <span class="m-name">{item.name}</span>
+                <span class="m-name" translate="no">{item.name}</span>
                 <strong class="tabular">{formatHours(item.range_secs)}</strong>
               </div>
               <div class="m-track">
@@ -168,7 +168,7 @@
           {@const live = downloads.progressFor(job.id)}
           <li>
             <div class="line">
-              <span class="title">{job.title}</span>
+              <span class="title" translate="no">{job.title}</span>
               <span class="state tabular">
                 {#if job.status === 'paused'}Paused
                 {:else if live}{progressLine(live)}

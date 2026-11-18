@@ -97,7 +97,7 @@
             {#if detail.app.hidden}<span class="pill hidden-pill">Hidden</span>{/if}
           </div>
           {#if detail.app.exe_path}
-            <div class="path" title={detail.app.exe_path}>{detail.app.exe_path}</div>
+            <div class="path" translate="no" title={detail.app.exe_path}>{detail.app.exe_path}</div>
           {/if}
         </div>
       </div>

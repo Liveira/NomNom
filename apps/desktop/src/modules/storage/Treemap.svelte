@@ -208,7 +208,7 @@
     ></canvas>
     {#if hover && hover.id !== undefined}
       <div class="tip" style:left="{Math.min(tip.x + 14, width - 240)}px" style:top="{Math.min(tip.y + 14, height - 76)}px">
-        <strong>{hover.name}</strong>
+        <strong translate="no">{hover.name}</strong>
         <div class="tabular">{formatUnitBytes(hover.value, storage.unit)}{tree && hover.id !== tree.id ? ` · ${share < 0.1 ? '<0.1' : share.toFixed(1)}%` : ''}</div>
         <div class="hint">
           {hover.folded ? 'Folded together to keep the picture readable' : hover.id === -3 ? 'Free drive space' : hover.id === -2 ? 'System or unopened space' : hover.is_dir ? 'Folder (double-click to open)' : (CATEGORY_LABELS[hover.category] ?? 'File')}

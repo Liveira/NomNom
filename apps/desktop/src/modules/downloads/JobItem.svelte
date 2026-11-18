@@ -41,7 +41,7 @@
 
 <div class="item" class:done={job.status === 'done'}>
   <div class="top">
-    <div class="name" title={job.title}>{job.title}</div>
+    <div class="name" translate="no" title={job.title}>{job.title}</div>
     <div class="actions">
       {#if job.status === 'running' || job.status === 'queued'}
         <button onclick={() => run(() => ipc.pause(job.id))} disabled={job.status === 'queued'}>Pause</button>
