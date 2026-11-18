@@ -180,6 +180,18 @@
 
 <style>
   :global(html), :global(body) { background: transparent; }
+  /* Linux: a solid window, and the card fills all of it. */
+  :global(html[data-opaque]), :global(html[data-opaque] body) { background: var(--surface-1); }
+  :global(html[data-opaque]) .frame { padding: 0; }
+  :global(html[data-opaque]) .card {
+    height: 100%;
+    box-sizing: border-box;
+    align-content: space-between;
+    border-radius: 0;
+    border-width: 1px;
+    box-shadow: none;
+    animation: none;
+  }
   .frame { height: 100%; padding: 16px; display: flex; align-items: flex-start; }
   .card {
     width: 100%;

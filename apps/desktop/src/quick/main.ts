@@ -4,7 +4,11 @@ import '../lib/design/tokens.css';
 import '../lib/design/base.css';
 import { i18n } from '../lib/i18n/index.svelte';
 import { ipc } from '../lib/ipc';
+import { isLinux } from '../lib/platform';
 import Popup from './Popup.svelte';
+
+// On Linux the window is solid and the card fills it (see quick.rs).
+if (isLinux) document.documentElement.dataset.opaque = 'true';
 
 // Follow the saved theme without loading the rest of the app.
 const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;

@@ -20,6 +20,11 @@ use tauri_plugin_notification::NotificationExt;
 pub const LABEL: &str = "quick";
 const WIDTH: f64 = 480.0;
 const HEIGHT: f64 = 360.0;
+/// Linux: the popup is an ordinary solid window that is exactly the size of its card. A see-through
+/// window redraws only in pieces on Wayland (parts of the card go missing while a list opens or
+/// closes), and the window can't be placed or kept on top there anyway.
+#[cfg(target_os = "linux")]
+const LINUX_HEIGHT: f64 = 272.0;
 /// Ignore focus loss right after opening; the window is still receiving focus then.
 const BLUR_GRACE: Duration = Duration::from_millis(500);
 
@@ -89,11 +94,15 @@ fn open(app: &AppHandle, url: String, pressed: Instant) {
 }
 
 fn build_window(app: &AppHandle) -> Option<WebviewWindow> {
+    #[cfg(target_os = "linux")]
+    let (height, see_through) = (LINUX_HEIGHT, false);
+    #[cfg(not(target_os = "linux"))]
+    let (height, see_through) = (HEIGHT, true);
     let builder = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("quick.html".into()))
         .title("NomNom quick download")
-        .inner_size(WIDTH, HEIGHT)
+        .inner_size(WIDTH, height)
         .decorations(false)
-        .transparent(true)
+        .transparent(see_through)
         .shadow(false)
         .always_on_top(true)
         .skip_taskbar(true)
