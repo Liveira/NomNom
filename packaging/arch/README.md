@@ -69,6 +69,7 @@ The same toggle installs per-user scripts in `~/.local/share/nautilus/scripts/No
 
 ### Hyprland, Sway & Tiling Wayland Compositors
 - **System tray**: Ensure your bar provides a `StatusNotifierWatcher` tray module (for example `tray` in `waybar`, `swaync`, or `ags`) so `nomnom --background` has a tray icon.
+- **Global shortcuts on Wayland**: Wayland compositors isolate global keyboard grabs from X11 clients. Bind `nomnom --quick` (Quick Download popup) and `nomnom` (Open main window) directly in your compositor or desktop settings — for example in `hyprland.conf`: `bind = CTRL ALT, D, exec, nomnom --quick`.
 - **Polkit agent**: To use **Scan with Polkit** in Disk Analyzer on minimal Wayland sessions, make sure an authentication agent is running in your session config (for example `hyprpolkitagent`, `/usr/lib/polkit-kde-authentication-agent-1`, or `mate-polkit`).
 - **NVIDIA on Wayland**: NomNom automatically sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` when `/proc/driver/nvidia/version` and `WAYLAND_DISPLAY` are both present. Set `WEBKIT_DISABLE_DMABUF_RENDERER=0` explicitly if you want to override this.
 

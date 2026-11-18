@@ -11,11 +11,16 @@ Categories=Utility;FileTools;Archiving;AudioVideo;
 MimeType=inode/directory;
 StartupWMClass=nomnom
 Keywords=download;yt-dlp;convert;ffmpeg;organize;disk;storage;treesize;space;
-Actions=AnalyzeDisk;Background;
+Actions=AnalyzeDisk;QuickDownload;Background;
 
 [Desktop Action AnalyzeDisk]
 Name=Analyze disk space with NomNom
-Exec={{exec}} --analyze %f
+Exec={{exec}} --shell-action analyze -- %F
+Icon={{icon}}
+
+[Desktop Action QuickDownload]
+Name=Quick download from clipboard
+Exec={{exec}} --quick
 Icon={{icon}}
 
 [Desktop Action Background]

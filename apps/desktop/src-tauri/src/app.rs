@@ -41,6 +41,10 @@ fn wants_background(args: &[String]) -> bool {
     args.iter().any(|a| a == "--background")
 }
 
+fn wants_quick(args: &[String]) -> bool {
+    args.iter().any(|a| a == "--quick")
+}
+
 pub fn run() {
     let started = Instant::now();
     let args: Vec<String> = std::env::args().collect();
@@ -57,7 +61,8 @@ pub fn run() {
     #[cfg(target_os = "linux")]
     if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
         && std::env::var_os("WAYLAND_DISPLAY").is_some()
-        && std::path::Path::new("/dev/nvidia0").exists()
+        && (std::path::Path::new("/dev/nvidia0").exists()
+            || std::path::Path::new("/proc/driver/nvidia/version").exists())
     {
         // Prevents blank WebKitGTK surfaces on Wayland compositors (Hyprland, Sway, Plasma, GNOME)
         // with proprietary NVIDIA drivers unless the user explicitly set the variable themselves.
@@ -128,6 +133,8 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(action) = filetools::parse_shell_args(&argv) {
                 filetools::handle_shell_action(app, action);
+            } else if wants_quick(&argv) {
+                quick::trigger(app);
             } else if !wants_background(&argv) {
                 windows::open_main(app);
             }
@@ -243,6 +250,8 @@ pub fn run() {
             updater::spawn(app.handle().clone());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
+            } else if wants_quick(&args) {
+                quick::trigger(app.handle());
             } else if !background {
                 windows::open_main(app.handle());
             }
