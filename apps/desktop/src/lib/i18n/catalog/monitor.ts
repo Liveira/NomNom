@@ -30,4 +30,6 @@ export const MONITOR: Entry[] = [
   ['{} h {} min', '{} h {} min', '{} h {} min'],
   ['{} day {} h', '{} dia {} h', '{} día {} h'],
   ['{} days {} h', '{} dias {} h', '{} días {} h'],
+  ['Put several PDFs into one, in the order shown. The original files are never changed.', 'Reúna vários PDFs em um só, na ordem mostrada. Os arquivos originais nunca são alterados.', 'Reúne varios PDFs en uno, en el orden mostrado. Los archivos originales nunca se modifican.'],
+  ['Save every page as its own file, or only the pages you choose. The original files are never changed.', 'Salve cada página como um arquivo, ou só as páginas que escolher. Os arquivos originais nunca são alterados.', 'Guarda cada página como archivo propio, o solo las páginas que elijas. Los archivos originales nunca se modifican.'],
 ];
