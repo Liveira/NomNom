@@ -10,7 +10,9 @@ mod launch;
 
 pub use launch::{integration_path, read_integration, reset_cache, start_with, Integration};
 
-use nomnom_win::shell_menu::{entries_for, Entry, MENU_TITLE, SHELL_CLSID};
+use nomnom_win::shell_menu::{
+    entries_for, entry_matches, folder_entries_for, Entry, FOLDER_ENTRY, MENU_TITLE, SHELL_CLSID,
+};
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::path::PathBuf;
@@ -32,6 +34,15 @@ const CLSID: GUID = GUID::from_u128(0x7C2D5B1E_3A64_4F0B_9A6E_5D1C8B7F2E40);
 pub struct Selected {
     pub paths: Vec<PathBuf>,
     pub exts: Vec<String>,
+    pub dirs: usize,
+}
+
+fn empty_selected() -> Selected {
+    Selected {
+        paths: vec![],
+        exts: vec![],
+        dirs: 0,
+    }
 }
 
 fn selected(items: Option<&IShellItemArray>) -> Result<Selected> {
@@ -39,30 +50,43 @@ fn selected(items: Option<&IShellItemArray>) -> Result<Selected> {
     let count = unsafe { items.GetCount()? };
     let mut paths = Vec::new();
     let mut exts = Vec::new();
+    let mut dirs = 0usize;
     for i in 0..count {
         let item = unsafe { items.GetItemAt(i)? };
-        // Items that aren't files (a library, This PC) have no file system path: nothing to offer.
+        // Items that aren't files or folders (a library, This PC) have no file system path: nothing to offer.
         let Ok(name) = (unsafe { item.GetDisplayName(SIGDN_FILESYSPATH) }) else {
-            return Ok(Selected {
-                paths: vec![],
-                exts: vec![],
-            });
+            return Ok(empty_selected());
         };
         let path = PathBuf::from(unsafe { name.to_string() }.unwrap_or_default());
         unsafe { windows::Win32::System::Com::CoTaskMemFree(Some(name.0 as *const c_void)) };
-        match path.extension().and_then(|e| e.to_str()) {
-            Some(e) => exts.push(e.to_ascii_lowercase()),
-            // A folder or a file with no extension: NOMNOM has nothing for it.
-            None => {
-                return Ok(Selected {
-                    paths: vec![],
-                    exts: vec![],
-                })
+        if path.is_dir() {
+            dirs += 1;
+        } else {
+            match path.extension().and_then(|e| e.to_str()) {
+                Some(e) => exts.push(e.to_ascii_lowercase()),
+                // A file with no extension: NOMNOM has nothing for it.
+                None => return Ok(empty_selected()),
             }
         }
         paths.push(path);
     }
-    Ok(Selected { paths, exts })
+    Ok(Selected { paths, exts, dirs })
+}
+
+fn entries_matching(sel: &Selected) -> Vec<&'static Entry> {
+    if sel.dirs > 0 {
+        folder_entries_for(sel.dirs, sel.exts.len())
+    } else {
+        entries_for(&sel.exts, sel.paths.len())
+    }
+}
+
+fn item_matches(entry: &Entry, sel: &Selected) -> bool {
+    if entry.id == FOLDER_ENTRY.id {
+        sel.dirs >= 1 && sel.exts.is_empty() && sel.paths.len() == sel.dirs
+    } else {
+        sel.dirs == 0 && entry_matches(entry, &sel.exts, sel.paths.len())
+    }
 }
 
 fn dup(text: &str) -> Result<PWSTR> {
@@ -96,12 +120,9 @@ impl IExplorerCommand_Impl for Root_Impl {
     }
     fn GetState(&self, items: Option<&IShellItemArray>, _slow: BOOL) -> Result<u32> {
         let enabled = launch::menu_enabled();
-        let sel = selected(items).unwrap_or(Selected {
-            paths: vec![],
-            exts: vec![],
-        });
+        let sel = selected(items).unwrap_or_else(|_| empty_selected());
         let entries = if enabled {
-            entries_for(&sel.exts, sel.paths.len())
+            entries_matching(&sel)
         } else {
             vec![]
         };
@@ -159,12 +180,8 @@ impl IExplorerCommand_Impl for Sub_Impl {
         Ok(GUID::from_u128(h))
     }
     fn GetState(&self, items: Option<&IShellItemArray>, _slow: BOOL) -> Result<u32> {
-        let sel = selected(items).unwrap_or(Selected {
-            paths: vec![],
-            exts: vec![],
-        });
-        let show = launch::menu_enabled()
-            && nomnom_win::shell_menu::entry_matches(self.entry, &sel.exts, sel.paths.len());
+        let sel = selected(items).unwrap_or_else(|_| empty_selected());
+        let show = launch::menu_enabled() && item_matches(self.entry, &sel);
         Ok(if show {
             ECS_ENABLED.0 as u32
         } else {
@@ -173,7 +190,7 @@ impl IExplorerCommand_Impl for Sub_Impl {
     }
     fn Invoke(&self, items: Option<&IShellItemArray>, _bind: Option<&IBindCtx>) -> Result<()> {
         let sel = selected(items)?;
-        if !nomnom_win::shell_menu::entry_matches(self.entry, &sel.exts, sel.paths.len()) {
+        if !item_matches(self.entry, &sel) {
             return Err(E_FAIL.into());
         }
         launch::start(self.entry.action, &sel.paths).map_err(|_| Error::from(E_FAIL))

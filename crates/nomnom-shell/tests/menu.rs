@@ -199,11 +199,29 @@ fn the_menu_works_the_way_explorer_uses_it() {
     assert_eq!(std::fs::read_to_string(&list).unwrap().lines().count(), 40);
     std::fs::remove_file(&argdump).unwrap();
 
-    // Nothing for programs, folders, or a mix.
+    // Folders offer Disk Analyzer ("Analyze disk space").
+    let folder_sel = array(std::slice::from_ref(&pics));
+    assert_eq!(unsafe { cmd.GetState(&folder_sel, false).unwrap() }, 0);
+    assert_eq!(titles(&cmd, &folder_sel), ["Analyze disk space"]);
+    let analyze = sub(&cmd, "Analyze disk space");
+    unsafe { analyze.Invoke(&folder_sel, None).unwrap() };
+    let args: Vec<String> = wait_for(&argdump).lines().map(String::from).collect();
+    assert_eq!(
+        args,
+        [
+            "--shell-action",
+            "analyze",
+            "--files",
+            &pics.to_string_lossy()
+        ]
+    );
+    std::fs::remove_file(&argdump).unwrap();
+
+    // Nothing for programs or a mix of files and folders / unsupported files.
     let exe_file = file("setup.exe");
     for sel in [
         array(std::slice::from_ref(&exe_file)),
-        array(std::slice::from_ref(&pics)),
+        array(&[png.clone(), pics.clone()]),
         array(&[png.clone(), exe_file.clone()]),
     ] {
         assert_eq!(unsafe { cmd.GetState(&sel, false).unwrap() }, 2, "hidden");

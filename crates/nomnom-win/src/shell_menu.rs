@@ -116,6 +116,25 @@ pub static TABLE: &[Entry] = &[
     entry!("more", "More options…", "choose", &[]),
 ];
 
+/// Shown when right-clicking a folder or a drive in Explorer.
+pub static FOLDER_ENTRY: Entry = Entry {
+    id: "analyze-disk",
+    title: "Analyze disk space",
+    action: "analyze",
+    exts: &[],
+    needs_several: false,
+    modern_only: false,
+};
+
+/// Entries offered when only folders/drives are selected.
+pub fn folder_entries_for(folder_count: usize, file_count: usize) -> Vec<&'static Entry> {
+    if folder_count >= 1 && file_count == 0 {
+        vec![&FOLDER_ENTRY]
+    } else {
+        vec![]
+    }
+}
+
 /// The "More options" entry works for every supported extension.
 pub fn entry_matches(e: &Entry, exts: &[String], count: usize) -> bool {
     if exts.is_empty() {
@@ -278,6 +297,33 @@ pub fn install_classic(
             cmd.set_value("", &line).map_err(reg)?;
         }
     }
+    // Right-clicking a folder, inside a folder's background, or on a drive offers Disk Analyzer.
+    for (place, placeholder) in [
+        (format!(r"{root}\Directory\shell\{MENU_NAME}"), "%1"),
+        (
+            format!(r"{root}\Directory\Background\shell\{MENU_NAME}"),
+            "%V",
+        ),
+        (format!(r"{root}\Drive\shell\{MENU_NAME}"), "%1"),
+    ] {
+        let (key, _) = hkcu.create_subkey(&place).map_err(reg)?;
+        key.set_value("MUIVerb", &MENU_TITLE).map_err(reg)?;
+        key.set_value("SubCommands", &"").map_err(reg)?;
+        key.set_value(OWNED_MARKER, &"1").map_err(reg)?;
+        owned.push(place.clone());
+        let (sub, _) = hkcu
+            .create_subkey(format!(r"{place}\shell\00-{}", FOLDER_ENTRY.id))
+            .map_err(reg)?;
+        sub.set_value("MUIVerb", &FOLDER_ENTRY.title).map_err(reg)?;
+        let (cmd, _) = sub.create_subkey("command").map_err(reg)?;
+        let line = format!(
+            "{} --shell-action {} --files \"{}\"",
+            quote_arg(&exe.to_string_lossy()),
+            FOLDER_ENTRY.action,
+            placeholder
+        );
+        cmd.set_value("", &line).map_err(reg)?;
+    }
     let record = serde_json::json!({ "keys": owned });
     if let Some(dir) = owned_file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| MenuError::Registry(e.to_string()))?;
@@ -304,9 +350,10 @@ pub fn uninstall_classic(root: &str, owned_file: &Path) -> Result<usize, MenuErr
     let mut removed = 0;
     for k in keys {
         // Never trust the record blindly: it must still be one of our keys under the given root.
-        if !k.starts_with(&format!(r"{root}\SystemFileAssociations\"))
-            || !k.ends_with(&format!(r"\shell\{MENU_NAME}"))
-        {
+        let allowed_prefix = k.starts_with(&format!(r"{root}\SystemFileAssociations\"))
+            || k.starts_with(&format!(r"{root}\Directory\"))
+            || k.starts_with(&format!(r"{root}\Drive\"));
+        if !allowed_prefix || !k.ends_with(&format!(r"\shell\{MENU_NAME}")) {
             continue;
         }
         let ours = hkcu
@@ -318,11 +365,15 @@ pub fn uninstall_classic(root: &str, owned_file: &Path) -> Result<usize, MenuErr
             hkcu.delete_subkey_all(&k).map_err(reg)?;
             removed += 1;
             // Tidy the empty parents we created (these refuse to go if anything else is inside).
-            if let Some((shell, _)) = k.rsplit_once('\\') {
-                let _ = hkcu.delete_subkey(shell);
-                if let Some((ext_key, _)) = shell.rsplit_once('\\') {
-                    let _ = hkcu.delete_subkey(ext_key);
+            let mut parent = k.as_str();
+            while let Some((up, _)) = parent.rsplit_once('\\') {
+                if up == root || !up.starts_with(root) {
+                    break;
                 }
+                if hkcu.delete_subkey(up).is_err() {
+                    break;
+                }
+                parent = up;
             }
         }
     }

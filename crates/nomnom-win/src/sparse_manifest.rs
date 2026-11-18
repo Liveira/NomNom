@@ -4,11 +4,16 @@ use crate::shell_menu::{all_exts, SHELL_CLSID};
 
 /// `template` is `packaging/sparse/AppxManifest.template.xml`.
 pub fn render(template: &str, publisher: &str, version: &str) -> String {
-    let items: String = all_exts()
+    let mut item_types: Vec<String> = vec![
+        "Directory".to_string(),
+        r"Directory\Background".to_string(),
+    ];
+    item_types.extend(all_exts().into_iter().map(|e| format!(".{e}")));
+    let items: String = item_types
         .iter()
-        .map(|e| {
+        .map(|t| {
             format!(
-                "            <desktop5:ItemType Type=\".{e}\">\n              <desktop5:Verb Id=\"NomNom\" Clsid=\"{SHELL_CLSID}\" />\n            </desktop5:ItemType>"
+                "            <desktop5:ItemType Type=\"{t}\">\n              <desktop5:Verb Id=\"NomNom\" Clsid=\"{SHELL_CLSID}\" />\n            </desktop5:ItemType>"
             )
         })
         .collect::<Vec<_>>()
@@ -50,7 +55,9 @@ mod tests {
             assert_eq!(xml.matches(&format!("Type=\".{e}\"")).count(), 1, "{e}");
         }
         assert!(xml.contains("Publisher=\"CN=Test &amp; Co\""));
-        assert_eq!(xml.matches(SHELL_CLSID).count(), all_exts().len() + 1);
+        assert!(xml.contains("Type=\"Directory\""));
+        assert!(xml.contains(r#"Type="Directory\Background""#));
+        assert_eq!(xml.matches(SHELL_CLSID).count(), all_exts().len() + 3);
         assert!(!xml.contains("Type=\".exe\""));
         assert!(!xml.contains("Type=\".ts\""));
     }
