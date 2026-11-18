@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
-    activity, backup, browser, commands, events, filetools, focus, integrations, modules, monitor,
-    notifier, organizer, pdftools, pipe_server, quick, shortcuts, state::AppState, storage,
-    storage_cleanup, storage_history, storage_ops, storage_tools, tray, updater, windows,
+    activity, backup, browser, commands, events, filetools, focus, integrations, memory, modules,
+    monitor, notifier, organizer, pdftools, pipe_server, quick, shortcuts, state::AppState,
+    storage, storage_cleanup, storage_history, storage_ops, storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -129,9 +129,12 @@ pub fn run() {
         std::process::exit(if result.is_ok() { 0 } else { 1 });
     }
 
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+    // A test copy (debug build with its own data folder) runs next to the real app, so it must not
+    // take the single-instance slot or forward to the real app.
+    if !integrations::sandboxed() {
         // A second launch (shortcut, shell action, browser host) is forwarded to this instance.
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(action) = filetools::parse_shell_args(&argv) {
                 filetools::handle_shell_action(app, action);
             } else if wants_quick(&argv) {
@@ -139,7 +142,9 @@ pub fn run() {
             } else if !wants_background(&argv) {
                 windows::open_main(app);
             }
-        }))
+        }));
+    }
+    let app = builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -279,6 +284,7 @@ pub fn run() {
             activity::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
+            memory::spawn(app.handle().clone());
             backup::spawn_scheduler(app.handle().clone());
             monitor::spawn_tray(app.handle().clone());
             downloads::spawn_scheduler(app.handle().clone());

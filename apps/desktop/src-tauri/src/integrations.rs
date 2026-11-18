@@ -296,11 +296,38 @@ pub fn shell_status(state: &AppState) -> ShellStatus {
     imp::shell_status(state)
 }
 
+/// A debug build started with its own test data folder (`NOMNOM_TEST_DATA`) must never change the
+/// real Windows registry, the startup entry or the browser setup of the person running it, unless
+/// the test names its own throwaway registry key. Release builds are never sandboxed.
+#[cfg(debug_assertions)]
+pub fn sandboxed() -> bool {
+    std::env::var_os("NOMNOM_TEST_DATA").is_some()
+        && [
+            "NOMNOM_TEST_CLASSES_ROOT",
+            "NOMNOM_TEST_RUN_KEY",
+            "NOMNOM_TEST_FIREFOX_ROOT",
+            "NOMNOM_TEST_FIREFOX_DIR",
+        ]
+        .iter()
+        .all(|k| std::env::var_os(k).is_none())
+}
+
+#[cfg(not(debug_assertions))]
+pub fn sandboxed() -> bool {
+    false
+}
+
 pub fn apply_shell(state: &AppState) {
+    if sandboxed() {
+        return;
+    }
     imp::apply_shell(state);
 }
 
 pub fn apply_autostart(state: &AppState) {
+    if sandboxed() {
+        return;
+    }
     imp::apply_autostart(state);
 }
 
@@ -330,6 +357,9 @@ pub fn install_all(state: &AppState, defaults: bool) -> Result<(), String> {
 
 /// What the uninstaller runs. Removes only what NomNom added.
 pub fn uninstall_all(state: &AppState) -> Result<(), String> {
+    if sandboxed() {
+        return Ok(());
+    }
     let mut problems = Vec::new();
     if let Err(e) = crate::browser::disconnect(state) {
         problems.push(e);

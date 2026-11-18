@@ -8,12 +8,25 @@ pub const MAIN: &str = "main";
 pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M> {
-    match std::env::var("NOMNOM_DEBUG_PORT") {
-        Ok(port) if port.chars().all(|c| c.is_ascii_digit()) => builder.additional_browser_args(&format!(
-            "--remote-debugging-port={port} --disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection"
-        )),
-        _ => builder,
+    // `NOMNOM_WEBVIEW_ARGS` lets a test try extra browser flags (memory experiments).
+    let port = std::env::var("NOMNOM_DEBUG_PORT")
+        .ok()
+        .filter(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()));
+    let extra = std::env::var("NOMNOM_WEBVIEW_ARGS").unwrap_or_default();
+    if port.is_none() && extra.is_empty() {
+        return builder;
     }
+    let mut args = Vec::new();
+    if let Some(port) = port {
+        args.push(format!("--remote-debugging-port={port}"));
+    }
+    if !extra.contains("--disable-features=") {
+        args.push("--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection".to_string());
+    }
+    if !extra.is_empty() {
+        args.push(extra);
+    }
+    builder.additional_browser_args(&args.join(" "))
 }
 
 #[cfg(not(all(debug_assertions, windows)))]

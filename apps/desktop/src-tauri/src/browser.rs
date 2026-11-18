@@ -337,6 +337,9 @@ pub fn browser_status(state: State<'_, AppState>) -> BrowserStatus {
 
 /// Connects Firefox. Safe to run again: it also repairs a damaged setup.
 pub fn connect(state: &AppState) -> Result<(), String> {
+    if crate::integrations::sandboxed() {
+        return Ok(());
+    }
     #[cfg(windows)]
     {
         let host = host_exe()
@@ -371,6 +374,9 @@ pub fn connect(state: &AppState) -> Result<(), String> {
 }
 
 pub fn disconnect(state: &AppState) -> Result<(), String> {
+    if crate::integrations::sandboxed() {
+        return Ok(());
+    }
     #[cfg(windows)]
     {
         if firefox_root() == nomnom_win::native_host::FIREFOX_ROOT {

@@ -7,6 +7,8 @@
 #[cfg(windows)]
 pub mod autostart;
 #[cfg(windows)]
+pub mod memory;
+#[cfg(windows)]
 pub mod native_host;
 #[cfg(windows)]
 pub mod shell_menu;

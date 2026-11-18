@@ -64,6 +64,12 @@ pub fn current_user_sid() -> io::Result<String> {
 #[cfg(windows)]
 pub fn pipe_path() -> String {
     let id = current_user_sid().unwrap_or_else(|_| "unknown".to_string());
+    // A debug test copy with its own data folder gets its own pipe, so it never answers the
+    // browser extension of the real app running next to it.
+    #[cfg(debug_assertions)]
+    if std::env::var_os("NOMNOM_TEST_DATA").is_some() {
+        return format!(r"\\.\pipe\nomnom-test-{id}");
+    }
     format!(r"\\.\pipe\nomnom-{id}")
 }
 

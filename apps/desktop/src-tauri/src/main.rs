@@ -11,6 +11,7 @@ mod filetools;
 mod focus;
 mod i18n;
 mod integrations;
+mod memory;
 mod modules;
 mod monitor;
 mod notifier;
