@@ -1,6 +1,6 @@
 //! Safe subprocess execution. Programs are launched with an argument vector (never through a
-//! shell), without a console window, and inside a Job Object so that cancelling kills the whole
-//! process tree and nothing outlives NOMNOM.
+//! shell), without a console window, and inside a Job Object on Windows or a dedicated process
+//! group on Linux so that cancelling kills the whole process tree and nothing outlives NOMNOM.
 
 use crate::{Error, Result};
 use std::ffi::OsStr;
@@ -55,11 +55,27 @@ mod job {
     }
 }
 
-/// A running child process bound to its own Job Object.
+/// A running child process bound to its own Job Object (Windows) or process group (Unix).
 pub struct ManagedChild {
     pub child: Child,
     #[cfg(windows)]
     _job: job::Job,
+    #[cfg(unix)]
+    pgid: Option<i32>,
+}
+
+#[cfg(unix)]
+impl Drop for ManagedChild {
+    fn drop(&mut self) {
+        if let Some(pgid) = self.pgid {
+            if self.child.id().is_some() {
+                // SAFETY: negative pgid targets the dedicated process group created for this child.
+                unsafe {
+                    let _ = libc::kill(-pgid, libc::SIGKILL);
+                }
+            }
+        }
+    }
 }
 
 impl ManagedChild {
@@ -70,6 +86,13 @@ impl ManagedChild {
             &mut self._job,
             job::Job::new().expect("job object"),
         ));
+        #[cfg(unix)]
+        if let Some(pgid) = self.pgid.take() {
+            // SAFETY: negative pgid signals every process in the child's process group.
+            unsafe {
+                let _ = libc::kill(-pgid, libc::SIGKILL);
+            }
+        }
         let _ = self.child.kill().await;
     }
 }
@@ -93,6 +116,10 @@ where
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+    #[cfg(unix)]
+    {
+        cmd.process_group(0);
+    }
     let child = cmd.spawn().map_err(|e| Error::io(program, e))?;
 
     #[cfg(windows)]
@@ -107,21 +134,26 @@ where
         }
         Ok(ManagedChild { child, _job: job })
     }
-    #[cfg(not(windows))]
+    #[cfg(unix)]
+    {
+        let pgid = child.id().and_then(|id| i32::try_from(id).ok());
+        Ok(ManagedChild { child, pgid })
+    }
+    #[cfg(not(any(windows, unix)))]
     {
         Ok(ManagedChild { child })
     }
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::path::Path;
     use std::time::{Duration, Instant};
 
     #[tokio::test]
+    #[cfg(windows)]
     async fn kill_tree_stops_long_running_child_and_its_children() {
-        // cmd.exe starts ping.exe as a grandchild; both must die.
         let cmd = Path::new("C:\\Windows\\System32\\cmd.exe");
         let mc = spawn(cmd, ["/c", "ping -n 60 127.0.0.1 >nul"], false).unwrap();
         let pid = mc.child.id().unwrap();
@@ -142,11 +174,26 @@ mod tests {
     }
 
     #[tokio::test]
+    #[cfg(windows)]
     async fn runs_without_a_shell() {
         let cmd = Path::new("C:\\Windows\\System32\\cmd.exe");
-        // A hostile-looking argument must be passed as data, not interpreted.
         let mut mc = spawn(cmd, ["/c", "echo", "a&calc"], true).unwrap();
         let status = mc.child.wait().await.unwrap();
         assert!(status.success());
+    }
+
+    #[tokio::test]
+    #[cfg(unix)]
+    async fn kill_tree_stops_unix_process_group() {
+        let sh = Path::new("/bin/sh");
+        let mc = spawn(sh, ["-c", "sleep 60 & wait"], false).unwrap();
+        let pgid = mc.child.id().unwrap() as i32;
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        let started = Instant::now();
+        mc.kill_tree().await;
+        assert!(started.elapsed() < Duration::from_secs(5));
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        let alive = unsafe { libc::kill(-pgid, 0) == 0 };
+        assert!(!alive, "process group {pgid} survived kill_tree");
     }
 }

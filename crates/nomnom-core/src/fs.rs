@@ -13,8 +13,9 @@ fn wide(p: &Path) -> Vec<u16> {
 }
 
 /// Moves `src` to `dst`, failing with `ErrorKind::AlreadyExists` if `dst` exists.
-/// (`std::fs::rename` replaces an existing destination on Windows, so it must not be used for
-/// user files.) Works across volumes by falling back to copy + delete inside the OS call.
+/// (`std::fs::rename` replaces an existing destination on Unix and Windows, so it must not be
+/// used directly for user files.) Works across volumes for regular files by copying to an
+/// exclusive destination, syncing, and removing the source.
 #[cfg(windows)]
 pub fn move_no_replace(src: &Path, dst: &Path) -> io::Result<()> {
     use windows::core::PCWSTR;
@@ -49,7 +50,113 @@ pub fn move_no_replace(src: &Path, dst: &Path) -> io::Result<()> {
     }
 }
 
-/// Marks a directory hidden (used for staging folders). Best effort.
+#[cfg(unix)]
+pub fn move_no_replace(src: &Path, dst: &Path) -> io::Result<()> {
+    use std::ffi::CString;
+    use std::os::unix::ffi::OsStrExt;
+
+    let c_src = CString::new(src.as_os_str().as_bytes())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "path contains NUL byte"))?;
+    let c_dst = CString::new(dst.as_os_str().as_bytes())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "path contains NUL byte"))?;
+
+    #[cfg(target_os = "linux")]
+    {
+        // SAFETY: c_src and c_dst are valid NUL-terminated C strings; RENAME_NOREPLACE is atomic
+        // in the kernel and never overwrites an existing target.
+        let rc = unsafe {
+            libc::syscall(
+                libc::SYS_renameat2,
+                libc::AT_FDCWD,
+                c_src.as_ptr(),
+                libc::AT_FDCWD,
+                c_dst.as_ptr(),
+                libc::RENAME_NOREPLACE as libc::c_uint,
+            )
+        };
+        if rc == 0 {
+            return Ok(());
+        }
+        let err = io::Error::last_os_error();
+        match err.raw_os_error() {
+            Some(libc::EEXIST) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    format!("{} already exists", dst.display()),
+                ));
+            }
+            Some(libc::EXDEV) => return copy_across_devices(src, dst),
+            Some(libc::EINVAL | libc::ENOSYS | libc::EOPNOTSUPP) => {}
+            _ => return Err(err),
+        }
+    }
+
+    // Fallback when RENAME_NOREPLACE is unsupported by the underlying filesystem.
+    if std::fs::symlink_metadata(dst).is_ok() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!("{} already exists", dst.display()),
+        ));
+    }
+    let meta = std::fs::symlink_metadata(src)?;
+    if meta.is_file() {
+        match std::fs::hard_link(src, dst) {
+            Ok(()) => {
+                std::fs::remove_file(src)?;
+                return Ok(());
+            }
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                return Err(e);
+            }
+            Err(e) if e.raw_os_error() == Some(libc::EXDEV) => {
+                return copy_across_devices(src, dst);
+            }
+            Err(_) => {}
+        }
+    }
+    if std::fs::symlink_metadata(dst).is_ok() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!("{} already exists", dst.display()),
+        ));
+    }
+    match std::fs::rename(src, dst) {
+        Ok(()) => Ok(()),
+        Err(e) if e.raw_os_error() == Some(libc::EXDEV) => copy_across_devices(src, dst),
+        Err(e) => Err(e),
+    }
+}
+
+#[cfg(unix)]
+fn copy_across_devices(src: &Path, dst: &Path) -> io::Result<()> {
+    use std::fs::{File, OpenOptions};
+    use std::io::Write;
+    let meta = std::fs::symlink_metadata(src)?;
+    if !meta.is_file() {
+        return Err(io::Error::from_raw_os_error(libc::EXDEV));
+    }
+    let mut input = File::open(src)?;
+    let mut output = OpenOptions::new().write(true).create_new(true).open(dst)?;
+    let copied = (|| -> io::Result<()> {
+        io::copy(&mut input, &mut output)?;
+        output.flush()?;
+        output.sync_all()?;
+        let _ = output.set_permissions(meta.permissions());
+        if let Ok(m) = meta.modified() {
+            let _ = output.set_modified(m);
+        }
+        Ok(())
+    })();
+    drop(output);
+    if let Err(e) = copied {
+        let _ = std::fs::remove_file(dst);
+        return Err(e);
+    }
+    std::fs::remove_file(src)
+}
+
+/// Marks a directory hidden on Windows (used for staging folders). On Linux, staging directories
+/// already begin with `.` or sit inside the private data directory.
 #[cfg(windows)]
 pub fn hide(path: &Path) {
     use windows::core::PCWSTR;
@@ -61,6 +168,9 @@ pub fn hide(path: &Path) {
     }
 }
 
+#[cfg(not(windows))]
+pub fn hide(_path: &Path) {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -68,7 +178,7 @@ mod tests {
     #[test]
     fn refuses_to_replace_existing_file() {
         let dir = tempfile::tempdir().unwrap();
-        let (a, b) = (dir.path().join("a.txt"), dir.path().join("B.txt"));
+        let (a, b) = (dir.path().join("a.txt"), dir.path().join("b.txt"));
         std::fs::write(&a, "new").unwrap();
         std::fs::write(&b, "precious").unwrap();
         let err = move_no_replace(&a, &b).unwrap_err();
@@ -78,6 +188,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(windows)]
     fn refuses_case_insensitive_collision() {
         let dir = tempfile::tempdir().unwrap();
         let (a, b) = (dir.path().join("a.txt"), dir.path().join("x.txt"));

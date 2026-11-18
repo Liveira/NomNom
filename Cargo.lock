@@ -2723,6 +2723,7 @@ name = "nomnom-core"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "libc",
  "rusqlite",
  "serde",
  "serde_json",
