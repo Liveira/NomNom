@@ -213,6 +213,18 @@ fn renaming_to_a_name_another_item_is_giving_up_is_allowed_but_two_into_one_is_n
     let _ = both;
 }
 
+/// A directory link: a junction on Windows (no privilege needed), a symlink elsewhere.
+fn link_dir(target: &std::path::Path, link: &std::path::Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        junction::create(target, link)
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
+
 #[test]
 fn zip_puts_files_and_folders_in_one_archive_without_following_links_or_replacing() {
     let d = tempfile::tempdir().unwrap();
@@ -224,7 +236,7 @@ fn zip_puts_files_and_folders_in_one_archive_without_following_links_or_replacin
     std::fs::write(r.join("out/Pack.zip"), b"mine").unwrap();
     let outside = tempfile::tempdir().unwrap();
     put(&outside.path().join("secret.txt"), 77);
-    let linked = junction::create(outside.path(), r.join("src/link")).is_ok();
+    let linked = link_dir(outside.path(), &r.join("src/link")).is_ok();
     let s = scan(r);
     let idx = s.index.read().unwrap();
     let node = |p: &str| idx.resolve_path(&r.join(p)).unwrap();
