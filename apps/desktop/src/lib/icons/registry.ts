@@ -1,5 +1,7 @@
 /** Every icon in NomNom comes from Lucide (https://lucide.dev, ISC licence). */
 import type { Component } from 'svelte';
+import IArrowLeft from '@lucide/svelte/icons/arrow-left';
+import ISquare from '@lucide/svelte/icons/square';
 import IArrowUp from '@lucide/svelte/icons/arrow-up';
 import IArrowDown from '@lucide/svelte/icons/arrow-down';
 import IFile from '@lucide/svelte/icons/file';
@@ -120,6 +122,8 @@ export const ICONS: Record<string, Component<any>> = {
   'folder': IFolder,
   'update': ICircleArrowUp,
   'arrow': IArrowRight,
+  'arrow-left': IArrowLeft,
+  'square': ISquare,
   'chevron-down': IChevronDown,
   'chevron-right': IChevronRight,
   'x': IX,

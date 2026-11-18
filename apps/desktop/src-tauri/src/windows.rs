@@ -36,6 +36,8 @@ pub fn open_main(app: &AppHandle) {
         .title("NomNom")
         .inner_size(1040.0, 700.0)
         .min_inner_size(760.0, 520.0)
+        // NomNom draws its own title bar (see TitleBar.svelte).
+        .decorations(false)
         .center();
 
     if let Err(e) = shared_webview_args(builder).build() {

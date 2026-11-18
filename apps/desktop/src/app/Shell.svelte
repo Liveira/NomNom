@@ -2,6 +2,7 @@
   import type { Component } from 'svelte';
   import Backdrop from '../lib/fx/Backdrop.svelte';
   import Sidebar from './Sidebar.svelte';
+  import TitleBar from './TitleBar.svelte';
   import { app } from './state.svelte';
 
   let View = $state<Component | null>(null);
@@ -32,6 +33,7 @@
 </script>
 
 <Backdrop theme={app.palette} motion={app.motion} />
+<TitleBar />
 <div class="shell">
   <Sidebar />
   <main bind:this={main}>
@@ -50,7 +52,7 @@
 <style>
   .shell {
     display: flex;
-    height: 100%;
+    height: calc(100% - var(--titlebar-h));
     gap: 4px;
     position: relative;
     z-index: 1;

@@ -41,8 +41,34 @@ class AppState {
     this.tasks = next;
   }
 
+  /** Pages visited, so the title bar's back and forward arrows work like a browser's. */
+  private trail = $state<string[]>(['home']);
+  private at = $state(0);
+
+  get canGoBack(): boolean {
+    return this.at > 0;
+  }
+  get canGoForward(): boolean {
+    return this.at < this.trail.length - 1;
+  }
+
   go(id: string) {
+    if (id === this.current) return;
+    this.trail = [...this.trail.slice(0, this.at + 1), id];
+    this.at = this.trail.length - 1;
     this.current = id;
+  }
+
+  back() {
+    if (!this.canGoBack) return;
+    this.at -= 1;
+    this.current = this.trail[this.at];
+  }
+
+  forward() {
+    if (!this.canGoForward) return;
+    this.at += 1;
+    this.current = this.trail[this.at];
   }
 
   /**
