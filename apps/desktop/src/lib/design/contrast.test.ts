@@ -14,8 +14,14 @@ function block(selector: RegExp): Record<string, string> {
   return out;
 }
 
-const dark = block(/:root\s*\{([^}]*)\}/);
-const light = { ...dark, ...block(/:root\[data-theme='light'\]\s*\{([^}]*)\}/) };
+export const THEME_IDS = ['dark', 'light', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest'] as const;
+
+/** The colours of one theme: the `dark` block is also the page default. */
+function theme(id: string): Record<string, string> {
+  const pattern = id === 'dark' ? /:root,\s*\[data-theme='dark'\]\s*\{([^}]*)\}/ : new RegExp(`\\[data-theme='${id}'\\]\\s*\\{([^}]*)\\}`);
+  return block(pattern);
+}
+const themes: [string, Record<string, string>][] = THEME_IDS.map((id) => [id, theme(id)]);
 
 function rgb(hex: string): [number, number, number] {
   const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
@@ -46,10 +52,7 @@ const PAIRS: [string, string][] = [
   ['info', 'bg'], ['info', 'surface-1'],
 ];
 
-describe.each([
-  ['dark', dark],
-  ['light', light],
-])('%s theme', (_name, theme) => {
+describe.each(themes)('%s theme', (_name, theme) => {
   it.each(PAIRS)('%s on %s is readable', (fg, bg) => {
     const r = ratio(theme[fg], theme[bg]);
     expect(r, `${fg} ${theme[fg]} on ${bg} ${theme[bg]} is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
@@ -57,8 +60,8 @@ describe.each([
 });
 
 describe('the focus ring', () => {
-  it('stands out from the page in both themes (3:1 for interface parts)', () => {
-    for (const [name, theme] of [['dark', dark], ['light', light]] as const) {
+  it('stands out from the page in every theme (3:1 for interface parts)', () => {
+    for (const [name, theme] of themes) {
       for (const bg of ['bg', 'surface-1', 'surface-2']) {
         expect(ratio(theme.focus, theme[bg]), `${name}: focus on ${bg}`).toBeGreaterThanOrEqual(3);
       }

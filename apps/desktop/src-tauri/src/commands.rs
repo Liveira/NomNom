@@ -22,6 +22,7 @@ pub fn get_settings(state: State<'_, AppState>) -> Settings {
 pub struct SettingsPatch {
     close_to_tray: Option<bool>,
     theme: Option<Theme>,
+    motion: Option<nomnom_core::settings::Motion>,
     sidebar_collapsed: Option<bool>,
     max_concurrent: Option<u8>,
     /// Empty string resets to the Downloads folder.
@@ -202,6 +203,9 @@ pub fn update_settings(
             }
             if let Some(v) = patch.theme {
                 s.appearance.theme = v;
+            }
+            if let Some(v) = patch.motion {
+                s.appearance.motion = v;
             }
             if let Some(v) = patch.sidebar_collapsed {
                 s.appearance.sidebar_collapsed = v;

@@ -132,14 +132,16 @@
     flex-direction: column;
     margin: 12px 0 12px 12px;
     padding: 14px 11px;
-    background: linear-gradient(180deg, var(--surface-1) 0%, rgba(26, 20, 36, 0.92) 100%);
+    /* Slightly see-through, so the animated background of the theme glows behind the menu. */
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 88%, transparent), color-mix(in srgb, var(--surface-1) 72%, transparent));
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-l);
     box-shadow: var(--shadow-card);
     transition: width var(--dur-3) var(--ease-out);
-  }
-  :global(:root[data-theme='light']) .sidebar {
-    background: var(--surface-1);
+    position: relative;
+    z-index: 2;
   }
   .sidebar.collapsed {
     width: 68px;
@@ -202,7 +204,9 @@
   .status-dot.on {
     background: var(--ok);
     box-shadow: 0 0 7px var(--ok);
+    animation: beat 2.4s ease-in-out infinite;
   }
+  @keyframes beat { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.6; } }
 
   .nav-list {
     list-style: none;
@@ -248,8 +252,18 @@
     color: var(--text);
   }
   .item:hover .icon-wrap {
-    transform: scale(1.07);
+    transform: scale(1.12) rotate(-6deg);
   }
+  .item:active .icon-wrap { transform: scale(0.9); }
+  /* Menu items glide in one after another when the app opens. */
+  .nav-list li { animation: slide-in var(--dur-4) var(--ease-out) backwards; }
+  .nav-list li:nth-child(1) { animation-delay: 40ms; }
+  .nav-list li:nth-child(2) { animation-delay: 90ms; }
+  .nav-list li:nth-child(3) { animation-delay: 140ms; }
+  .nav-list li:nth-child(4) { animation-delay: 190ms; }
+  .nav-list li:nth-child(5) { animation-delay: 240ms; }
+  .nav-list li:nth-child(6) { animation-delay: 290ms; }
+  @keyframes slide-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
   .item.active {
     background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
     border-color: var(--border-strong);
@@ -259,7 +273,20 @@
   }
   .item.active :global(svg) {
     color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--glow-peach));
   }
+  .item.active::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 22%;
+    bottom: 22%;
+    width: 3px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--blush));
+    animation: grow var(--dur-3) var(--ease-spring);
+  }
+  @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   .collapsed .item {
     justify-content: center;
     padding-inline: 0;
@@ -270,6 +297,7 @@
     border-radius: 50%;
     background: var(--accent);
     margin-left: auto;
+    animation: beat 1.8s ease-in-out infinite;
   }
   .collapsed .dot {
     position: absolute;

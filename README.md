@@ -160,3 +160,5 @@ NomNom never writes outside your user profile unless you run an explicit file op
 ## License
 
 MIT. `ffmpeg`, `yt-dlp` and LibreOffice are separate programs under their own licenses; NomNom uses your system packages when installed or downloads `yt-dlp` and `ffmpeg` on request without bundling them.
+
+Icons and fonts come from open source projects; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

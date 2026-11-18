@@ -1,5 +1,34 @@
-/* NomNom Midnight Mochi Studio: artistic, cozy & tactile dark theme by default. */
+/*
+  NomNom themes. Every colour in the app comes from the variables below.
+  A theme is one block: [data-theme='name']. The same block works on the whole page (<html>) and on
+  a small preview card in Settings, so the theme gallery shows the real colours.
+
+  Themes: dark (Midnight Mochi, the default), light, aurora, synthwave, sakura, ocean, forest.
+  "system" is not a palette: it picks dark or light from the operating system.
+  Text on every surface is checked for WCAG AA contrast by contrast.test.ts.
+*/
 :root {
+  --radius-xs: 8px;
+  --radius-s: 12px;
+  --radius-m: 18px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  --font-ui: 'Nunito', 'Quicksand', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
+  --font-display: 'Fredoka', 'Nunito', 'Quicksand', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+
+  --dur-1: 100ms;
+  --dur-2: 180ms;
+  --dur-3: 260ms;
+  --dur-4: 520ms;
+  --ease-out: cubic-bezier(0.2, 0.85, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+/* ---- Midnight Mochi: warm plum, peach and blush. The default dark theme. ---------------------- */
+:root,
+[data-theme='dark'] {
   color-scheme: dark;
   --bg: #110d18;
   --surface-1: #1a1424;
@@ -16,7 +45,7 @@
   /* Accent used as text colour (links); checked for >= 4.5:1 WCAG AA contrast. */
   --accent-text: #ffb380;
   --on-accent: #220f05;
-  /* Keyboard focus ring: stands out >= 3:1 in both themes. */
+  /* Keyboard focus ring: stands out >= 3:1. */
   --focus: #ffb380;
   --blush: #ff8fb8;
   --lavender: #c0a3ff;
@@ -31,25 +60,11 @@
   --shadow-card: 0 10px 28px rgba(5, 2, 12, 0.42), inset 0 1px 0 rgba(255, 240, 252, 0.07);
   --shadow-soft: 0 4px 14px rgba(5, 2, 12, 0.28), inset 0 1px 0 rgba(255, 240, 252, 0.05);
   --shadow-pop: 0 18px 46px rgba(4, 2, 10, 0.62), inset 0 1px 0 rgba(255, 240, 252, 0.1);
-
-  --radius-xs: 8px;
-  --radius-s: 12px;
-  --radius-m: 18px;
-  --radius-l: 24px;
-  --radius-pill: 999px;
-
-  --font-ui: 'Nunito', 'Quicksand', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
-  --font-display: 'Fredoka', 'Nunito', 'Quicksand', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
-
-  --dur-1: 100ms;
-  --dur-2: 180ms;
-  --dur-3: 260ms;
-  --ease-out: cubic-bezier(0.2, 0.85, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --title-shadow: none;
 }
 
-:root[data-theme='light'] {
+/* ---- Light: cream and peach. -------------------------------------------------------------------- */
+[data-theme='light'] {
   color-scheme: light;
   --bg: #fff6f0;
   --surface-1: #fffdfb;
@@ -79,6 +94,177 @@
   --shadow-card: 0 8px 24px rgba(72, 34, 20, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   --shadow-soft: 0 3px 10px rgba(72, 34, 20, 0.06);
   --shadow-pop: 0 16px 40px rgba(72, 34, 20, 0.18);
+  --title-shadow: none;
+}
+
+/* ---- Aurora (Aurora UI): northern-lights teal and violet on deep indigo. ------------------------ */
+[data-theme='aurora'] {
+  color-scheme: dark;
+  --bg: #0a0e1f;
+  --surface-1: #121833;
+  --surface-2: #1a2142;
+  --surface-3: #252d57;
+  --border: rgba(190, 215, 255, 0.1);
+  --border-strong: rgba(190, 215, 255, 0.2);
+  --border-glow: rgba(94, 234, 212, 0.4);
+  --text: #eef3ff;
+  --text-2: #c3cdee;
+  --text-3: #9faad6;
+  --accent: #5eead4;
+  --accent-hover: #8ff5e3;
+  --accent-text: #7af0dc;
+  --on-accent: #04231f;
+  --focus: #7af0dc;
+  --blush: #c084fc;
+  --lavender: #7dd3fc;
+  --ok: #6ee7b7;
+  --danger: #ff8a9b;
+  --info: #93c5fd;
+
+  --glow-peach: rgba(94, 234, 212, 0.16);
+  --glow-blush: rgba(192, 132, 252, 0.16);
+  --glow-lavender: rgba(125, 211, 252, 0.15);
+  --glow-mint: rgba(110, 231, 183, 0.14);
+  --shadow-card: 0 10px 30px rgba(2, 4, 16, 0.5), inset 0 1px 0 rgba(220, 235, 255, 0.07);
+  --shadow-soft: 0 4px 14px rgba(2, 4, 16, 0.34), inset 0 1px 0 rgba(220, 235, 255, 0.05);
+  --shadow-pop: 0 18px 48px rgba(2, 4, 14, 0.66), inset 0 1px 0 rgba(220, 235, 255, 0.1);
+  --title-shadow: 0 0 22px rgba(94, 234, 212, 0.35);
+}
+
+/* ---- Synthwave (Retro-Futurism): neon pink and cyan on dark violet, with scanlines. ------------- */
+[data-theme='synthwave'] {
+  color-scheme: dark;
+  --bg: #12082a;
+  --surface-1: #1c0f3d;
+  --surface-2: #281552;
+  --surface-3: #361c6b;
+  --border: rgba(255, 160, 230, 0.13);
+  --border-strong: rgba(255, 160, 230, 0.26);
+  --border-glow: rgba(255, 79, 176, 0.55);
+  --text: #fdf1ff;
+  --text-2: #dcc5f2;
+  --text-3: #b9a0de;
+  --accent: #ff4fb0;
+  --accent-hover: #ff78c4;
+  --accent-text: #ff7ac6;
+  --on-accent: #1d0420;
+  --focus: #3ef0ff;
+  --blush: #22d3ee;
+  --lavender: #a78bfa;
+  --ok: #5df2b0;
+  --danger: #ff7a90;
+  --info: #7cc4ff;
+
+  --glow-peach: rgba(255, 79, 176, 0.2);
+  --glow-blush: rgba(34, 211, 238, 0.16);
+  --glow-lavender: rgba(167, 139, 250, 0.18);
+  --glow-mint: rgba(93, 242, 176, 0.14);
+  --shadow-card: 0 10px 30px rgba(8, 2, 22, 0.55), 0 0 0 1px rgba(255, 79, 176, 0.06), inset 0 1px 0 rgba(255, 220, 250, 0.08);
+  --shadow-soft: 0 4px 16px rgba(8, 2, 22, 0.4), inset 0 1px 0 rgba(255, 220, 250, 0.05);
+  --shadow-pop: 0 18px 50px rgba(6, 1, 18, 0.7), 0 0 28px rgba(255, 79, 176, 0.18), inset 0 1px 0 rgba(255, 220, 250, 0.1);
+  --title-shadow: 0 0 14px rgba(255, 79, 176, 0.65), 0 0 34px rgba(34, 211, 238, 0.35);
+}
+
+/* ---- Sakura (soft pastel, light): cherry-blossom pink and peach on cream. ----------------------- */
+[data-theme='sakura'] {
+  color-scheme: light;
+  --bg: #fff3f6;
+  --surface-1: #fffafb;
+  --surface-2: #ffe8ef;
+  --surface-3: #ffd9e5;
+  --border: rgba(120, 40, 70, 0.1);
+  --border-strong: rgba(120, 40, 70, 0.2);
+  --border-glow: rgba(240, 98, 146, 0.4);
+  --text: #3a1f2b;
+  --text-2: #6b4455;
+  --text-3: #7d5565;
+  --accent: #f06292;
+  --accent-hover: #ec4a80;
+  --accent-text: #b0285a;
+  --on-accent: #3a0a1a;
+  --focus: #b0285a;
+  --blush: #ff9a76;
+  --lavender: #9b6ad9;
+  --ok: #12794f;
+  --danger: #c3283f;
+  --info: #2a5fc0;
+
+  --glow-peach: rgba(240, 98, 146, 0.16);
+  --glow-blush: rgba(255, 154, 118, 0.16);
+  --glow-lavender: rgba(155, 106, 217, 0.12);
+  --glow-mint: rgba(18, 121, 79, 0.1);
+  --shadow-card: 0 10px 26px rgba(140, 50, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-soft: 0 4px 12px rgba(140, 50, 90, 0.08);
+  --shadow-pop: 0 18px 42px rgba(140, 50, 90, 0.2);
+  --title-shadow: none;
+}
+
+/* ---- Deep Ocean (OLED midnight blue): sky blue and teal on near-black navy. --------------------- */
+[data-theme='ocean'] {
+  color-scheme: dark;
+  --bg: #040b1a;
+  --surface-1: #0a1630;
+  --surface-2: #10203f;
+  --surface-3: #19305a;
+  --border: rgba(140, 200, 255, 0.1);
+  --border-strong: rgba(140, 200, 255, 0.2);
+  --border-glow: rgba(56, 189, 248, 0.42);
+  --text: #e8f4ff;
+  --text-2: #b7d0ea;
+  --text-3: #8fb0d0;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --accent-text: #62c9fb;
+  --on-accent: #031a2a;
+  --focus: #7dd3fc;
+  --blush: #2dd4bf;
+  --lavender: #818cf8;
+  --ok: #5eead4;
+  --danger: #ff8497;
+  --info: #93c5fd;
+
+  --glow-peach: rgba(56, 189, 248, 0.16);
+  --glow-blush: rgba(45, 212, 191, 0.14);
+  --glow-lavender: rgba(129, 140, 248, 0.15);
+  --glow-mint: rgba(94, 234, 212, 0.13);
+  --shadow-card: 0 10px 30px rgba(0, 4, 14, 0.58), inset 0 1px 0 rgba(200, 230, 255, 0.06);
+  --shadow-soft: 0 4px 14px rgba(0, 4, 14, 0.4), inset 0 1px 0 rgba(200, 230, 255, 0.04);
+  --shadow-pop: 0 18px 48px rgba(0, 3, 12, 0.72), inset 0 1px 0 rgba(200, 230, 255, 0.09);
+  --title-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+}
+
+/* ---- Fireflies Forest: moss green and firefly amber on dark pine. ------------------------------- */
+[data-theme='forest'] {
+  color-scheme: dark;
+  --bg: #06120d;
+  --surface-1: #0d1f17;
+  --surface-2: #142b20;
+  --surface-3: #1d3b2d;
+  --border: rgba(170, 240, 190, 0.1);
+  --border-strong: rgba(170, 240, 190, 0.2);
+  --border-glow: rgba(251, 191, 36, 0.4);
+  --text: #effaf1;
+  --text-2: #bcd6c3;
+  --text-3: #94b59f;
+  --accent: #fbbf24;
+  --accent-hover: #fcd34d;
+  --accent-text: #fcd34d;
+  --on-accent: #2a1a00;
+  --focus: #fcd34d;
+  --blush: #86efac;
+  --lavender: #5eead4;
+  --ok: #86efac;
+  --danger: #ff8a80;
+  --info: #7dd3fc;
+
+  --glow-peach: rgba(251, 191, 36, 0.14);
+  --glow-blush: rgba(134, 239, 172, 0.13);
+  --glow-lavender: rgba(94, 234, 212, 0.12);
+  --glow-mint: rgba(134, 239, 172, 0.13);
+  --shadow-card: 0 10px 30px rgba(0, 8, 4, 0.55), inset 0 1px 0 rgba(210, 255, 220, 0.06);
+  --shadow-soft: 0 4px 14px rgba(0, 8, 4, 0.38), inset 0 1px 0 rgba(210, 255, 220, 0.04);
+  --shadow-pop: 0 18px 48px rgba(0, 6, 3, 0.7), inset 0 1px 0 rgba(210, 255, 220, 0.09);
+  --title-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -86,5 +272,6 @@
     --dur-1: 0ms;
     --dur-2: 0ms;
     --dur-3: 0ms;
+    --dur-4: 0ms;
   }
 }

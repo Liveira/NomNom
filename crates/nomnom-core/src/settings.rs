@@ -15,6 +15,22 @@ pub enum Theme {
     #[default]
     Dark,
     Light,
+    Aurora,
+    Synthwave,
+    Sakura,
+    Ocean,
+    Forest,
+}
+
+/// How much the interface moves. "Full" animates the background and the interface, "calm" keeps
+/// small interface motion and a still background, "off" stops all of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Motion {
+    #[default]
+    Full,
+    Calm,
+    Off,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +53,7 @@ impl Default for General {
 #[serde(default)]
 pub struct Appearance {
     pub theme: Theme,
+    pub motion: Motion,
     pub sidebar_collapsed: bool,
 }
 
@@ -379,5 +396,36 @@ mod tests {
             .update("appearance", |s| s.appearance.theme = Theme::Light)
             .unwrap();
         assert_eq!(rx.try_recv().unwrap(), "appearance");
+    }
+
+    #[test]
+    fn every_theme_and_motion_level_survives_a_save() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        let store = SettingsStore::load(&path).unwrap();
+        assert_eq!(store.get().appearance.motion, Motion::Full);
+        for theme in [
+            Theme::System,
+            Theme::Dark,
+            Theme::Light,
+            Theme::Aurora,
+            Theme::Synthwave,
+            Theme::Sakura,
+            Theme::Ocean,
+            Theme::Forest,
+        ] {
+            store
+                .update("appearance", |s| {
+                    s.appearance.theme = theme;
+                    s.appearance.motion = Motion::Calm;
+                })
+                .unwrap();
+            let again = SettingsStore::load(&path).unwrap().get();
+            assert_eq!(again.appearance.theme, theme);
+            assert_eq!(again.appearance.motion, Motion::Calm);
+        }
+        // The names in the file are the ones the interface uses.
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.contains("\"theme\": \"forest\""), "{text}");
     }
 }

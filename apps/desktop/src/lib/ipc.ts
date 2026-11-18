@@ -1,12 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
-export type Theme = 'system' | 'dark' | 'light';
+export type Theme = 'system' | 'dark' | 'light' | 'aurora' | 'synthwave' | 'sakura' | 'ocean' | 'forest';
+export type Motion = 'full' | 'calm' | 'off';
 
 export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean };
-  appearance: { theme: Theme; sidebar_collapsed: boolean };
+  appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
@@ -42,6 +43,7 @@ export interface Settings {
 export interface SettingsPatch {
   closeToTray?: boolean;
   theme?: Theme;
+  motion?: Motion;
   sidebarCollapsed?: boolean;
   maxConcurrent?: number;
   outputDir?: string;

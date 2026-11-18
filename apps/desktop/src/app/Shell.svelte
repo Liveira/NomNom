@@ -1,14 +1,18 @@
 <script lang="ts">
   import type { Component } from 'svelte';
+  import Backdrop from '../lib/fx/Backdrop.svelte';
   import Sidebar from './Sidebar.svelte';
   import { app } from './state.svelte';
 
   let View = $state<Component | null>(null);
+  let main = $state<HTMLElement | null>(null);
   let loadError = $state<string | null>(null);
 
   $effect(() => {
     const item = app.nav.find((n) => n.id === app.current);
     if (!item) return;
+    // A new page starts at the top.
+    if (main) main.scrollTop = 0;
     let stale = false;
     item.view().then(
       (m) => {
@@ -27,9 +31,10 @@
   });
 </script>
 
+<Backdrop theme={app.palette} motion={app.motion} />
 <div class="shell">
   <Sidebar />
-  <main>
+  <main bind:this={main}>
     {#key app.current}
       <div class="view">
         {#if loadError}
@@ -47,6 +52,8 @@
     display: flex;
     height: 100%;
     gap: 4px;
+    position: relative;
+    z-index: 1;
   }
   main {
     flex: 1;

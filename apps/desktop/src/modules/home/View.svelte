@@ -2,7 +2,7 @@
   import Icon from '../../lib/icons/Icon.svelte';
   import CatNap from '../../lib/ui/CatNap.svelte';
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
-  import StudioCat from '../../lib/ui/StudioCat.svelte';
+  import HeroEmblem from '../../lib/ui/HeroEmblem.svelte';
   import { app } from '../../app/state.svelte';
   import { progressLine } from '../../lib/format';
   import { actIpc, onActivityUpdated, type ActOverview } from '../../lib/ipc';
@@ -87,7 +87,7 @@
       all private on your computer.
     </p>
   </div>
-  <StudioCat mood="studio" size={96} />
+  <HeroEmblem icon="cat" orbit={["sparkle", "heart", "star"]} size={104} />
 </header>
 
 {#if app.settings && !app.settings.system.first_run_done}

@@ -85,3 +85,72 @@ button, input, select, textarea { font: inherit; color: inherit; }
   font-size: 13.5px;
   max-width: 58ch;
 }
+
+/* ======================================================================================
+   Motion. Everything that moves in the interface is defined here, so one switch
+   (Settings > Appearance > Motion) can calm or stop all of it.
+   ====================================================================================== */
+
+/* Theme change: the new theme spreads from where the person clicked (see state.svelte.ts). */
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+/* The page fades in; its blocks rise one after another. */
+.view > * { animation: rise var(--dur-4) var(--ease-out) backwards; }
+.view > *:nth-child(1) { animation-delay: 0ms; }
+.view > *:nth-child(2) { animation-delay: 60ms; }
+.view > *:nth-child(3) { animation-delay: 120ms; }
+.view > *:nth-child(4) { animation-delay: 180ms; }
+.view > *:nth-child(5) { animation-delay: 240ms; }
+.view > *:nth-child(n + 6) { animation-delay: 300ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+/* Cards lift and glow when the pointer is over them. */
+.panel, .group, .kpi-card, .tool-card, .card {
+  transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), border-color var(--dur-2);
+}
+.panel:hover, .group:hover, .kpi-card:hover, .tool-card:hover, .card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-glow);
+  box-shadow: var(--shadow-card), 0 0 24px var(--glow-peach);
+}
+
+/* Buttons press down and light up. */
+button:not(:disabled) { transition: transform var(--dur-1) var(--ease-out), background var(--dur-2), border-color var(--dur-2), box-shadow var(--dur-2), filter var(--dur-2); }
+button:not(:disabled):hover { filter: brightness(1.08); }
+button:not(:disabled):active { transform: scale(0.96); }
+
+/* Headings glow in themes that ask for it (Synthwave, Aurora, Deep Ocean). */
+h1 { text-shadow: var(--title-shadow); }
+
+/* Bars and meters grow in. */
+.t-bar, .c-bar, .mini-fill, .fill { transform-origin: bottom; animation: grow-up var(--dur-4) var(--ease-out) backwards; }
+@keyframes grow-up { from { transform: scaleY(0); } }
+.mini-fill { transform-origin: left; animation-name: grow-right; }
+@keyframes grow-right { from { transform: scaleX(0); } }
+
+/* Pop-ups bounce in. */
+[role='dialog'], [role='menu'], ul[role='listbox'] { animation: pop var(--dur-3) var(--ease-spring); }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.94); } to { opacity: 1; transform: none; } }
+
+/* Hidden window: nothing needs to move. */
+html[data-hidden='true'] *, html[data-hidden='true'] *::before, html[data-hidden='true'] *::after { animation-play-state: paused !important; }
+
+/* Motion: Off stops every animation and transition. Calm keeps the small ones. */
+html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Cards are a little see-through, so the moving background of the theme shows through them. */
+main .view :is(.bento-card, .kpi-card, .panel, .tool-card) {
+  background-color: color-mix(in srgb, var(--surface-1) 80%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}

@@ -1,4 +1,5 @@
 <script lang="ts" generics="T extends string | number">
+  import Icon from '../icons/Icon.svelte';
   type Option = { value: T; label: string };
 
   let {
@@ -90,7 +91,7 @@
     onblur={() => (open = false)}
   >
     <span class="text">{current?.label}</span>
-    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 4.5 3.5 3.5 3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    <span class="chev" class:open><Icon name="chevron-down" size={14} /></span>
   </button>
   {#if open}
     <ul id={`lb-${uid}`} role="listbox" aria-label={label}>
@@ -112,6 +113,8 @@
 </div>
 
 <style>
+  .chev { display: inline-grid; color: var(--text-3); transition: transform var(--dur-2) var(--ease-out); }
+  .chev.open { transform: rotate(180deg); }
   .wrap { position: relative; }
   .trigger {
     width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;

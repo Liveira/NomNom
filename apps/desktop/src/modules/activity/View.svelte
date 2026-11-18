@@ -2,7 +2,7 @@
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import CatNap from '../../lib/ui/CatNap.svelte';
-  import StudioCat from '../../lib/ui/StudioCat.svelte';
+  import HeroEmblem from '../../lib/ui/HeroEmblem.svelte';
   import Switch from '../../lib/ui/Switch.svelte';
   import {
     actIpc,
@@ -104,7 +104,7 @@
       </div>
     </div>
   </div>
-  <StudioCat mood="gamer" size={96} />
+  <HeroEmblem icon="playtime" orbit={["flame", "clock", "star"]} size={104} />
 </header>
 
 <div class="toolbar">

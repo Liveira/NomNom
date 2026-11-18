@@ -436,7 +436,7 @@
           ondrop={() => drop(c.key)}
         >
           <button class="sortbtn" disabled={!c.sort} onclick={() => c.sort && storage.setSort(c.sort)}>
-            {c.label}{storage.sort === c.sort ? (storage.desc ? ' ▼' : ' ▲') : ''}
+            {c.label}{#if storage.sort === c.sort}<Icon name={storage.desc ? 'arrow-down' : 'arrow-up'} size={12} stroke={2.6} />{/if}
           </button>
           <span class="grip" role="separator" aria-label={`Resize ${c.label}`} onpointerdown={(e) => startResize(e, c.key, c.w)}></span>
         </div>
@@ -491,7 +491,7 @@
                     {:else}
                       <span class="twist"></span>
                     {/if}
-                    <Icon name={n.is_dir || r.kind === 'files_group' ? 'organizer' : 'convert'} size={14} />
+                    <Icon name={n.is_dir || r.kind === 'files_group' ? 'folder' : 'file'} size={14} />
                     <span class="text">{n.name}</span>
                     {#if n.is_link}<span class="tag">link</span>{/if}
                     {#if n.flags & 64}<span class="tag ok" title="NTFS compressed">compressed</span>{/if}
