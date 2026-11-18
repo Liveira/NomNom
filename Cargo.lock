@@ -2698,6 +2698,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "nomnom-activity"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "libc",
+ "png",
+ "serde",
+ "serde_json",
+ "windows 0.58.0",
+ "x11rb",
+]
+
+[[package]]
 name = "nomnom-converter"
 version = "0.1.0"
 dependencies = [

@@ -45,6 +45,36 @@ const MIGRATIONS: &[&str] = &[
         snapshot_id INTEGER NOT NULL REFERENCES storage_snapshots(id) ON DELETE CASCADE,
         path TEXT NOT NULL, size INTEGER NOT NULL, mtime INTEGER,
         PRIMARY KEY(snapshot_id, path)) WITHOUT ROWID;",
+    // v6: Active app & game time tracking (Playtime). Only foreground active seconds are stored;
+    // window titles and URLs are never persisted.
+    "CREATE TABLE activity_apps(
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        custom_name TEXT,
+        exe_path TEXT,
+        wm_class TEXT,
+        category TEXT NOT NULL DEFAULT 'general',
+        icon_png BLOB,
+        hidden INTEGER NOT NULL DEFAULT 0,
+        first_seen INTEGER NOT NULL,
+        last_seen INTEGER NOT NULL,
+        total_secs INTEGER NOT NULL DEFAULT 0);
+     CREATE TABLE activity_hourly(
+        app_id TEXT NOT NULL REFERENCES activity_apps(id) ON DELETE CASCADE,
+        day TEXT NOT NULL,
+        hour INTEGER NOT NULL,
+        active_secs INTEGER NOT NULL DEFAULT 0,
+        sessions INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY(app_id, day, hour)) WITHOUT ROWID;
+     CREATE INDEX activity_hourly_day ON activity_hourly(day);
+     CREATE TABLE activity_sessions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        app_id TEXT NOT NULL REFERENCES activity_apps(id) ON DELETE CASCADE,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER NOT NULL,
+        active_secs INTEGER NOT NULL);
+     CREATE INDEX activity_sessions_time ON activity_sessions(started_at DESC);
+     CREATE INDEX activity_sessions_app ON activity_sessions(app_id, started_at DESC);",
 ];
 
 pub struct Db {

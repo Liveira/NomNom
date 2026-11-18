@@ -11,8 +11,8 @@ use tokio::sync::broadcast;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {
-    #[default]
     System,
+    #[default]
     Dark,
     Light,
 }
@@ -200,6 +200,27 @@ impl Default for Updates {
     }
 }
 
+/// Active foreground app & game time tracking (Playtime).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Activity {
+    /// Record active foreground usage of apps and games.
+    pub enabled: bool,
+    /// Seconds without keyboard, mouse or gamepad input before usage pauses as AFK (60..=3600).
+    pub idle_timeout_secs: u32,
+    /// Whether to include NomNom's own window in tracked statistics.
+    pub track_nomnom: bool,
+}
+impl Default for Activity {
+    fn default() -> Self {
+        Activity {
+            enabled: true,
+            idle_timeout_secs: 300,
+            track_nomnom: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -213,6 +234,7 @@ pub struct Settings {
     pub system: System,
     pub storage: Storage,
     pub updates: Updates,
+    pub activity: Activity,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -230,6 +252,7 @@ impl Default for Settings {
             system: System::default(),
             storage: Storage::default(),
             updates: Updates::default(),
+            activity: Activity::default(),
             extra: Map::new(),
         }
     }
