@@ -2,6 +2,7 @@ import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings,
 import { buildNav, type NavItem } from '../lib/modules';
 import { i18n } from '../lib/i18n/index.svelte';
 import { isLight } from '../lib/themes';
+import { sidebarItems } from '../lib/tools';
 import { discoverModules } from './discover';
 
 class AppState {
@@ -11,6 +12,15 @@ class AppState {
   tasks = $state<Record<string, TaskInfo>>({});
   /** A newer NomNom found by the last update check. */
   newVersion = $state<UpdateAvailable | null>(null);
+
+  /** The pages in the sidebar: the tools the person picked on the Tools page, plus the core pages. */
+  get sidebarNav(): NavItem[] {
+    return sidebarItems(this.nav, this.settings?.appearance.sidebar_tools ?? null);
+  }
+
+  async setSidebarTools(tools: string[]) {
+    this.settings = await ipc.updateSettings({ sidebarTools: tools });
+  }
 
   get activeTasks(): TaskInfo[] {
     return Object.values(this.tasks).filter((t) => t.state === 'running' || t.state === 'queued');

@@ -4,6 +4,7 @@
   import CatNap from '../../lib/ui/CatNap.svelte';
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import HeroEmblem from '../../lib/ui/HeroEmblem.svelte';
+  import { TOOLS } from '../../lib/tools';
   import { app } from '../../app/state.svelte';
   import { progressLine } from '../../lib/format';
   import { actIpc, onActivityUpdated, type ActOverview } from '../../lib/ipc';
@@ -37,43 +38,7 @@
   const topApps = $derived((play?.apps ?? []).slice(0, 3));
   const maxTodayApp = $derived(Math.max(1, ...(topApps.map((a) => a.range_secs) ?? [1])));
 
-  const tools = [
-    {
-      id: 'downloads',
-      icon: 'cat',
-      title: 'NomNom Downloader',
-      desc: 'Grab videos and music with queue, history and format choice.',
-      tint: 'var(--glow-peach)',
-    },
-    {
-      id: 'activity',
-      icon: 'playtime',
-      title: 'Playtime',
-      desc: 'See active hours for your daily apps, creative tools and games.',
-      tint: 'var(--glow-blush)',
-    },
-    {
-      id: 'storage',
-      icon: 'storage',
-      title: 'Disk Analyzer',
-      desc: 'Visual treemap, sunburst, duplicates and deep space cleanup.',
-      tint: 'var(--glow-lavender)',
-    },
-    {
-      id: 'filetools',
-      icon: 'convert',
-      title: 'File Tools',
-      desc: 'Convert images, audio, video and Office documents locally.',
-      tint: 'var(--glow-mint)',
-    },
-    {
-      id: 'organizer',
-      icon: 'organizer',
-      title: 'File Organizer',
-      desc: 'Preview-first folder sorting with full one-click undo.',
-      tint: 'var(--glow-peach)',
-    },
-  ];
+  const tools = $derived(TOOLS.filter((t) => app.sidebarNav.some((n) => n.id === t.id)));
 </script>
 
 <header class="studio-hero">
@@ -198,6 +163,11 @@
       <p class="tile-desc">{t.desc}</p>
     </button>
   {/each}
+  <button class="tool-tile" onclick={() => app.go('tools')}>
+    <div class="tile-icon"><Icon name="tools" size={20} /></div>
+    <div class="tile-title">Add or remove tools</div>
+    <p class="tile-desc">Choose which tools show in the sidebar.</p>
+  </button>
 </section>
 
 <style>

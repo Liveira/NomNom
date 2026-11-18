@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { toAccelerator } from './accelerator';
+import { isSuperKey, toAccelerator } from './accelerator';
 
 const k = (code: string, mods: Partial<Record<'ctrlKey' | 'altKey' | 'shiftKey' | 'metaKey', boolean>> = {}) =>
   toAccelerator({ code, ctrlKey: false, altKey: false, shiftKey: false, metaKey: false, ...mods });
+
+describe('isSuperKey', () => {
+  it('knows the Win / Super key however the system names it', () => {
+    expect(isSuperKey({ code: 'MetaLeft' })).toBe(true);
+    expect(isSuperKey({ code: 'OSRight' })).toBe(true);
+    expect(isSuperKey({ code: 'Super_L' })).toBe(true);
+    expect(isSuperKey({ code: 'Unidentified', key: 'Super' })).toBe(true);
+    expect(isSuperKey({ code: 'KeyD', key: 'd' })).toBe(false);
+    expect(isSuperKey({ code: 'ControlLeft', key: 'Control' })).toBe(false);
+  });
+});
 
 describe('toAccelerator', () => {
   it('builds the default shortcut', () => {

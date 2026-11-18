@@ -68,6 +68,8 @@ pub struct Appearance {
     pub theme: Theme,
     pub motion: Motion,
     pub sidebar_collapsed: bool,
+    /// The tools the person put in the sidebar. `None` means they never chose, so all show.
+    pub sidebar_tools: Option<Vec<String>>,
 }
 
 impl Default for Appearance {
@@ -82,6 +84,7 @@ impl Default for Appearance {
                 Motion::Full
             },
             sidebar_collapsed: false,
+            sidebar_tools: None,
         }
     }
 }

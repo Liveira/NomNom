@@ -9,6 +9,7 @@ pub mod downloads;
 pub fn register_all(registry: &mut ModuleRegistry) {
     let modules: Vec<Arc<dyn Module>> = vec![
         Arc::new(builtin::Home),
+        Arc::new(builtin::ToolsHub),
         Arc::new(builtin::Downloads),
         Arc::new(builtin::Activity),
         Arc::new(builtin::Backup),

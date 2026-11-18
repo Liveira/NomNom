@@ -28,6 +28,30 @@ static SETTINGS: ModuleManifest = ModuleManifest {
     capabilities: &[],
 };
 
+static TOOLS: ModuleManifest = ModuleManifest {
+    id: "tools",
+    name: "Tools",
+    nav: Some(NavEntry {
+        order: 5,
+        icon: "tools",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ToolsHub;
+#[async_trait]
+impl Module for ToolsHub {
+    fn manifest(&self) -> &ModuleManifest {
+        &TOOLS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub struct Home;
 #[async_trait]
 impl Module for Home {

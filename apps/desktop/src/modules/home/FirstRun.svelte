@@ -2,8 +2,11 @@
   import { app } from '../../app/state.svelte';
   import { browserIpc } from '../../lib/ipc';
   import { isLinux } from '../../lib/platform';
+  import Icon from '../../lib/icons/Icon.svelte';
+  import { DEFAULT_PICKS, TOOLS, withTool } from '../../lib/tools';
   import Switch from '../../lib/ui/Switch.svelte';
 
+  let picks = $state<string[]>([...DEFAULT_PICKS]);
   let menu = $state(true);
   let firefox = $state(true);
   let startup = $state(false);
@@ -19,7 +22,7 @@
       error = `Firefox wasn't connected: ${e}`;
     }
     try {
-      await app.update({ shellMenu: menu, autostart: startup, firstRunDone: true });
+      await app.update({ shellMenu: menu, autostart: startup, sidebarTools: picks, firstRunDone: true });
     } catch (e) {
       error = String(e);
     } finally {
@@ -40,6 +43,20 @@
 <section class="card" aria-label="First-time setup">
   <h3>Set up NomNom</h3>
   <p class="intro">Pick what NomNom may add to {isLinux ? 'your desktop' : 'Windows'}. You can change any of this later in Settings.</p>
+
+  <div class="picks">
+    <div class="label">Choose your tools</div>
+    <div class="hint">These go in the sidebar. The others stay on the Tools page, so nothing gets in your way.</div>
+    <div class="chips">
+      {#each TOOLS as t (t.id)}
+        <label class="chip" class:on={picks.includes(t.id)}>
+          <input type="checkbox" checked={picks.includes(t.id)} onchange={(e) => (picks = withTool(picks, t.id, e.currentTarget.checked))} />
+          <Icon name={t.icon} size={15} />
+          <span>{t.title}</span>
+        </label>
+      {/each}
+    </div>
+  </div>
 
   <div class="row">
     <div>
@@ -82,6 +99,12 @@
   h3 { margin-bottom: 4px; font-size: 16px; }
   .intro { margin: 0 0 10px; color: var(--text-2); }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 9px 0; }
+  .picks { padding: 6px 0 12px; border-bottom: 1px solid var(--border); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface-2); cursor: pointer; font-weight: 600; font-size: 13px; }
+  .chip.on { background: var(--surface-3); border-color: var(--border-glow); color: var(--accent-text); }
+  .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .chip:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
   .row + .row { border-top: 1px solid var(--border); }
   .label { font-weight: 600; }
   .hint { color: var(--text-3); font-size: 12.5px; margin-top: 2px; }

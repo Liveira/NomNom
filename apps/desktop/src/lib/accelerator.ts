@@ -19,6 +19,14 @@ function keyName(code: string): string | null {
   return null;
 }
 
+/**
+ * Is this the Windows / Super key? Linux web views often don't set `metaKey` while it is held, and
+ * name the key differently (`OSLeft`, `Super_L`), so the key itself has to be recognised.
+ */
+export function isSuperKey(e: { code: string; key?: string }): boolean {
+  return /^(Meta|OS|Super|Hyper)(Left|Right|_L|_R)?$/.test(e.code) || ['Meta', 'OS', 'Super', 'Hyper'].includes(e.key ?? '');
+}
+
 export function toAccelerator(e: KeyLike): { accelerator: string | null; needsModifier: boolean } {
   const key = keyName(e.code);
   if (!key) return { accelerator: null, needsModifier: false };

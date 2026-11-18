@@ -8,8 +8,8 @@
   import { app } from './state.svelte';
 
   const collapsed = $derived(app.settings?.appearance.sidebar_collapsed ?? false);
-  const main = $derived(app.nav.filter((n) => !FOOTER_MODULES.has(n.id)));
-  const footer = $derived(app.nav.filter((n) => FOOTER_MODULES.has(n.id)));
+  const main = $derived(app.sidebarNav.filter((n) => !FOOTER_MODULES.has(n.id)));
+  const footer = $derived(app.sidebarNav.filter((n) => FOOTER_MODULES.has(n.id)));
   const playActive = $derived(app.settings?.activity.enabled ?? true);
 
   let updating = $state(false);

@@ -7,7 +7,7 @@ export type Motion = 'full' | 'calm' | 'off';
 export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es' };
-  appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean };
+  appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
@@ -80,6 +80,7 @@ export interface SettingsPatch {
   activityEnabled?: boolean;
   activityIdleSecs?: number;
   activityTrackNomnom?: boolean;
+  sidebarTools?: string[];
 }
 
 export interface ModuleManifest {

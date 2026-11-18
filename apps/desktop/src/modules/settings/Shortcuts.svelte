@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { toAccelerator } from '../../lib/accelerator';
+  import { isSuperKey, toAccelerator } from '../../lib/accelerator';
   import { app } from '../../app/state.svelte';
+  import { isLinux } from '../../lib/platform';
   import { shortcutsIpc, type ShortcutInfo } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
 
@@ -13,6 +14,8 @@
   let recording = $state<ShortcutInfo['id'] | null>(null);
   let hint = $state('');
   let problem = $state<Record<string, string>>({});
+  /** Held down right now. Read from the key itself, because `metaKey` isn't reliable on Linux. */
+  let superHeld = false;
 
   async function load() {
     items = await shortcutsIpc.status();
@@ -28,8 +31,18 @@
       hint = '';
       return;
     }
-    const { accelerator, needsModifier } = toAccelerator(e);
-    if (needsModifier) hint = 'Hold Ctrl, Alt, Shift or Win while you press the key.';
+    if (isSuperKey(e)) {
+      superHeld = true;
+      return;
+    }
+    const { accelerator, needsModifier } = toAccelerator({
+      code: e.code,
+      ctrlKey: e.ctrlKey,
+      altKey: e.altKey,
+      shiftKey: e.shiftKey,
+      metaKey: e.metaKey || superHeld,
+    });
+    if (needsModifier) hint = `Hold Ctrl, Alt, Shift or ${isLinux ? 'Super' : 'Win'} while you press the key.`;
     if (!accelerator) return;
     recording = null;
     hint = '';
@@ -61,7 +74,8 @@
         aria-label={`${labels[item.id]}: ${item.accelerator}. Press to change.`}
         onclick={() => { recording = item.id; hint = ''; }}
         onkeydown={(e) => onKey(e, item.id)}
-        onblur={() => { if (recording === item.id) { recording = null; hint = ''; } }}
+        onkeyup={(e) => { if (isSuperKey(e)) superHeld = false; }}
+        onblur={() => { superHeld = false; if (recording === item.id) { recording = null; hint = ''; } }}
       >
         {recording === item.id ? 'Press the new keys…' : item.accelerator}
       </button>

@@ -58,6 +58,7 @@ pub struct SettingsPatch {
     activity_enabled: Option<bool>,
     activity_idle_secs: Option<u32>,
     activity_track_nomnom: Option<bool>,
+    sidebar_tools: Option<Vec<String>>,
 }
 
 #[tauri::command]
@@ -176,6 +177,19 @@ pub fn update_settings(
             }
             if let Some(v) = patch.autostart {
                 s.system.autostart = v;
+            }
+            if let Some(v) = &patch.sidebar_tools {
+                // Only short names made of letters, each once.
+                let mut kept: Vec<String> = Vec::new();
+                for id in v.iter().take(32) {
+                    let ok = !id.is_empty()
+                        && id.len() <= 24
+                        && id.chars().all(|c| c.is_ascii_lowercase() || c == '_');
+                    if ok && !kept.contains(id) {
+                        kept.push(id.clone());
+                    }
+                }
+                s.appearance.sidebar_tools = Some(kept);
             }
             if let Some(v) = patch.first_run_done {
                 s.system.first_run_done = v;
