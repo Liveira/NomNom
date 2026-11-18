@@ -45,8 +45,21 @@ fn fail(msg: impl Into<String>) -> Fail {
 }
 
 fn from_io(what: &str, e: &io::Error) -> Fail {
-    // disk full, not ready, device gone, I/O error, device not connected
+    // disk full, not ready, device gone, I/O error, read-only fs, device not connected
+    #[cfg(windows)]
     let systemic = matches!(e.raw_os_error(), Some(112 | 21 | 55 | 1117 | 1167 | 53));
+    #[cfg(unix)]
+    let systemic = matches!(
+        e.raw_os_error(),
+        Some(c)
+            if c == libc::ENOSPC
+                || c == libc::EIO
+                || c == libc::EROFS
+                || c == libc::ENODEV
+                || c == libc::ENXIO
+    );
+    #[cfg(not(any(windows, unix)))]
+    let systemic = false;
     Fail {
         message: format!("{what}: {e}"),
         systemic,

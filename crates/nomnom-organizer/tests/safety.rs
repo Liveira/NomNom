@@ -11,8 +11,62 @@ use nomnom_organizer::model::{ConflictPolicy, Move, Plan, SkipCode};
 use nomnom_organizer::scan::plan;
 use nomnom_organizer::winfs;
 use std::fs;
-use std::os::windows::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
+
+struct ExclusiveHold {
+    _file: fs::File,
+}
+
+#[cfg(windows)]
+fn lock_exclusively(path: &Path) -> ExclusiveHold {
+    use std::os::windows::fs::OpenOptionsExt;
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .share_mode(0)
+        .open(path)
+        .unwrap();
+    ExclusiveHold { _file: file }
+}
+
+#[cfg(unix)]
+fn lock_exclusively(path: &Path) -> ExclusiveHold {
+    use std::os::unix::io::AsRawFd;
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .unwrap();
+    unsafe {
+        assert_eq!(
+            libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB),
+            0
+        );
+    }
+    ExclusiveHold { _file: file }
+}
+
+fn link_dir(target: &Path, link: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        junction::create(target, link)
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
+
+fn link_file(target: &Path, link: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_file(target, link)
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
 
 const NO_CROSS: ExecOptions = ExecOptions {
     allow_cross_volume: false,
@@ -231,7 +285,7 @@ fn a_junction_is_never_followed_and_what_it_points_to_is_untouched() {
     put_at(&outside.join("precious.mp4"), &mp4(9));
     put_at(&outside.join("sub").join("photo.png"), &png(9));
     let outside_before = snapshot(&outside);
-    junction::create(&outside, sb.path("shortcut")).unwrap();
+    link_dir(&outside, &sb.path("shortcut")).unwrap();
     sb.put("real.png", &png(1));
 
     let mut o = sb.options();
@@ -255,7 +309,7 @@ fn a_junction_is_never_followed_and_what_it_points_to_is_untouched() {
 fn a_junction_that_loops_back_does_not_cause_a_loop() {
     let sb = Sandbox::new();
     fs::create_dir_all(sb.path("Stuff")).unwrap();
-    junction::create(&sb.downloads, sb.path("Stuff").join("loop")).unwrap();
+    link_dir(&sb.downloads, &sb.path("Stuff").join("loop")).unwrap();
     sb.put("Stuff/a.png", &png(1));
     let mut o = sb.options();
     o.max_depth = 6;
@@ -274,7 +328,7 @@ fn symbolic_links_are_skipped_when_this_machine_allows_creating_them() {
     let sb = Sandbox::new();
     let target = sb.put("real.png", &png(1));
     let link = sb.path("link-to-real.png");
-    if std::os::windows::fs::symlink_file(&target, &link).is_err() {
+    if link_file(&target, &link).is_err() {
         eprintln!("skipped: creating symbolic links needs a privilege this account doesn't have");
         return;
     }
@@ -293,7 +347,7 @@ fn a_source_that_is_itself_a_junction_is_refused() {
     let real = sb._root.path().join("Real");
     put_at(&real.join("a.png"), &png(1));
     let link = sb._root.path().join("Linked");
-    junction::create(&real, &link).unwrap();
+    link_dir(&real, &link).unwrap();
     let mut o = sb.options();
     o.source = link;
     assert!(plan(&o).unwrap_err().to_string().contains("link"));
@@ -364,12 +418,7 @@ fn a_file_already_in_the_destination_is_never_replaced() {
 fn files_in_use_unfinished_downloads_unknown_types_and_empty_files_stay() {
     let sb = Sandbox::new();
     let busy = sb.put("busy.mp4", &mp4(1));
-    let _hold = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .share_mode(0)
-        .open(&busy)
-        .unwrap();
+    let _hold = lock_exclusively(&busy);
     sb.put("half.mp4.part", &mp4(2));
     sb.put("half2.crdownload", &mp4(3));
     sb.put("thing.xyz", b"???");
@@ -412,25 +461,33 @@ fn a_file_changed_a_moment_ago_is_left_alone() {
 #[test]
 fn hidden_and_system_items_are_skipped() {
     let sb = Sandbox::new();
-    let h = sb.put("hidden.mp4", &mp4(1));
-    sb.put("HiddenDir/a.png", &png(2));
+    #[cfg(windows)]
+    let (h, hdir) = {
+        let h = sb.put("hidden.mp4", &mp4(1));
+        sb.put("HiddenDir/a.png", &png(2));
+        let hdir = sb.path("HiddenDir");
+        for p in [&h, &hdir] {
+            std::process::Command::new("attrib")
+                .arg("+h")
+                .arg(p)
+                .status()
+                .unwrap();
+        }
+        (h, hdir)
+    };
+    #[cfg(not(windows))]
+    let (h, hdir) = {
+        let h = sb.put(".hidden.mp4", &mp4(1));
+        sb.put(".HiddenDir/a.png", &png(2));
+        (h, sb.path(".HiddenDir"))
+    };
     sb.put("visible.mp4", &mp4(3));
-    for p in [&h, &sb.path("HiddenDir")] {
-        std::process::Command::new("attrib")
-            .arg("+h")
-            .arg(p)
-            .status()
-            .unwrap();
-    }
     let mut o = sb.options();
     o.max_depth = 2;
     let (p, _, _) = run(&sb, &o);
     assert_eq!(moved_names(&p), ["visible.mp4"]);
     assert_eq!(skip_for(&p, &h).unwrap().code, SkipCode::Hidden);
-    assert_eq!(
-        skip_for(&p, &sb.path("HiddenDir")).unwrap().code,
-        SkipCode::Hidden
-    );
+    assert_eq!(skip_for(&p, &hdir).unwrap().code, SkipCode::Hidden);
 }
 
 #[test]
@@ -479,12 +536,13 @@ fn protected_places_and_bad_paths_are_refused_before_anything_is_read() {
     o.protected_exact = vec![sb.downloads.clone()];
     assert!(plan(&o).is_err(), "the whole profile folder");
 
+    let drive_root = if cfg!(windows) { r"C:\" } else { "/" };
     let mut o = base.clone();
-    o.source = PathBuf::from(r"C:\");
+    o.source = PathBuf::from(drive_root);
     assert!(plan(&o).unwrap_err().to_string().contains("drive"));
 
     let mut o = base.clone();
-    o.dest_root = PathBuf::from(r"C:\");
+    o.dest_root = PathBuf::from(drive_root);
     assert!(plan(&o).is_err(), "a drive as the destination");
 
     let mut o = base.clone();
@@ -492,7 +550,7 @@ fn protected_places_and_bad_paths_are_refused_before_anything_is_read() {
     assert!(plan(&o).is_err(), "moving into a protected zone");
 
     let mut o = base.clone();
-    o.source = PathBuf::from(r"relative\folder");
+    o.source = PathBuf::from("relative/folder");
     assert!(plan(&o).is_err(), "relative paths");
 
     let mut o = base.clone();
@@ -544,37 +602,53 @@ fn a_folder_that_cannot_be_read_is_left_alone() {
     let sb = Sandbox::new();
     sb.put("Locked/a.png", &png(1));
     sb.put("fine.png", &png(2));
-    let who = std::env::var("USERNAME").unwrap_or_default();
     let dir = sb.path("Locked");
-    let denied = std::process::Command::new("icacls")
-        .arg(&dir)
-        .arg("/deny")
-        .arg(format!("{who}:(RD)"))
-        .output();
-    if !matches!(&denied, Ok(o) if o.status.success()) {
-        eprintln!("skipped: couldn't change folder permissions here");
-        return;
-    }
-    if fs::read_dir(&dir).is_ok() {
-        // This account can still list the folder (an administrator, or a policy overrides the deny),
-        // so there is nothing to test here. Put the permissions back and move on.
-        let _ = std::process::Command::new("icacls")
+    #[cfg(windows)]
+    let who = std::env::var("USERNAME").unwrap_or_default();
+    #[cfg(windows)]
+    {
+        let denied = std::process::Command::new("icacls")
             .arg(&dir)
-            .arg("/remove:d")
-            .arg(&who)
+            .arg("/deny")
+            .arg(format!("{who}:(RD)"))
             .output();
+        if !matches!(&denied, Ok(o) if o.status.success()) {
+            eprintln!("skipped: couldn't change folder permissions here");
+            return;
+        }
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if fs::set_permissions(&dir, fs::Permissions::from_mode(0o000)).is_err() {
+            eprintln!("skipped: couldn't change folder permissions here");
+            return;
+        }
+    }
+    let restore = || {
+        #[cfg(windows)]
+        {
+            let _ = std::process::Command::new("icacls")
+                .arg(&dir)
+                .arg("/remove:d")
+                .arg(&who)
+                .output();
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&dir, fs::Permissions::from_mode(0o755));
+        }
+    };
+    if fs::read_dir(&dir).is_ok() {
+        restore();
         eprintln!("skipped: the folder is still readable by this account");
         return;
     }
     let mut o = sb.options();
     o.max_depth = 2;
     let result = plan(&o);
-    // always restore, so the temporary folder can be deleted
-    let _ = std::process::Command::new("icacls")
-        .arg(&dir)
-        .arg("/remove:d")
-        .arg(&who)
-        .output();
+    restore();
     let p = result.unwrap();
     assert_eq!(moved_names(&p), ["fine.png"]);
     assert!(skip_for(&p, &dir).is_some());
@@ -1063,12 +1137,7 @@ fn planning_single_files_touches_only_those_files_and_applies_every_check() {
     let nested = sb.put("Folder/inside.mp4", &mp4(3));
     let part = sb.put("half.mp4.part", &mp4(4));
     let hold = sb.put("busy.mp4", &mp4(5));
-    let _lock = fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .share_mode(0)
-        .open(&hold)
-        .unwrap();
+    let _lock = lock_exclusively(&hold);
 
     let p = plan_files(
         &sb.options(),

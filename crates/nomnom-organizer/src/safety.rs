@@ -48,6 +48,11 @@ pub const PROGRAM_EXTS: &[&str] = &[
     "pkg",
     "deb",
     "rpm",
+    "appimage",
+    "flatpakref",
+    "snap",
+    "desktop",
+    "service",
     "sh",
     "py",
     "pyc",
@@ -136,7 +141,7 @@ const IN_PROGRESS_SUFFIXES: &[&str] = &[
     ".aria2",
     ".ytdl",
 ];
-const HARMLESS_HIDDEN: &[&str] = &["thumbs.db"];
+const HARMLESS_HIDDEN: &[&str] = &["thumbs.db", ".directory", ".ds_store"];
 
 pub fn ext_of(name: &str) -> Option<String> {
     let (stem, ext) = name.rsplit_once('.')?;
