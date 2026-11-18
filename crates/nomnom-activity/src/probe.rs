@@ -264,6 +264,8 @@ mod win_impl {
 #[derive(Default)]
 struct LinuxState {
     x11: Option<X11Handle>,
+    /// Which way the focused window was found last time, so the log says when that changes.
+    source: &'static str,
 }
 
 #[cfg(target_os = "linux")]
@@ -563,6 +565,32 @@ mod linux_impl {
     }
 
     impl ForegroundProbe {
+        /// Writes one line to the log each time the way of finding the focused window changes. When
+        /// nothing works (a Wayland desktop that doesn't share it), the line says which desktop it
+        /// is, so the cause can be seen without guessing.
+        fn note_source(&mut self, source: &'static str) {
+            if self.linux.source == source {
+                return;
+            }
+            self.linux.source = source;
+            let var = |k: &str| std::env::var(k).unwrap_or_else(|_| "unset".into());
+            if source == "none" {
+                tracing::warn!(
+                    "Playtime can't see the focused window: session={} desktop={} DISPLAY={} WAYLAND_DISPLAY={}",
+                    var("XDG_SESSION_TYPE"),
+                    var("XDG_CURRENT_DESKTOP"),
+                    var("DISPLAY"),
+                    var("WAYLAND_DISPLAY")
+                );
+            } else {
+                tracing::info!(
+                    "Playtime reads the focused window through {source} (session={} desktop={})",
+                    var("XDG_SESSION_TYPE"),
+                    var("XDG_CURRENT_DESKTOP")
+                );
+            }
+        }
+
         pub(super) fn sample_linux(&mut self) -> ForegroundSample {
             if is_screen_locked() {
                 return ForegroundSample::LockedOrNone;
@@ -570,6 +598,7 @@ mod linux_impl {
 
             // 1. Hyprland native IPC socket (popular on Arch Linux)
             if let Some((pid, wm_class, fullscreen)) = query_hyprland() {
+                self.note_source("Hyprland");
                 let exe_path = resolve_proc_exe(pid);
                 let desktop_name = extract_desktop_name(exe_path.as_deref(), wm_class.as_deref());
                 let idle_secs = self.query_x11_idle().unwrap_or(0);
@@ -587,6 +616,7 @@ mod linux_impl {
 
             // 2. Sway / i3 native IPC socket
             if let Some((pid, wm_class, fullscreen)) = query_sway_or_i3() {
+                self.note_source("Sway or i3");
                 let exe_path = resolve_proc_exe(pid);
                 let desktop_name = extract_desktop_name(exe_path.as_deref(), wm_class.as_deref());
                 let idle_secs = self.query_x11_idle().unwrap_or(0);
@@ -606,9 +636,11 @@ mod linux_impl {
             if self.linux.x11.is_none() && std::env::var_os("DISPLAY").is_some() {
                 self.linux.x11 = connect_x11();
             }
-            if let Some(ref h) = self.linux.x11 {
-                match query_x11(h) {
+            let x11_answer = self.linux.x11.as_ref().map(query_x11);
+            if let Some(answer) = x11_answer {
+                match answer {
                     Ok(Some((pid, wm_class, idle_secs))) => {
+                        self.note_source("X11");
                         let exe_path = resolve_proc_exe(pid);
                         let desktop_name =
                             extract_desktop_name(exe_path.as_deref(), wm_class.as_deref());
@@ -630,6 +662,9 @@ mod linux_impl {
                 }
             }
 
+            if self.linux.source.is_empty() || self.linux.source == "none" {
+                self.note_source("none");
+            }
             ForegroundSample::LockedOrNone
         }
 
