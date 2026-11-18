@@ -258,6 +258,197 @@ pub fn top_folders_table(idx: &Index, scope: NodeId, n: usize, mode: FolderMode)
     }
 }
 
+const EXT_FILE_COLS: [Column; 15] = [
+    Column {
+        key: "name",
+        label: "Name",
+    },
+    Column {
+        key: "path",
+        label: "Path",
+    },
+    Column {
+        key: "type",
+        label: "Type",
+    },
+    Column {
+        key: "size",
+        label: "Size",
+    },
+    Column {
+        key: "alloc",
+        label: "On disk",
+    },
+    Column {
+        key: "own_size",
+        label: "Own size",
+    },
+    Column {
+        key: "files",
+        label: "Files",
+    },
+    Column {
+        key: "dirs",
+        label: "Folders",
+    },
+    Column {
+        key: "owner",
+        label: "Owner",
+    },
+    Column {
+        key: "modified",
+        label: "Modified",
+    },
+    Column {
+        key: "created",
+        label: "Created",
+    },
+    Column {
+        key: "accessed",
+        label: "Last opened",
+    },
+    Column {
+        key: "attributes",
+        label: "Attributes",
+    },
+    Column {
+        key: "path_len",
+        label: "Path length",
+    },
+    Column {
+        key: "percent",
+        label: "% of folder",
+    },
+];
+
+fn attr_codes(attrs: u32, flags: u16) -> String {
+    let mut s = String::new();
+    if attrs & 0x1 != 0 {
+        s.push('R');
+    }
+    if attrs & 0x2 != 0 {
+        s.push('H');
+    }
+    if attrs & 0x4 != 0 {
+        s.push('S');
+    }
+    if attrs & 0x20 != 0 {
+        s.push('A');
+    }
+    if attrs & 0x800 != 0 || flags & crate::index::F_COMPRESSED != 0 {
+        s.push('C');
+    }
+    if attrs & 0x4000 != 0 {
+        s.push('E');
+    }
+    if attrs & 0x200 != 0 || flags & crate::index::F_SPARSE != 0 {
+        s.push('P');
+    }
+    if flags & crate::index::F_LINK != 0 {
+        s.push('L');
+    }
+    s
+}
+
+fn node_row_ext(idx: &Index, id: NodeId, size_override: Option<u64>) -> Vec<Value> {
+    let n = idx.node(id).unwrap();
+    let parent_size = if n.parent == crate::index::NONE {
+        n.size
+    } else {
+        idx.node(n.parent).unwrap().size
+    };
+    let size = size_override.unwrap_or(n.size);
+    vec![
+        Value::Text(idx.name(id).to_string()),
+        Value::Text(idx.path_of(id).to_string_lossy().to_string()),
+        Value::Text(
+            if n.is_link() {
+                "Link"
+            } else if n.is_dir() {
+                "Folder"
+            } else {
+                "File"
+            }
+            .into(),
+        ),
+        Value::Bytes(size),
+        Value::Bytes(n.alloc),
+        Value::Bytes(if n.is_dir() { n.own_size } else { n.size }),
+        Value::Int(i64::from(n.files)),
+        Value::Int(i64::from(n.dirs)),
+        Value::Text(idx.owner_of(id).unwrap_or("").to_string()),
+        Value::Time(filetime_to_unix(n.mtime)),
+        Value::Time(filetime_to_unix(n.ctime)),
+        Value::Time(filetime_to_unix(n.atime)),
+        Value::Text(attr_codes(n.attrs, n.flags)),
+        Value::Int(i64::from(idx.path_len(id))),
+        Value::Percent(if parent_size == 0 {
+            0.0
+        } else {
+            size as f64 / parent_size as f64 * 100.0
+        }),
+    ]
+}
+
+pub fn tree_table_ext(idx: &Index, scope: NodeId, depth: u32) -> Table {
+    let mut rows = Vec::new();
+    fn walk(idx: &Index, id: NodeId, depth: u32, rows: &mut Vec<Vec<Value>>) {
+        let mut kids: Vec<NodeId> = idx.children(id).collect();
+        kids.sort_by(|a, b| {
+            idx.node(*b)
+                .unwrap()
+                .size
+                .cmp(&idx.node(*a).unwrap().size)
+                .then(idx.name(*a).cmp(idx.name(*b)))
+        });
+        for k in kids {
+            rows.push(node_row_ext(idx, k, None));
+            if depth > 1 && idx.node(k).unwrap().is_dir() && !idx.node(k).unwrap().is_link() {
+                walk(idx, k, depth - 1, rows);
+            }
+        }
+    }
+    rows.push(node_row_ext(idx, scope, None));
+    walk(idx, scope, depth.max(1), &mut rows);
+    Table {
+        title: format!("Folder report: {}", idx.path_of(scope).display()),
+        note: Some(format!(
+            "Down to {depth} levels. Sizes are what the scan found at the time; they may have changed since."
+        )),
+        columns: EXT_FILE_COLS.to_vec(),
+        rows,
+    }
+}
+
+pub fn top_files_table_ext(idx: &Index, scope: NodeId, n: usize) -> Table {
+    let rows = analyze::top_files(idx, scope, n, &analyze::Filter::default())
+        .into_iter()
+        .map(|v| node_row_ext(idx, v.id, None))
+        .collect();
+    Table {
+        title: "Biggest files".into(),
+        note: None,
+        columns: EXT_FILE_COLS.to_vec(),
+        rows,
+    }
+}
+
+pub fn top_folders_table_ext(idx: &Index, scope: NodeId, n: usize, mode: FolderMode) -> Table {
+    let rows = analyze::top_folders(idx, scope, n, mode, 0)
+        .into_iter()
+        .map(|v| node_row_ext(idx, v.id, Some(v.size)))
+        .collect();
+    Table {
+        title: "Biggest folders".into(),
+        note: Some(match mode {
+            FolderMode::Inclusive => "A folder's size includes everything inside it, so a folder and its subfolders overlap. Do not add these together.".into(),
+            FolderMode::Exclusive => "Sizes count only the files directly inside each folder, so they add up without counting anything twice.".into(),
+        }),
+        columns: EXT_FILE_COLS.to_vec(),
+        rows,
+    }
+}
+
 pub fn groups_table(title: &str, key_label: &'static str, groups: &[Group]) -> Table {
     let total: u64 = groups.iter().map(|g| g.size).sum();
     Table {

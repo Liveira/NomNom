@@ -1,5 +1,5 @@
 //! Questions asked of a finished (or partial) index: a folder's children, the biggest files
-//! anywhere, the biggest folders, and totals by kind.
+//! anywhere, the biggest folders, and totals by kind, owner, age and size bracket.
 
 use crate::index::*;
 use serde::{Deserialize, Serialize};
@@ -12,9 +12,16 @@ pub enum SortKey {
     Name,
     Size,
     Alloc,
+    OwnSize,
+    Wasted,
     Files,
     Dirs,
     Modified,
+    Created,
+    Accessed,
+    Owner,
+    PathLen,
+    Type,
     Percent,
 }
 
@@ -30,6 +37,7 @@ pub struct Filter {
     pub modified_after: Option<i64>,
     pub modified_before: Option<i64>,
     pub name_contains: Option<String>,
+    pub owner_contains: Option<String>,
 }
 
 pub fn extension_of(name: &str) -> String {
@@ -108,6 +116,13 @@ fn matches(idx: &Index, id: NodeId, f: &Filter) -> bool {
             return false;
         }
     }
+    if let Some(o) = &f.owner_contains {
+        let want = o.to_lowercase();
+        let got = idx.owner_of(id).unwrap_or("").to_lowercase();
+        if !got.contains(&want) {
+            return false;
+        }
+    }
     true
 }
 
@@ -127,13 +142,35 @@ pub fn children_page(
     limit: usize,
     text: Option<&str>,
 ) -> Page {
+    children_filtered(idx, id, sort, desc, offset, limit, text, None)
+}
+
+/// Like `children_page`, with an optional `only` filter (`Some("dirs")` or `Some("files")`) used by
+/// the expandable TreeGrid and its `[Files]` group node.
+#[allow(clippy::too_many_arguments)]
+pub fn children_filtered(
+    idx: &Index,
+    id: NodeId,
+    sort: SortKey,
+    desc: bool,
+    offset: usize,
+    limit: usize,
+    text: Option<&str>,
+    only: Option<&str>,
+) -> Page {
     let needle = text.filter(|t| !t.is_empty()).map(str::to_lowercase);
     let mut ids: Vec<NodeId> = idx
         .children(id)
         .filter(|c| {
+            let n = idx.node(*c).unwrap();
+            match only {
+                Some("dirs") if !n.is_dir() => return false,
+                Some("files") if n.is_dir() => return false,
+                _ => {}
+            }
             needle
                 .as_ref()
-                .is_none_or(|n| idx.name(*c).to_lowercase().contains(n))
+                .is_none_or(|nd| idx.name(*c).to_lowercase().contains(nd))
         })
         .collect();
     let key = |c: &NodeId| -> (i128, String) {
@@ -142,9 +179,26 @@ pub fn children_page(
             SortKey::Name => (0, idx.name(*c).to_lowercase()),
             SortKey::Size | SortKey::Percent => (n.size as i128, String::new()),
             SortKey::Alloc => (n.alloc as i128, String::new()),
+            SortKey::OwnSize => (
+                (if n.is_dir() { n.own_size } else { n.size }) as i128,
+                String::new(),
+            ),
+            SortKey::Wasted => ((n.alloc as i128) - (n.size as i128), String::new()),
             SortKey::Files => (n.files as i128, String::new()),
             SortKey::Dirs => (n.dirs as i128, String::new()),
             SortKey::Modified => (n.mtime as i128, String::new()),
+            SortKey::Created => (n.ctime as i128, String::new()),
+            SortKey::Accessed => (n.atime as i128, String::new()),
+            SortKey::Owner => (0, idx.owner_of(*c).unwrap_or("").to_lowercase()),
+            SortKey::PathLen => (idx.path_len(*c) as i128, String::new()),
+            SortKey::Type => (
+                if n.is_dir() { 0 } else { 1 },
+                if n.is_dir() {
+                    String::new()
+                } else {
+                    extension_of(idx.name(*c))
+                },
+            ),
         }
     };
     ids.sort_by(|a, b| {
@@ -314,6 +368,68 @@ pub fn by_category(idx: &Index, scope: NodeId) -> Vec<Group> {
     v
 }
 
+/// Totals by NTFS owner account under `scope`, biggest first.
+pub fn by_owner(idx: &Index, scope: NodeId, limit: usize) -> Vec<Group> {
+    let mut map: std::collections::HashMap<String, Group> = std::collections::HashMap::new();
+    walk(idx, scope, |id| {
+        let n = idx.node(id).unwrap();
+        if n.is_dir() {
+            return;
+        }
+        let key = idx.owner_of(id).unwrap_or("(unknown)").to_string();
+        let g = map.entry(key.clone()).or_insert(Group {
+            key,
+            size: 0,
+            alloc: 0,
+            files: 0,
+        });
+        g.size += n.size;
+        g.alloc += n.alloc;
+        g.files += 1;
+    });
+    let mut v: Vec<Group> = map.into_values().collect();
+    v.sort_by(|a, b| b.size.cmp(&a.size).then(a.key.cmp(&b.key)));
+    v.truncate(limit);
+    v
+}
+
+/// Totals by file size bracket under `scope`, from empty/tiny up to > 1 GB.
+pub fn by_size_bucket(idx: &Index, scope: NodeId) -> Vec<Group> {
+    let buckets: [(&str, u64); 8] = [
+        ("Empty (0 B)", 0),
+        ("Tiny (< 4 KB)", 4 * 1024 - 1),
+        ("Small (4 – 64 KB)", 64 * 1024 - 1),
+        ("Medium (64 KB – 1 MB)", (1 << 20) - 1),
+        ("Large (1 – 16 MB)", (16 << 20) - 1),
+        ("Very large (16 – 100 MB)", (100 << 20) - 1),
+        ("Huge (100 MB – 1 GB)", (1 << 30) - 1),
+        ("Over 1 GB", u64::MAX),
+    ];
+    let mut v: Vec<Group> = buckets
+        .iter()
+        .map(|(k, _)| Group {
+            key: (*k).to_string(),
+            size: 0,
+            alloc: 0,
+            files: 0,
+        })
+        .collect();
+    walk(idx, scope, |id| {
+        let n = idx.node(id).unwrap();
+        if n.is_dir() {
+            return;
+        }
+        let slot = buckets
+            .iter()
+            .position(|(_, max)| n.size <= *max)
+            .unwrap_or(buckets.len() - 1);
+        v[slot].size += n.size;
+        v[slot].alloc += n.alloc;
+        v[slot].files += 1;
+    });
+    v
+}
+
 #[derive(Serialize, Debug, Clone)]
 pub struct TreeView {
     pub id: NodeId,
@@ -321,6 +437,9 @@ pub struct TreeView {
     pub is_dir: bool,
     pub size: u64,
     pub alloc: u64,
+    pub files: u32,
+    pub mtime: Option<i64>,
+    pub ext: String,
     /// Broad kind for colouring (files only; folders are "folder").
     pub category: &'static str,
     pub children: Vec<TreeView>,
@@ -330,22 +449,27 @@ pub struct TreeView {
     pub hidden_alloc: u64,
 }
 
-/// A nested view for the treemap: `depth` levels below `node`, at most `max_children` biggest
-/// children at each level (the rest are counted in `hidden_*`).
+/// A nested view for the treemap and sunburst: `depth` levels below `node`, at most `max_children`
+/// biggest children at each level (the rest are counted in `hidden_*`).
 pub fn treemap(idx: &Index, node: NodeId, depth: u32, max_children: usize) -> TreeView {
     let n = idx.node(node).unwrap();
     let is_dir = n.is_dir();
+    let name = idx.name(node).to_string();
+    let ext = if is_dir {
+        String::new()
+    } else {
+        extension_of(&name)
+    };
     let mut v = TreeView {
         id: node,
-        name: idx.name(node).to_string(),
+        name,
         is_dir,
         size: n.size,
         alloc: n.alloc,
-        category: if is_dir {
-            "folder"
-        } else {
-            category_of(&extension_of(idx.name(node)))
-        },
+        files: if is_dir { n.files } else { 1 },
+        mtime: filetime_to_unix(n.mtime),
+        category: if is_dir { "folder" } else { category_of(&ext) },
+        ext,
         children: Vec::new(),
         hidden_count: 0,
         hidden_size: 0,

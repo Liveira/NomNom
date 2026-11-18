@@ -33,6 +33,12 @@ pub enum Kind {
     BatchRename,
     /// Put the items in one ZIP file in the destination folder.
     Zip,
+    /// Compress files or folders in place using NTFS compression (`FSCTL_SET_COMPRESSION`).
+    Compress,
+    /// Uncompress NTFS-compressed files or folders in place.
+    Decompress,
+    /// Replace duplicate copies with NTFS hardlinks to the kept file on the same drive.
+    Hardlink,
 }
 
 /// What was on disk when the plan was made.
@@ -76,7 +82,10 @@ pub fn plan_duplicates(
     groups: &[(NodeId, Vec<NodeId>)],
     protect: &Protected,
 ) -> Plan {
-    assert!(matches!(kind, Kind::Recycle | Kind::Delete));
+    assert!(matches!(
+        kind,
+        Kind::Recycle | Kind::Delete | Kind::Hardlink
+    ));
     let removing: Vec<NodeId> = groups.iter().flat_map(|(_, r)| r.iter().copied()).collect();
     let mut plan = plan(idx, kind, &removing, None, None, protect);
     let mut kept_somewhere: Vec<NodeId> = Vec::new();
@@ -93,6 +102,9 @@ pub fn plan_duplicates(
         } else {
             match snap_of(&idx.path_of(*keep)) {
                 Ok(k) if k.id == item.snap.id => Some("This is another name for the same file as the copy kept, so deleting it frees nothing."),
+                Ok(k) if kind == Kind::Hardlink && k.id.volume != item.snap.id.volume => {
+                    Some("Hardlinks only work when both files are on the same drive.")
+                }
                 Ok(k) if k.size != item.snap.size || k.is_dir || k.is_reparse => Some("It isn't the same size as the copy kept."),
                 Ok(_) => None,
                 Err(_) => Some("The copy to keep can't be found."),
@@ -499,6 +511,13 @@ pub fn run(
             Kind::BatchRename => match item.new_name.as_deref() {
                 Some(n) => rename_item(item, n).map(Some),
                 None => Err(skip("It has no new name.")),
+            },
+            Kind::Compress => compress_item(item, true, cancel).map(|_| None),
+            Kind::Decompress => compress_item(item, false, cancel).map(|_| None),
+            Kind::Hardlink => match item.keep.as_ref() {
+                Some(keep) => crate::ntfs::replace_with_hardlink(&keep.path, &item.path)
+                    .map(|_| Some(keep.path.clone())),
+                None => Err(skip("It has no kept file to link to.")),
             },
             // Zipping is done as a whole before this loop.
             Kind::Zip => Err(skip("Handled with the archive.")),
@@ -970,4 +989,57 @@ fn rename_item(item: &Item, new_name: &str) -> io::Result<PathBuf> {
         nomnom_core::fs::move_no_replace(&long_os_path(&item.path), &long_os_path(&target))?;
     }
     Ok(target)
+}
+
+// ---- NTFS compression ----------------------------------------------------------------------
+
+fn compress_item(item: &Item, compress: bool, cancel: &AtomicBool) -> io::Result<()> {
+    let mut f = Failures::default();
+    compress_tree(&item.path, compress, cancel, &mut f);
+    match f.first {
+        None => Ok(()),
+        Some(first) => Err(io::Error::other(format!(
+            "{} {} couldn't be {}. First problem: {first}",
+            f.count,
+            if f.count == 1 { "item" } else { "items" },
+            if compress {
+                "compressed"
+            } else {
+                "uncompressed"
+            }
+        ))),
+    }
+}
+
+fn compress_tree(path: &Path, compress: bool, cancel: &AtomicBool, f: &mut Failures) {
+    if cancel.load(Ordering::SeqCst) {
+        return fail_msg(f, path, "Stopped before everything was processed.");
+    }
+    let long = long_os_path(path);
+    let md = match std::fs::symlink_metadata(&long) {
+        Ok(m) => m,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return,
+        Err(e) => return fail(f, path, &e),
+    };
+    let attrs = md.file_attributes();
+    if attrs & ATTR_REPARSE != 0 {
+        return; // never follow junctions or symlinks
+    }
+    if let Err(e) = crate::ntfs::set_ntfs_compression(path, compress) {
+        fail(f, path, &e);
+        return;
+    }
+    if attrs & ATTR_DIRECTORY != 0 {
+        match std::fs::read_dir(&long) {
+            Ok(rd) => {
+                for entry in rd.flatten() {
+                    if cancel.load(Ordering::SeqCst) {
+                        return fail_msg(f, path, "Stopped before everything was processed.");
+                    }
+                    compress_tree(&path.join(entry.file_name()), compress, cancel, f);
+                }
+            }
+            Err(e) => fail(f, path, &e),
+        }
+    }
 }

@@ -1,5 +1,6 @@
 //! Advanced search over a scan. A query is a small tree: AND, OR and NOT over conditions on the
-//! name, path, extension, size, dates, attributes and kind. Matching never touches the disk.
+//! name, path, extension, size, dates, attributes, owner, path length, empty folders and kind.
+//! Matching never touches the disk.
 
 use crate::analyze::{category_of, extension_of};
 use crate::index::*;
@@ -47,6 +48,16 @@ pub enum Query {
         #[serde(default)]
         mode: TextMode,
     },
+    Owner {
+        text: String,
+        #[serde(default)]
+        mode: TextMode,
+    },
+    PathLen {
+        min: Option<u32>,
+        max: Option<u32>,
+    },
+    EmptyFolder,
     Ext {
         values: Vec<String>,
     },
@@ -66,7 +77,7 @@ pub enum Query {
         older_than_days: Option<u32>,
         newer_than_days: Option<u32>,
     },
-    /// "hidden", "system", "readonly", "compressed", "sparse", "link".
+    /// "hidden", "system", "readonly", "archive", "compressed", "encrypted", "offline", "sparse", "link", "hardlink", "streams".
     Attr {
         name: String,
         set: bool,
@@ -86,6 +97,9 @@ enum C {
     Not(Box<C>),
     Name(Matcher),
     Path(Matcher),
+    Owner(Matcher),
+    PathLen(Option<u32>, Option<u32>),
+    EmptyFolder,
     Ext(Vec<String>),
     Size(Option<u64>, Option<u64>),
     Date(DateField, Option<i64>, Option<i64>),
@@ -169,6 +183,9 @@ pub fn compile(q: &Query, now: i64) -> Result<Compiled, String> {
                 *needs_path = true;
                 C::Path(matcher(text, *mode)?)
             }
+            Query::Owner { text, mode } => C::Owner(matcher(text, *mode)?),
+            Query::PathLen { min, max } => C::PathLen(*min, *max),
+            Query::EmptyFolder => C::EmptyFolder,
             Query::Ext { values } => C::Ext(
                 values
                     .iter()
@@ -186,7 +203,6 @@ pub fn compile(q: &Query, now: i64) -> Result<Compiled, String> {
                 older_than_days,
                 newer_than_days,
             } => {
-                // "Older than N days" means modified before now - N days.
                 let day = 86_400i64;
                 let before = older_than_days.map(|d| now - i64::from(d) * day);
                 let after = newer_than_days.map(|d| now - i64::from(d) * day);
@@ -197,9 +213,14 @@ pub fn compile(q: &Query, now: i64) -> Result<Compiled, String> {
                     "hidden" => (ATTR_HIDDEN, 0),
                     "system" => (ATTR_SYSTEM, 0),
                     "readonly" => (ATTR_READONLY, 0),
-                    "compressed" => (0, F_COMPRESSED),
-                    "sparse" => (0, F_SPARSE),
+                    "archive" => (ATTR_ARCHIVE, 0),
+                    "encrypted" => (ATTR_ENCRYPTED, 0),
+                    "offline" => (ATTR_OFFLINE_FLAG, 0),
+                    "compressed" => (0x800, F_COMPRESSED),
+                    "sparse" => (0x200, F_SPARSE),
                     "link" => (0, F_LINK),
+                    "hardlink" => (0, F_HARDLINK_DUP),
+                    "streams" => (0, F_HAS_ADS),
                     other => return Err(format!("Unknown attribute \"{other}\".")),
                 };
                 C::Attr(mask, flag, *set)
@@ -225,6 +246,12 @@ fn eval(c: &C, idx: &Index, id: NodeId, path: &str) -> bool {
         C::Not(x) => !eval(x, idx, id, path),
         C::Name(m) => m.is(idx.name(id)),
         C::Path(m) => m.is(path),
+        C::Owner(m) => idx.owner_of(id).is_some_and(|o| m.is(o)),
+        C::PathLen(min, max) => {
+            let len = idx.path_len(id);
+            min.is_none_or(|m| len >= m) && max.is_none_or(|m| len <= m)
+        }
+        C::EmptyFolder => n.is_dir() && !n.is_link() && n.files == 0 && n.dirs == 0,
         C::Ext(v) => !n.is_dir() && v.contains(&extension_of(idx.name(id))),
         C::Size(min, max) => min.is_none_or(|m| n.size >= m) && max.is_none_or(|m| n.size <= m),
         C::Date(f, after, before) => {
