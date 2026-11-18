@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/banner.png" alt="NomNom: downloads, arquivos e espaço em disco, tudo no seu próprio computador" width="100%">
+<img src=".github/assets/banner.png" alt="NomNom" width="100%">
 
 <br>
 
