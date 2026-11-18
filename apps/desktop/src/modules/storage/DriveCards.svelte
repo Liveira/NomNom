@@ -1,6 +1,7 @@
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
   import { formatBytes } from '../../lib/format';
+  import { adminName, isLinux } from '../../lib/platform';
   import { driveKindLabel, driveTitle, usagePercent } from './logic';
   import { storage } from './store.svelte';
 
@@ -20,14 +21,14 @@
       <button class="plain" onclick={() => storage.openScanFile()}>Open saved scan…</button>
       <button class="plain" onclick={() => storage.loadDrives()} disabled={storage.drivesLoading}>Refresh drives</button>
       <button class="plain" onclick={() => chooseFolder(false)}>Choose a folder…</button>
-      <button class="plain" onclick={() => chooseFolder(true)} title="Ask Windows for Administrator permission to read protected folders">Folder as Admin…</button>
+      <button class="plain" onclick={() => chooseFolder(true)} title={isLinux ? 'Ask Polkit for root permission to read protected folders' : 'Ask Windows for Administrator permission to read protected folders'}>Folder as {isLinux ? 'root' : 'Admin'}…</button>
     </div>
   </div>
 
   {#if showOpts}
     <div class="opts" role="region" aria-label="Scan options">
-      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectOwners} /> Read NTFS file owners</label>
-      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectStreams} /> Check NTFS alternate data streams</label>
+      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectOwners} /> Read file owners</label>
+      <label class="chk"><input type="checkbox" bind:checked={storage.scanCollectStreams} /> Check {isLinux ? 'extended attributes (xattr)' : 'NTFS alternate data streams'}</label>
       <label class="excl">Skip names or patterns
         <input bind:value={storage.scanExcludeText} placeholder="node_modules, .git, *.tmp" aria-label="Names or patterns to skip" />
       </label>
@@ -57,8 +58,8 @@
           <p class="hint">Not ready (no disk or no access).</p>
         {/if}
         <div class="cardbtns">
-          <button class="primary grow" disabled={d.total === 0} onclick={() => storage.start(d.root, false)}>Analyze {d.letter}:</button>
-          <button class="plain" disabled={d.total === 0} onclick={() => storage.start(d.root, true)} title="Scan as Administrator to include protected Windows folders and NTFS file table size">As Admin</button>
+          <button class="primary grow" disabled={d.total === 0} onclick={() => storage.start(d.root, false)}>Analyze {d.root.startsWith('/') ? d.root : `${d.letter}:`}</button>
+          <button class="plain" disabled={d.total === 0} onclick={() => storage.start(d.root, true)} title={`Scan as ${adminName} to include protected system folders`}>{isLinux ? 'As root' : 'As Admin'}</button>
         </div>
       </div>
     {/each}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app } from '../../app/state.svelte';
   import { browserIpc, type BrowserStatus } from '../../lib/ipc';
+  import { nativeHostExeName } from '../../lib/platform';
   import Switch from '../../lib/ui/Switch.svelte';
 
   let status = $state<BrowserStatus | null>(null);
@@ -47,7 +48,7 @@
       </div>
       {#if status?.detail}<div class="hint">{status.detail}</div>{/if}
       {#if status && !status.helper_found}
-        <div class="hint bad">The helper program (nomnom-native-host.exe) is missing. Reinstall NomNom.</div>
+        <div class="hint bad">The helper program ({nativeHostExeName}) is missing. Reinstall NomNom.</div>
       {/if}
     </div>
     <div class="buttons">

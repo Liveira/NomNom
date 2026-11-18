@@ -12,7 +12,6 @@ nomnom-core = { path = "../../../crates/nomnom-core" }
 nomnom-tools = { path = "../../../crates/nomnom-tools" }
 nomnom-downloads = { path = "../../../crates/nomnom-downloads" }
 nomnom-ipc = { path = "../../../crates/nomnom-ipc" }
-nomnom-win = { path = "../../../crates/nomnom-win" }
 nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
 nomnom-converter = { path = "../../../crates/nomnom-converter" }
 nomnom-storage = { path = "../../../crates/nomnom-storage" }
@@ -36,7 +35,14 @@ anyhow.workspace = true
 uuid.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+nomnom-win = { path = "../../../crates/nomnom-win" }
 windows = { version = "0.58", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization"] }
+
+[target.'cfg(not(windows))'.dependencies]
+nomnom-linux = { path = "../../../crates/nomnom-linux" }
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

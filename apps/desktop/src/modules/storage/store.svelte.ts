@@ -1,4 +1,5 @@
 import { open as pickDialog, save as saveFile } from '@tauri-apps/plugin-dialog';
+import { trashPhrase } from '../../lib/platform';
 import {
   stIpc,
   stTools,
@@ -384,7 +385,7 @@ class StorageStore {
       this.dialog = { type: 'result', report, kind };
     } else {
       const verb: Record<StOpKind, string> = {
-        recycle: 'Moved to the Recycle Bin',
+        recycle: `Moved to ${trashPhrase}`,
         delete: 'Deleted',
         copy: 'Copied',
         move: 'Moved',

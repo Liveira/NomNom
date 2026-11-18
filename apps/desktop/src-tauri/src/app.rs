@@ -54,6 +54,16 @@ pub fn run() {
     }
     let background = wants_background(&args);
 
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
+        && std::env::var_os("WAYLAND_DISPLAY").is_some()
+        && std::path::Path::new("/dev/nvidia0").exists()
+    {
+        // Prevents blank WebKitGTK surfaces on Wayland compositors (Hyprland, Sway, Plasma, GNOME)
+        // with proprietary NVIDIA drivers unless the user explicitly set the variable themselves.
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     let paths = Paths::resolve().expect("couldn't locate the user's known folders");
     let _ = std::fs::create_dir_all(&paths.data_dir);
     let _log_guard = init_logging(&paths);

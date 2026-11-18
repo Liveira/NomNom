@@ -1,8 +1,10 @@
 //! NomNom's own updates: look at the latest published release, and on request download its
-//! installer, check it against the published SHA-256, run it and quit so it can replace the files.
+//! package, check it against the published SHA-256, and apply or save it safely.
 //!
-//! The check only reads the release page. A download or install happens only when the user presses
-//! the button, and never while a download is running.
+//! - On Windows: starts the NSIS updater (`/P /UPDATE /R`) and quits so it can replace the files.
+//! - On Linux: when running as a writable `.AppImage`, replaces the `.AppImage` atomically and
+//!   relaunches it; when running from a system package (`pacman` `.pkg.tar.zst` or `apt` `.deb`),
+//!   saves the SHA-256-verified package into Downloads and reveals it in the file manager.
 
 use crate::state::AppState;
 use nomnom_tools::update::{self, Available, Check};
@@ -73,9 +75,10 @@ pub async fn update_check(app: AppHandle) -> CmdResult<Check> {
     run_check(&app).await
 }
 
-/// Downloads the installer found by the last check, checks it, starts it and quits NomNom.
+/// Downloads the package found by the last check, verifies its SHA-256, and applies it (or reveals
+/// the verified package in Downloads when managed by a Linux system package manager).
 #[tauri::command]
-pub async fn update_install(app: AppHandle) -> CmdResult<()> {
+pub async fn update_install(app: AppHandle) -> CmdResult<Option<String>> {
     let state = app.state::<AppState>();
     let updates = app.state::<UpdateState>();
     let Some(wanted) = updates.available.lock().unwrap().clone() else {
@@ -101,15 +104,21 @@ pub async fn update_install(app: AppHandle) -> CmdResult<()> {
         }
         *busy = true;
     }
-    let result = download_and_start(&app, &wanted).await;
+    let result = download_and_apply(&app, &wanted).await;
     *updates.busy.lock().unwrap() = false;
-    result?;
-    // The installer needs NomNom closed to replace its files.
-    app.exit(0);
-    Ok(())
+    let outcome = result?;
+    if outcome.should_exit {
+        app.exit(0);
+    }
+    Ok(outcome.message)
 }
 
-async fn download_and_start(app: &AppHandle, wanted: &Available) -> CmdResult<()> {
+struct ApplyOutcome {
+    should_exit: bool,
+    message: Option<String>,
+}
+
+async fn download_and_apply(app: &AppHandle, wanted: &Available) -> CmdResult<ApplyOutcome> {
     let dir = std::env::temp_dir().join("NomNom-update");
     let emitter = app.clone();
     let last = Mutex::new(Instant::now() - Duration::from_secs(1));
@@ -123,29 +132,101 @@ async fn download_and_start(app: &AppHandle, wanted: &Available) -> CmdResult<()
     let file = update::download(wanted, &dir, &progress)
         .await
         .map_err(|e| e.to_string())?;
-    launch_installer(&file).map_err(|e| format!("The installer couldn't be started: {e}"))
+    apply_downloaded_package(app, &file)
 }
 
-/// Starts the installer on its own, so it keeps running after NomNom quits. This is not
-/// `nomnom_core::process::spawn` on purpose: that ties the child to NomNom's process group.
-/// `/P` shows progress without questions, `/UPDATE` marks it as an update, `/R` starts NomNom again.
-fn launch_installer(file: &std::path::Path) -> std::io::Result<()> {
+#[cfg(windows)]
+fn apply_downloaded_package(_app: &AppHandle, file: &std::path::Path) -> CmdResult<ApplyOutcome> {
+    use std::os::windows::process::CommandExt;
+    const DETACHED_PROCESS: u32 = 0x0000_0008;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+
     let mut cmd = std::process::Command::new(file);
-    cmd.args(["/P", "/UPDATE", "/R"]);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const DETACHED_PROCESS: u32 = 0x0000_0008;
-        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
-        cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+    cmd.args(["/P", "/UPDATE", "/R"])
+        .creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+    cmd.spawn()
+        .map_err(|e| format!("The installer couldn't be started: {e}"))?;
+    Ok(ApplyOutcome {
+        should_exit: true,
+        message: None,
+    })
+}
+
+#[cfg(not(windows))]
+fn apply_downloaded_package(app: &AppHandle, file: &std::path::Path) -> CmdResult<ApplyOutcome> {
+    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::process::CommandExt;
+    use tauri_plugin_opener::OpenerExt;
+
+    let name_lower = file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    // In-place AppImage self-update when launched from a writable AppImage path.
+    if name_lower.ends_with(".appimage") {
+        let _ = std::fs::set_permissions(file, std::fs::Permissions::from_mode(0o755));
+        if let Some(current_appimage) = std::env::var_os("APPIMAGE").map(std::path::PathBuf::from) {
+            let sibling = current_appimage.with_extension("AppImage.new");
+            if std::fs::copy(file, &sibling).is_ok() {
+                let _ = std::fs::set_permissions(&sibling, std::fs::Permissions::from_mode(0o755));
+                if std::fs::rename(&sibling, &current_appimage).is_ok() {
+                    let _ = std::fs::remove_file(file);
+                    let _ = std::process::Command::new(&current_appimage)
+                        .stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .process_group(0)
+                        .spawn();
+                    return Ok(ApplyOutcome {
+                        should_exit: true,
+                        message: None,
+                    });
+                }
+                let _ = std::fs::remove_file(&sibling);
+            }
+        }
     }
-    cmd.spawn().map(|_| ())
+
+    // System package (.pkg.tar.zst on Arch, .deb on Debian/Ubuntu, or standalone AppImage):
+    // place the verified file in Downloads without overwriting anything and reveal it.
+    let downloads = app.state::<AppState>().paths.downloads.clone();
+    let file_name = file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("nomnom-update");
+    if name_lower.ends_with(".appimage") {
+        let _ = std::fs::set_permissions(file, std::fs::Permissions::from_mode(0o755));
+    }
+    let saved = nomnom_downloads::files::finalize(file, &downloads, file_name)
+        .map_err(|e| format!("Couldn't save the verified package in Downloads: {e}"))?;
+    let _ = app.opener().reveal_item_in_dir(&saved);
+
+    let hint = if name_lower.ends_with(".pkg.tar.zst") {
+        format!(
+            "Verified and saved to {}. Install with: sudo pacman -U \"{}\"",
+            saved.display(),
+            saved.display()
+        )
+    } else if name_lower.ends_with(".deb") {
+        format!(
+            "Verified and saved to {}. Install with: sudo apt install \"{}\"",
+            saved.display(),
+            saved.display()
+        )
+    } else {
+        format!("Verified and saved to {}.", saved.display())
+    };
+    Ok(ApplyOutcome {
+        should_exit: false,
+        message: Some(hint),
+    })
 }
 
 /// Checks on start and then about once a day, if the user left automatic checks on.
 pub fn spawn(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        // Let NomNom finish starting before touching the network.
         tokio::time::sleep(Duration::from_secs(30)).await;
         loop {
             let cfg = app.state::<AppState>().settings.get().updates;

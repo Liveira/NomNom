@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { stIpc, type StError } from '../../lib/ipc';
+  import { adminName, fileManagerName, isLinux, trashName } from '../../lib/platform';
   import ContextMenu, { type MenuItem } from '../../lib/ui/ContextMenu.svelte';
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import Charts from './Charts.svelte';
@@ -122,7 +123,7 @@
     const folder = one && sel[0]?.is_dir && !sel[0].is_link;
     const items: MenuItem[] = [
       { id: 'open', label: folder ? 'Open folder' : 'Open', disabled: !one, hint: 'Enter' },
-      { id: 'reveal', label: 'Show in Explorer', disabled: !one },
+      { id: 'reveal', label: `Show in ${fileManagerName}`, disabled: !one },
       { id: 'copypath', label: 'Copy path', disabled: count === 0 },
       { id: 'copy', label: 'Copy', hint: 'Ctrl+C', separatorBefore: true, disabled: count === 0 },
       { id: 'cut', label: 'Cut', hint: 'Ctrl+X', disabled: count === 0 },
@@ -132,10 +133,10 @@
       { id: 'rename', label: 'Rename', hint: 'F2', separatorBefore: true, disabled: !one },
       { id: 'batchrename', label: 'Rename in batch…', disabled: count < 2 },
       { id: 'zip', label: 'Add to ZIP file…', disabled: count === 0 },
-      { id: 'compress', label: 'Compress on disk (NTFS)…', separatorBefore: true, disabled: count === 0 },
-      { id: 'decompress', label: 'Uncompress (NTFS)…', disabled: count === 0 },
+      { id: 'compress', label: isLinux ? 'Compress on disk…' : 'Compress on disk (NTFS)…', separatorBefore: true, disabled: count === 0 },
+      { id: 'decompress', label: isLinux ? 'Uncompress on disk…' : 'Uncompress (NTFS)…', disabled: count === 0 },
       { id: 'savepaths', label: 'Save list of paths…', disabled: count === 0 },
-      { id: 'recycle', label: 'Move to Recycle Bin', hint: 'Delete', separatorBefore: true, disabled: count === 0 },
+      { id: 'recycle', label: `Move to ${trashName}`, hint: 'Delete', separatorBefore: true, disabled: count === 0 },
       { id: 'delete', label: 'Delete permanently…', hint: 'Shift+Delete', disabled: count === 0 },
       { id: 'rescan', label: 'Scan this folder again', separatorBefore: true, disabled: !folder },
       { id: 'properties', label: 'Properties', hint: 'Alt+Enter' },
@@ -295,7 +296,7 @@
       {#if count > 0}<span class="tabular">{count.toLocaleString()} selected</span>{/if}
       {#if p.errors > 0}<button class="link" onclick={showErrors}>{p.errors.toLocaleString()} {p.errors === 1 ? 'place' : 'places'} couldn't be read</button>{/if}
       {#if !p.elevated && !storage.busy && p.errors > 0}
-        <button class="link" onclick={() => storage.start(p.root, true)}>Scan as Administrator</button>
+        <button class="link" onclick={() => storage.start(p.root, true)}>Scan as {adminName}</button>
       {/if}
       {#if storage.busy}<span class="partial">Results so far. Totals will change.</span>{/if}
       {#if opBusy && storage.opProgress}<span class="partial">Working: {storage.opProgress.done} of {storage.opProgress.total} <button class="link" onclick={() => storage.cancelOp()}>Stop</button></span>{/if}
@@ -307,7 +308,7 @@
         {#each errors.slice(0, 200) as e (e.path)}<div><span class="mono">{e.path}</span> <span class="hint">{e.message}</span></div>{/each}
         {#if errors.length > 200}<div class="hint">and {errors.length - 200} more</div>{/if}
         {#if !p.elevated}
-          <p class="hint">NomNom runs without administrator rights by default. Use "Scan as Administrator" if you want to read protected Windows folders too.</p>
+          <p class="hint">NomNom runs with normal user permissions by default. Use "Scan as {adminName}" if you want to read protected system folders too.</p>
         {/if}
       </div>
     {/if}

@@ -2666,10 +2666,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "libc",
  "nomnom-converter",
  "nomnom-core",
  "nomnom-downloads",
  "nomnom-ipc",
+ "nomnom-linux",
  "nomnom-organizer",
  "nomnom-storage",
  "nomnom-tools",
@@ -2769,6 +2771,16 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "windows 0.58.0",
+]
+
+[[package]]
+name = "nomnom-linux"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

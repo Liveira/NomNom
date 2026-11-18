@@ -48,12 +48,18 @@
   async function install() {
     installing = true;
     error = '';
+    note = '';
     done = 0;
     total = null;
     try {
-      await updateIpc.install();
+      const msg = await updateIpc.install();
+      if (msg) {
+        note = msg;
+        app.newVersion = null;
+      }
     } catch (e) {
       error = String(e);
+    } finally {
       installing = false;
     }
   }

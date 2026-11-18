@@ -1,5 +1,6 @@
 //! Loads the menu the way Explorer does (through COM) against a throwaway folder and a stand-in
 //! for nomnom.exe that records its arguments. One test, because it changes process-wide settings.
+#![cfg(windows)]
 
 use nomnom_shell::{reset_cache, DllGetClassObject};
 use std::ffi::c_void;

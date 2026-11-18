@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app } from '../../app/state.svelte';
   import { browserIpc } from '../../lib/ipc';
+  import { isLinux } from '../../lib/platform';
   import Switch from '../../lib/ui/Switch.svelte';
 
   let menu = $state(true);
@@ -40,12 +41,12 @@
 
 <section class="card" aria-label="First-time setup">
   <h3>Set up NomNom</h3>
-  <p class="intro">Pick what NomNom may add to Windows. You can change any of this later in Settings.</p>
+  <p class="intro">Pick what NomNom may add to {isLinux ? 'your desktop' : 'Windows'}. You can change any of this later in Settings.</p>
 
   <div class="row">
     <div>
       <div class="label">Add NomNom to the right-click menu</div>
-      <div class="hint">Convert pictures, sound, video and documents from Explorer.</div>
+      <div class="hint">Convert files and analyze folders from {isLinux ? 'Dolphin, Files and Nemo' : 'Explorer'}.</div>
     </div>
     <Switch checked={menu} label="Add NomNom to the right-click menu" onchange={(v) => (menu = v)} />
   </div>
@@ -58,10 +59,10 @@
   </div>
   <div class="row">
     <div>
-      <div class="label">Start NomNom with Windows</div>
+      <div class="label">{isLinux ? 'Start NomNom on login' : 'Start NomNom with Windows'}</div>
       <div class="hint">Runs in the tray, without a window.</div>
     </div>
-    <Switch checked={startup} label="Start NomNom with Windows" onchange={(v) => (startup = v)} />
+    <Switch checked={startup} label={isLinux ? 'Start NomNom on login' : 'Start NomNom with Windows'} onchange={(v) => (startup = v)} />
   </div>
 
   {#if error}<p class="error" role="alert">{error}</p>{/if}

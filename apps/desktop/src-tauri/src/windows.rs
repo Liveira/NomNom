@@ -2,12 +2,9 @@ use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 pub const MAIN: &str = "main";
 
-/// Debug builds only: lets automated UI checks attach to the WebView on a local port.
+/// Debug builds on Windows only: lets automated UI checks attach to WebView2 on a local port.
 /// Compiled out of release builds, so shipped NOMNOM never opens a debugging port.
-///
-/// Every window must get the same arguments: WebView2 refuses to create a second window in a
-/// shared profile with different browser arguments.
-#[cfg(debug_assertions)]
+#[cfg(all(debug_assertions, windows))]
 pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M> {
@@ -19,7 +16,7 @@ pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
     }
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(not(all(debug_assertions, windows)))]
 pub fn shared_webview_args<'a, R: Runtime, M: Manager<R>>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M> {

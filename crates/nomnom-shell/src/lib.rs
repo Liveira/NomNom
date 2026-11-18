@@ -3,6 +3,7 @@
 //! Explorer loads this DLL into its own process, so it does as little as possible: no file reads
 //! except the small `integration.json`, no network, and the NomNom program is only started when the
 //! user picks an entry. What the menu offers comes from `nomnom_win::shell_menu::TABLE`.
+#![cfg(windows)]
 #![allow(non_snake_case)]
 #![allow(linker_messages)]
 

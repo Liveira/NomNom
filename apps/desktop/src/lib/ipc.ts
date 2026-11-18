@@ -368,9 +368,10 @@ export function onFileToolsInbox(handler: () => void): Promise<UnlistenFn> {
   return listen('filetools://inbox', () => handler());
 }
 
-// ---- Windows integration ---------------------------------------------------------------------
+// ---- Desktop integration ---------------------------------------------------------------------
 export interface IntegrationStatus {
-  shell: { enabled: boolean; mode: 'modern' | 'classic' | 'none'; note: string | null };
+  platform?: 'windows' | 'linux';
+  shell: { enabled: boolean; mode: 'modern' | 'classic' | 'linux' | 'none'; note: string | null };
   autostart: boolean;
   has_modern_package: boolean;
 }
@@ -396,7 +397,7 @@ export const updateIpc = {
   version: () => invoke<string>('update_version'),
   known: () => invoke<UpdateAvailable | null>('update_known'),
   check: () => invoke<UpdateCheck>('update_check'),
-  install: () => invoke<void>('update_install'),
+  install: () => invoke<string | null>('update_install'),
 };
 export function onUpdateAvailable(handler: (u: UpdateAvailable) => void): Promise<UnlistenFn> {
   return listen<UpdateAvailable>('update://available', (e) => handler(e.payload));

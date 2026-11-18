@@ -17,9 +17,11 @@ describe('update helpers', () => {
     expect(percent(50, 0)).toBeNull();
   });
 
-  it('says what the install does', () => {
+  it('says what the install does on Windows and Linux packages', () => {
     const u = { version: '0.2.0', notes: '', page: '', file_name: 'a-setup.exe', url: '', size: 0, sha256: '' };
     expect(installLine(u)).toContain('checks it against the checksum');
     expect(installLine({ ...u, size: 5 * 1048576 })).toContain('5');
+    expect(installLine({ ...u, file_name: 'nomnom-0.2.0-1-x86_64.pkg.tar.zst' })).toContain('package manager');
+    expect(installLine({ ...u, file_name: 'NOMNOM_0.2.0_amd64.AppImage' })).toContain('AppImage');
   });
 });

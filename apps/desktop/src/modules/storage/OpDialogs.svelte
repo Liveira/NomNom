@@ -3,6 +3,7 @@
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
   import { save as saveFile, open as pickFolder } from '@tauri-apps/plugin-dialog';
   import { formatBytes } from '../../lib/format';
+  import { isLinux, trashPhrase } from '../../lib/platform';
   import { stTools, type StOpKind, type StRenameRow, type StRenameRule, type StReportSpec } from '../../lib/ipc';
   import { attributeLabels } from './logic';
   import { storage } from './store.svelte';
@@ -197,7 +198,7 @@
   }
 
   const verbs: Record<StOpKind, string> = {
-    recycle: 'Move to the Recycle Bin',
+    recycle: `Move to ${trashPhrase}`,
     delete: 'Delete permanently',
     copy: 'Copy',
     move: 'Move',
@@ -209,14 +210,14 @@
     hardlink: 'Replace with hardlinks',
   };
   const titles: Record<StOpKind, string> = {
-    recycle: 'Move to the Recycle Bin?',
+    recycle: `Move to ${trashPhrase}?`,
     delete: 'Delete permanently?',
     copy: 'Copy these items?',
     move: 'Move these items?',
     rename: 'Rename?',
     batch_rename: 'Rename these items?',
     zip: 'Add these items to a ZIP file?',
-    compress: 'Compress these items on disk (NTFS)?',
+    compress: isLinux ? 'Compress these items on disk?' : 'Compress these items on disk (NTFS)?',
     decompress: 'Uncompress these items on disk?',
     hardlink: 'Replace duplicate copies with hardlinks?',
   };
@@ -236,9 +237,9 @@
   {@const permanent = p.kind === 'delete'}
   <Dialog title={titles[p.kind]} onclose={close} locked={dlg.busy}>
     {#if permanent}
-      <p class="danger" role="alert"><strong>These items will NOT go to the Recycle Bin.</strong> They can't be brought back by Windows.</p>
+      <p class="danger" role="alert"><strong>These items will NOT go to {trashPhrase}.</strong> They are removed immediately and can't be restored from {trashPhrase}.</p>
     {:else if p.kind === 'compress'}
-      <p class="hint">Windows NTFS compression shrinks files transparently on disk. Every program still reads and writes them normally.</p>
+      <p class="hint">{isLinux ? 'Filesystem compression (supported on Btrfs and compatible filesystems) shrinks files transparently on disk.' : 'Windows NTFS compression shrinks files transparently on disk. Every program still reads and writes them normally.'}</p>
     {:else if p.kind === 'hardlink'}
       <p class="hint">Each marked copy is verified byte for byte against the kept file, then linked to the same data on disk so all paths stay in place.</p>
     {/if}

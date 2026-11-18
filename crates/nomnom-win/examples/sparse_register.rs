@@ -1,4 +1,5 @@
 //! Development helper: tries to register (or remove) the menu package.
+#[cfg(windows)]
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     match a.get(1).map(String::as_str) {
@@ -10,4 +11,10 @@ fn main() {
         Some("list") => println!("{:?}", nomnom_win::sparse::installed()),
         _ => eprintln!("usage: sparse_register add <msix> <install dir> | remove | list"),
     }
+}
+
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("sparse_register is only used on Windows");
+    std::process::exit(1);
 }

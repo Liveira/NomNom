@@ -37,6 +37,10 @@ export function driveKindLabel(d: Pick<StDrive, 'kind' | 'media'>): string {
 }
 
 export function driveTitle(d: StDrive): string {
+  if (d.root.startsWith('/')) {
+    if (d.root === '/') return d.label ? `Root (${d.label})` : 'Root filesystem (/)';
+    return d.label ? `${d.root} (${d.label})` : d.root;
+  }
   return d.label ? `${d.label} (${d.letter}:)` : `Local disk (${d.letter}:)`;
 }
 

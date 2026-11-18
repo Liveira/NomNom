@@ -4,10 +4,8 @@ use crate::shell_menu::{all_exts, SHELL_CLSID};
 
 /// `template` is `packaging/sparse/AppxManifest.template.xml`.
 pub fn render(template: &str, publisher: &str, version: &str) -> String {
-    let mut item_types: Vec<String> = vec![
-        "Directory".to_string(),
-        r"Directory\Background".to_string(),
-    ];
+    let mut item_types: Vec<String> =
+        vec!["Directory".to_string(), r"Directory\Background".to_string()];
     item_types.extend(all_exts().into_iter().map(|e| format!(".{e}")));
     let items: String = item_types
         .iter()

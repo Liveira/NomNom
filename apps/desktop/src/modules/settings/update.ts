@@ -15,6 +15,13 @@ export function lastCheckedLine(at: number, now: number = Date.now() / 1000): st
 /** What the install button tells the user it will do. */
 export function installLine(u: UpdateAvailable): string {
   const size = u.size > 0 ? ` (${formatBytes(u.size)})` : '';
+  const lower = u.file_name.toLowerCase();
+  if (lower.endsWith('.pkg.tar.zst') || lower.endsWith('.deb') || lower.endsWith('.tar.gz') || lower.endsWith('.tar.xz')) {
+    return `NomNom downloads ${u.file_name}${size}, checks it against the checksum published with the release, and saves it to Downloads so your package manager can install it.`;
+  }
+  if (lower.endsWith('.appimage')) {
+    return `NomNom downloads the AppImage${size}, checks it against the checksum published with the release, and updates or saves it.`;
+  }
   return `NomNom downloads the installer${size}, checks it against the checksum published with the release, closes, and starts again once it's installed.`;
 }
 

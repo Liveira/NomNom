@@ -1,5 +1,6 @@
 <script lang="ts">
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
+  import { trashName } from '../../lib/platform';
   import { stTools, type StDupGroup, type StDupProgress } from '../../lib/ipc';
   import { formatUnitBytes, parseSize } from './logic';
   import {
@@ -221,8 +222,8 @@
       {#if groups.length}{groups.length.toLocaleString()} {groups.length === 1 ? 'group' : 'groups'}, {formatUnitBytes(recoverable, storage.unit)} could be freed. Marked: {sum.files.toLocaleString()} {sum.files === 1 ? 'file' : 'files'}, {formatUnitBytes(sum.bytes, storage.unit)} freed.{/if}
     </span>
     <span class="acts">
-      <button class="plain" disabled={sum.files === 0} onclick={() => plan(false, true)} title="Replace marked copies with NTFS hardlinks so all paths remain accessible">Replace with hardlinks…</button>
-      <button class="plain" disabled={sum.files === 0} onclick={() => plan(false, false)}>Move marked to Recycle Bin…</button>
+      <button class="plain" disabled={sum.files === 0} onclick={() => plan(false, true)} title="Replace marked copies with hardlinks on the same drive so all paths remain accessible">Replace with hardlinks…</button>
+      <button class="plain" disabled={sum.files === 0} onclick={() => plan(false, false)}>Move marked to {trashName}…</button>
       <button class="plain danger" disabled={sum.files === 0} onclick={() => plan(true, false)}>Delete marked permanently…</button>
     </span>
   </div>

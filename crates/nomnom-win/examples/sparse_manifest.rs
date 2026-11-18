@@ -1,3 +1,4 @@
+#[cfg(windows)]
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.len() != 4 {
@@ -13,4 +14,10 @@ fn main() {
             &nomnom_win::sparse_manifest::package_version(&a[3])
         )
     );
+}
+
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("sparse_manifest is only used on Windows");
+    std::process::exit(1);
 }

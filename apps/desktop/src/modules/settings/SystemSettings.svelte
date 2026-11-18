@@ -1,6 +1,7 @@
 <script lang="ts">
   import { app } from '../../app/state.svelte';
   import { integrationIpc, type IntegrationStatus } from '../../lib/ipc';
+  import { isLinux } from '../../lib/platform';
   import Switch from '../../lib/ui/Switch.svelte';
   import { autostartLine, menuLine, needsRepair } from './integration';
 
@@ -30,7 +31,7 @@
 </script>
 
 <section class="group">
-  <h3>Windows</h3>
+  <h3>{(status?.platform ?? (isLinux ? 'linux' : 'windows')) === 'linux' ? 'Linux desktop' : 'Windows'}</h3>
 
   <div class="row">
     <div>
@@ -42,12 +43,12 @@
 
   <div class="row">
     <div>
-      <div class="label">Start NomNom with Windows</div>
-      <div class="hint">{status ? autostartLine(status.autostart) : 'Checking…'}</div>
+      <div class="label">{(status?.platform ?? (isLinux ? 'linux' : 'windows')) === 'linux' ? 'Start NomNom on login' : 'Start NomNom with Windows'}</div>
+      <div class="hint">{status ? autostartLine(status.autostart, status.platform ?? (isLinux ? 'linux' : 'windows')) : 'Checking…'}</div>
     </div>
     <Switch
       checked={status?.autostart ?? false}
-      label="Start NomNom with Windows"
+      label={(status?.platform ?? (isLinux ? 'linux' : 'windows')) === 'linux' ? 'Start NomNom on login' : 'Start NomNom with Windows'}
       onchange={(v) => run(() => app.update({ autostart: v }))}
     />
   </div>

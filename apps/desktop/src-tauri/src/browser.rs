@@ -179,7 +179,13 @@ pub fn integration_file(state: &AppState) -> PathBuf {
 /// to learn this (it doesn't read settings.json).
 pub fn write_integration(state: &AppState) {
     let launch = state.settings.get().browser.launch_from_browser;
+    #[cfg(windows)]
     let exe = std::env::current_exe().ok();
+    #[cfg(not(windows))]
+    let exe = std::env::var_os("APPIMAGE")
+        .map(PathBuf::from)
+        .filter(|p| p.is_file())
+        .or_else(|| std::env::current_exe().ok());
     let shell_menu = state.settings.get().system.shell_menu;
     let body =
         serde_json::json!({ "exe": exe, "launchFromBrowser": launch, "shellMenu": shell_menu });
@@ -191,9 +197,7 @@ pub fn write_integration(state: &AppState) {
     }
 }
 
-/// Where Firefox looks for native hosts. Debug builds can use a throwaway key instead
-/// (`NOMNOM_TEST_FIREFOX_ROOT`, only under `Software\NOMNOM-Test`), so testing never touches the
-/// real connection. Compiled out of release builds.
+#[cfg(windows)]
 fn firefox_root() -> String {
     #[cfg(debug_assertions)]
     if let Ok(r) = std::env::var("NOMNOM_TEST_FIREFOX_ROOT") {
@@ -204,6 +208,19 @@ fn firefox_root() -> String {
     nomnom_win::native_host::FIREFOX_ROOT.to_string()
 }
 
+#[cfg(not(windows))]
+fn firefox_hosts_dir() -> Option<PathBuf> {
+    #[cfg(debug_assertions)]
+    if let Ok(r) = std::env::var("NOMNOM_TEST_FIREFOX_DIR") {
+        let pb = PathBuf::from(r);
+        if pb.is_absolute() && !pb.to_string_lossy().contains("..") {
+            return Some(pb);
+        }
+    }
+    nomnom_linux::native_host::default_hosts_dir()
+}
+
+#[cfg(windows)]
 fn host_exe() -> Option<PathBuf> {
     let p = std::env::current_exe()
         .ok()?
@@ -212,6 +229,34 @@ fn host_exe() -> Option<PathBuf> {
     p.is_file().then_some(p)
 }
 
+#[cfg(not(windows))]
+fn host_exe() -> Option<PathBuf> {
+    if let Some(dir) = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(PathBuf::from))
+    {
+        for rel in ["nomnom-native-host", "../lib/nomnom/nomnom-native-host"] {
+            let p = dir.join(rel);
+            if p.is_file() {
+                return std::fs::canonicalize(&p).ok().or(Some(p));
+            }
+        }
+    }
+    for fixed in [
+        "/usr/lib/nomnom/nomnom-native-host",
+        "/usr/libexec/nomnom/nomnom-native-host",
+        "/usr/local/lib/nomnom/nomnom-native-host",
+        "/usr/bin/nomnom-native-host",
+    ] {
+        let p = PathBuf::from(fixed);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+#[cfg(windows)]
 fn manifest_path(state: &AppState) -> PathBuf {
     state.paths.data_dir.join("com.nomnom.host.json")
 }
@@ -227,11 +272,23 @@ pub struct BrowserStatus {
 
 #[tauri::command]
 pub fn browser_status(state: State<'_, AppState>) -> BrowserStatus {
-    use nomnom_win::native_host::{status, Status};
-    let (s, detail) = match status(&firefox_root()) {
-        Status::NotRegistered => ("not_connected", None),
-        Status::Broken(why) => ("needs_repair", Some(why)),
-        Status::Ready => ("connected", None),
+    #[cfg(windows)]
+    let (s, detail) = {
+        use nomnom_win::native_host::{status, Status};
+        match status(&firefox_root()) {
+            Status::NotRegistered => ("not_connected", None),
+            Status::Broken(why) => ("needs_repair", Some(why)),
+            Status::Ready => ("connected", None),
+        }
+    };
+    #[cfg(not(windows))]
+    let (s, detail) = {
+        use nomnom_linux::native_host::{status, Status};
+        match firefox_hosts_dir().map(|d| status(&d)) {
+            None | Some(Status::NotRegistered) => ("not_connected", None),
+            Some(Status::Broken(why)) => ("needs_repair", Some(why)),
+            Some(Status::Ready) => ("connected", None),
+        }
     };
     BrowserStatus {
         state: s,
@@ -243,16 +300,39 @@ pub fn browser_status(state: State<'_, AppState>) -> BrowserStatus {
 
 /// Connects Firefox. Safe to run again: it also repairs a damaged setup.
 pub fn connect(state: &AppState) -> Result<(), String> {
-    let host =
-        host_exe().ok_or("The helper program (nomnom-native-host.exe) isn't next to NomNom.")?;
-    write_integration(state);
-    nomnom_win::native_host::install(&host, &manifest_path(state), &firefox_root())
-        .map_err(|e| e.to_string())
+    #[cfg(windows)]
+    {
+        let host = host_exe()
+            .ok_or("The helper program (nomnom-native-host.exe) isn't next to NomNom.")?;
+        write_integration(state);
+        nomnom_win::native_host::install(&host, &manifest_path(state), &firefox_root())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        let host = host_exe().ok_or(
+            "The helper program (nomnom-native-host) wasn't found next to NomNom or in /usr/lib/nomnom.",
+        )?;
+        let dir = firefox_hosts_dir().ok_or("HOME isn't set, so Firefox's folder wasn't found.")?;
+        write_integration(state);
+        nomnom_linux::native_host::install(&host, &dir).map_err(|e| e.to_string())
+    }
 }
 
 pub fn disconnect(state: &AppState) -> Result<(), String> {
-    nomnom_win::native_host::uninstall(&manifest_path(state), &firefox_root())
-        .map_err(|e| e.to_string())
+    #[cfg(windows)]
+    {
+        nomnom_win::native_host::uninstall(&manifest_path(state), &firefox_root())
+            .map_err(|e| e.to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = state;
+        let Some(dir) = firefox_hosts_dir() else {
+            return Ok(());
+        };
+        nomnom_linux::native_host::uninstall(&dir).map_err(|e| e.to_string())
+    }
 }
 
 #[tauri::command]

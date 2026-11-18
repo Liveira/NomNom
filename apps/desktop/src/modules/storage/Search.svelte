@@ -1,5 +1,6 @@
 <script lang="ts">
   import VirtualList from '../../lib/ui/VirtualList.svelte';
+  import { isLinux, trashName } from '../../lib/platform';
   import { stIpc, stTools, type StFound, type StNode } from '../../lib/ipc';
   import { formatDate, formatUnitBytes, nextSelection } from './logic';
   import {
@@ -292,10 +293,10 @@
     <span class="acts">
       <button class="plain" disabled={!chosen.length} onclick={copyPaths}>Copy paths</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.savePaths(chosen)}>Save paths…</button>
-      <button class="plain" disabled={!chosen.length} onclick={() => storage.compressSelection(true, chosen)}>Compress (NTFS)…</button>
+      <button class="plain" disabled={!chosen.length} onclick={() => storage.compressSelection(true, chosen)}>{isLinux ? 'Compress…' : 'Compress (NTFS)…'}</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.startZip(chosen)}>Add to ZIP…</button>
       <button class="plain" disabled={!chosen.length} onclick={() => storage.startBatchRename(chosen)}>Rename in batch…</button>
-      <button class="plain" disabled={!chosen.length} onclick={() => storage.remove(false, chosen)}>Move to Recycle Bin</button>
+      <button class="plain" disabled={!chosen.length} onclick={() => storage.remove(false, chosen)}>Move to {trashName}</button>
       <button class="plain danger" disabled={!chosen.length} onclick={() => storage.remove(true, chosen)}>Delete permanently…</button>
     </span>
   </div>
