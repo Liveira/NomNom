@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import { onDestroy } from 'svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { onScheduledChanged, scheduleIpc, type Scheduled } from '../../lib/ipc';
@@ -11,10 +12,10 @@
   void refresh();
   let stop: (() => void) | null = null;
   void onScheduledChanged(() => void refresh()).then((u) => (stop = u));
-  const poll = setInterval(() => void refresh(), 20000);
+  const poll = every(20000, () => void refresh());
   onDestroy(() => {
     stop?.();
-    clearInterval(poll);
+    poll();
   });
 
   /** The parent calls this after it adds one. */

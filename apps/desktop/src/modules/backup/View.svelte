@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import { onDestroy } from 'svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { formatBytes } from '../../lib/format';
@@ -24,10 +25,10 @@
   let offs: (() => void)[] = [];
   void onBackupChanged(() => void refresh()).then((u) => offs.push(u));
   void onBackupProgress((p) => (progress = p)).then((u) => offs.push(u));
-  const poll = setInterval(() => void refresh(), 30000);
+  const poll = every(30000, () => void refresh());
   onDestroy(() => {
     offs.forEach((o) => o());
-    clearInterval(poll);
+    poll();
   });
 
   async function run(id: string) {

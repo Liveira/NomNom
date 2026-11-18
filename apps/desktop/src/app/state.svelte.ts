@@ -150,9 +150,12 @@ class AppState {
     window
       .matchMedia('(prefers-color-scheme: dark)')
       .addEventListener('change', () => this.settings && this.applyTheme(this.settings.appearance.theme));
-    const hidden = () => (document.documentElement.dataset.hidden = document.hidden ? 'true' : 'false');
-    document.addEventListener('visibilitychange', hidden);
-    hidden();
+    // Nothing needs to move while the window is hidden or another window is in front of it.
+    const idle = () => (document.documentElement.dataset.hidden = document.hidden || !document.hasFocus() ? 'true' : 'false');
+    document.addEventListener('visibilitychange', idle);
+    window.addEventListener('blur', idle);
+    window.addEventListener('focus', idle);
+    idle();
   }
 }
 

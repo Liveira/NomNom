@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import { onDestroy } from 'svelte';
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
@@ -34,8 +35,8 @@
     }
   }
   void tick();
-  const timer = setInterval(() => void tick(), 1500);
-  onDestroy(() => clearInterval(timer));
+  const timer = every(1500, () => void tick());
+  onDestroy(timer);
 
   const R = 46;
   const C = 2 * Math.PI * R;

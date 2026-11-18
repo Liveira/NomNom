@@ -84,9 +84,7 @@
     user-select: none;
     -webkit-user-select: none;
     /* See-through, so the animated background of the theme runs under the bar. */
-    background: color-mix(in srgb, var(--surface-1) 55%, transparent);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--surface-1) 84%, transparent);
     border-bottom: 1px solid var(--border);
   }
   .side {

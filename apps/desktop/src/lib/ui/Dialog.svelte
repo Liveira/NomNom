@@ -52,8 +52,7 @@
   .scrim {
     position: fixed;
     inset: 0;
-    background: rgba(9, 6, 15, 0.72);
-    backdrop-filter: blur(6px);
+    background: rgba(9, 6, 15, 0.78);
     display: grid;
     place-items: center;
     z-index: 50;

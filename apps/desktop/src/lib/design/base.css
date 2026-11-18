@@ -150,7 +150,6 @@ html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='
 
 /* Cards are a little see-through, so the moving background of the theme shows through them. */
 main .view :is(.bento-card, .kpi-card, .panel, .tool-card) {
-  background-color: color-mix(in srgb, var(--surface-1) 80%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  /* No blur behind the cards: blurring a moving background again on every frame is very costly. */
+  background-color: color-mix(in srgb, var(--surface-1) 90%, transparent);
 }

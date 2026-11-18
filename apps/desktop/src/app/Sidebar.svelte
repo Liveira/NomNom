@@ -133,9 +133,7 @@
     margin: 12px 0 12px 12px;
     padding: 14px 11px;
     /* Slightly see-through, so the animated background of the theme glows behind the menu. */
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 88%, transparent), color-mix(in srgb, var(--surface-1) 72%, transparent));
-    -webkit-backdrop-filter: blur(18px) saturate(1.2);
-    backdrop-filter: blur(18px) saturate(1.2);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 94%, transparent), color-mix(in srgb, var(--surface-1) 86%, transparent));
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-l);
     box-shadow: var(--shadow-card);

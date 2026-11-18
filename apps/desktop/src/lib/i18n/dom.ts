@@ -35,6 +35,12 @@ export class DomTranslator {
     this.cat = buildCatalog(this.entries, lang);
     this.memo.clear();
     this.walk(this.root);
+    if (lang === 'en') {
+      // English is the text the interface is written in: nothing will need translating later.
+      this.observer?.disconnect();
+      this.observer = null;
+      return;
+    }
     if (!this.observer) {
       this.observer = new MutationObserver((records) => this.onMutations(records));
       this.observer.observe(this.root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });

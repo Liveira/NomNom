@@ -19,6 +19,22 @@
   } = $props();
 
   let active = $state(0);
+  /** Where the list opens and how tall it may be, so it always fits inside the window. A small
+   *  window (the quick download popup) has no room below the field. */
+  let up = $state(false);
+  let maxHeight = $state(176);
+  const WANTED = 176;
+  const EDGE = 12;
+
+  $effect(() => {
+    if (!open || !button) return;
+    const r = button.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom - EDGE;
+    const above = r.top - EDGE;
+    const need = Math.min(WANTED, options.length * 34 + 12);
+    up = below < need && above > below;
+    maxHeight = Math.max(72, Math.min(WANTED, up ? above : below));
+  });
   let button: HTMLButtonElement | undefined = $state();
   const uid = Math.random().toString(36).slice(2, 8);
   const current = $derived(options.find((o) => o.value === value) ?? options[0]);
@@ -94,7 +110,7 @@
     <span class="chev" class:open><Icon name="chevron-down" size={14} /></span>
   </button>
   {#if open}
-    <ul id={`lb-${uid}`} role="listbox" aria-label={label}>
+    <ul id={`lb-${uid}`} role="listbox" aria-label={label} class:up style:max-height="{maxHeight}px">
       {#each options as opt, i (opt.value)}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <li
@@ -127,10 +143,11 @@
   .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   ul {
     position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 5px); margin: 0; padding: 5px;
-    list-style: none; max-height: 176px; overflow: auto; background: var(--surface-2);
+    list-style: none; max-height: 176px; overflow: auto; overscroll-behavior: contain; background: var(--surface-2);
     border: 1px solid var(--border-strong); border-radius: var(--radius-s);
     box-shadow: var(--shadow-pop); animation: pop var(--dur-1) var(--ease-out);
   }
+  ul.up { top: auto; bottom: calc(100% + 5px); }
   li { padding: 7px 10px; border-radius: var(--radius-xs); cursor: pointer; }
   li.active { background: var(--surface-3); }
   li[aria-selected='true'] { color: var(--accent-text); font-weight: 600; }

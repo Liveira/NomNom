@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import { onDestroy } from 'svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { focusIpc, onFocusChanged, type FocusStatus } from '../../lib/ipc';
@@ -29,10 +30,10 @@
 
   let stop: (() => void) | null = null;
   void onFocusChanged(() => void refresh()).then((u) => (stop = u));
-  const timer = setInterval(() => (nowSec = Math.floor(Date.now() / 1000)), 1000);
+  const timer = every(1000, () => (nowSec = Math.floor(Date.now() / 1000)));
   onDestroy(() => {
     stop?.();
-    clearInterval(timer);
+    timer();
   });
 
   const active = $derived(status?.active ?? null);

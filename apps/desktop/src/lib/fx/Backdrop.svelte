@@ -35,20 +35,20 @@
 
   const live = $derived(motion === 'full');
   const count = (n: number) => (contained ? Math.max(4, Math.round(n / 4)) : n);
-  const stars = $derived(make(count(46), 11));
-  const petals = $derived(make(count(22), 23));
-  const bubbles = $derived(make(count(18), 37));
-  const flies = $derived(make(count(26), 53));
-  const motes = $derived(make(count(16), 71));
-  const sparks = $derived(make(count(30), 89));
-  const flakes = $derived(make(count(40), 97));
-  const leaves = $derived(make(count(18), 101));
-  const hearts = $derived(make(count(18), 113));
+  const stars = $derived(make(count(30), 11));
+  const petals = $derived(make(count(14), 23));
+  const bubbles = $derived(make(count(12), 37));
+  const flies = $derived(make(count(16), 53));
+  const motes = $derived(make(count(10), 71));
+  const sparks = $derived(make(count(18), 89));
+  const flakes = $derived(make(count(22), 97));
+  const leaves = $derived(make(count(12), 101));
+  const hearts = $derived(make(count(12), 113));
   const shooters = $derived(make(3, 127));
   const clouds = $derived(make(5, 131));
   const GLYPHS = '01<>/{}[]$#@*+=-~';
   const rain = $derived(
-    make(count(26), 139).map((c) => {
+    make(count(16), 139).map((c) => {
       const r = rng(Math.floor(c.s * 1e6) + 7);
       return { ...c, text: Array.from({ length: 22 }, () => GLYPHS[Math.floor(r() * GLYPHS.length)]).join('\n') };
     }),
@@ -169,7 +169,9 @@
   .backdrop i, .backdrop b, .backdrop svg { position: absolute; display: block; }
 
   /* ----- Midnight Mochi and Light: slow drifting colour clouds and floating motes ------------- */
-  .blob { border-radius: 50%; filter: blur(70px); opacity: 0.9; will-change: transform; }
+  /* Soft edges come from a mask that is painted once. A live blur is redone on every frame, which
+     is what made the old background expensive, most of all on Linux. */
+  .blob { border-radius: 50%; opacity: 0.9; will-change: transform; -webkit-mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); }
   .b1 { width: 46%; height: 52%; left: -8%; top: -14%; background: var(--glow-lavender); animation: drift1 26s ease-in-out infinite alternate; }
   .b2 { width: 42%; height: 48%; right: -10%; bottom: -16%; background: var(--glow-blush); animation: drift2 31s ease-in-out infinite alternate; }
   .b3 { width: 34%; height: 40%; left: 38%; top: -20%; background: var(--glow-peach); animation: drift3 22s ease-in-out infinite alternate; }
@@ -194,7 +196,7 @@
   @keyframes twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.8); } 50% { opacity: 0.95; transform: scale(1.5); } }
 
   /* ----- Aurora: three flowing northern-light ribbons ------------------------------------------- */
-  .ribbon { filter: blur(48px); will-change: transform; border-radius: 50%; }
+  .ribbon { will-change: transform; border-radius: 50%; -webkit-mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); }
   .r1 { width: 90%; height: 34%; left: -20%; top: 4%; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.34; animation: ribbon1 16s ease-in-out infinite alternate; }
   .r2 { width: 80%; height: 30%; right: -22%; top: 20%; background: linear-gradient(90deg, transparent, var(--blush), transparent); opacity: 0.3; animation: ribbon2 21s ease-in-out infinite alternate; }
   .r3 { width: 70%; height: 26%; left: 10%; top: 42%; background: linear-gradient(90deg, transparent, var(--lavender), transparent); opacity: 0.22; animation: ribbon3 25s ease-in-out infinite alternate; }
@@ -210,7 +212,7 @@
     background: linear-gradient(180deg, #ffe66d 0%, var(--accent) 52%, var(--lavender) 100%);
     -webkit-mask-image: var(--sun-mask);
     mask-image: var(--sun-mask);
-    opacity: 0.55; filter: drop-shadow(0 0 40px var(--accent));
+    opacity: 0.6;
     animation: sunpulse 6s ease-in-out infinite alternate;
   }
   .horizon { left: 0; right: 0; bottom: 24%; height: 2px; background: linear-gradient(90deg, transparent, var(--blush), var(--accent), var(--blush), transparent); box-shadow: 0 0 18px var(--accent); }
@@ -270,7 +272,7 @@
     background: var(--accent); box-shadow: 0 0 calc(var(--s) * 3) var(--accent), 0 0 calc(var(--s) * 7) color-mix(in srgb, var(--accent) 50%, transparent);
     animation: roam var(--d) ease-in-out var(--t) infinite alternate, blink var(--b) ease-in-out var(--t) infinite;
   }
-  .mist { left: -20%; width: 140%; height: 38%; filter: blur(40px); will-change: transform; }
+  .mist { left: -20%; width: 140%; height: 38%; will-change: transform; }
   .m1 { bottom: -8%; background: radial-gradient(60% 100% at 30% 100%, var(--glow-blush), transparent); animation: mist 40s ease-in-out infinite alternate; }
   .m2 { bottom: 10%; background: radial-gradient(50% 100% at 70% 100%, var(--glow-lavender), transparent); animation: mist 55s ease-in-out infinite alternate-reverse; }
   @keyframes roam {
@@ -296,11 +298,11 @@
   .dusksun {
     width: min(34vw, 300px); aspect-ratio: 1; left: 62%; bottom: -8%; border-radius: 50%;
     background: radial-gradient(circle at 50% 40%, #ffe29a, var(--accent) 55%, var(--blush) 100%);
-    filter: blur(1px) drop-shadow(0 0 60px var(--accent)); opacity: 0.6; animation: sunbob 14s ease-in-out infinite alternate;
+    box-shadow: 0 0 90px var(--accent); opacity: 0.6; animation: sunbob 14s ease-in-out infinite alternate;
   }
   .cloud {
     left: -30%; width: var(--w); height: calc(var(--w) * 0.22); border-radius: 50%; opacity: var(--o);
-    background: color-mix(in srgb, var(--text) 70%, var(--blush)); filter: blur(22px);
+    background: color-mix(in srgb, var(--text) 70%, var(--blush)); -webkit-mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); mask-image: radial-gradient(closest-side, #000 18%, transparent 100%);
     animation: cloud var(--d) linear var(--t) infinite; will-change: transform;
   }
   @keyframes skyshift { to { opacity: 0.65; } }
@@ -339,7 +341,7 @@
   }
   @keyframes codefall { from { transform: translateY(0); } to { transform: translateY(190vh); } }
 
-  .neonbar { height: 3px; width: 46%; border-radius: 3px; opacity: 0.8; filter: drop-shadow(0 0 8px currentColor); will-change: transform; }
+  .neonbar { height: 3px; width: 46%; border-radius: 3px; opacity: 0.8; box-shadow: 0 0 10px currentColor; will-change: transform; }
   .nb1 { top: 22%; left: -50%; color: var(--accent); background: currentColor; animation: sweep 7s ease-in-out infinite; }
   .nb2 { top: 54%; right: -50%; color: var(--blush); background: currentColor; animation: sweep2 9s ease-in-out -3s infinite; }
   .nb3 { top: 80%; left: -50%; color: var(--lavender); background: currentColor; animation: sweep 11s ease-in-out -6s infinite; }
@@ -352,7 +354,7 @@
   .can2 { background: color-mix(in srgb, var(--blush) 28%, transparent); }
   .candy { border-color: hsl(var(--h) 90% 65% / 0.7); background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), hsl(var(--h) 90% 75% / 0.45) 70%); }
 
-  .beam { width: 60%; height: 140%; top: -20%; filter: blur(60px); opacity: 0.22; background: linear-gradient(90deg, transparent, #fff, transparent); will-change: transform; }
+  .beam { width: 60%; height: 140%; top: -20%; -webkit-mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); mask-image: radial-gradient(closest-side, #000 18%, transparent 100%); opacity: 0.22; background: linear-gradient(90deg, transparent, #fff, transparent); will-change: transform; }
   .gb1 { left: -20%; transform: rotate(18deg); animation: beam1 24s ease-in-out infinite alternate; }
   .gb2 { right: -25%; transform: rotate(-16deg); opacity: 0.14; animation: beam2 31s ease-in-out infinite alternate; }
   @keyframes beam1 { to { transform: translateX(70%) rotate(10deg); } }

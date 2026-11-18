@@ -62,12 +62,28 @@ impl Default for General {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Appearance {
     pub theme: Theme,
     pub motion: Motion,
     pub sidebar_collapsed: bool,
+}
+
+impl Default for Appearance {
+    fn default() -> Self {
+        Appearance {
+            theme: Theme::default(),
+            // On Linux the web view often paints without the graphics card, so the moving
+            // background starts calm. It is one click away in Settings.
+            motion: if cfg!(target_os = "linux") {
+                Motion::Calm
+            } else {
+                Motion::Full
+            },
+            sidebar_collapsed: false,
+        }
+    }
 }
 
 /// Whether links from the shortcut, the browser and the popup download video or audio by default.
@@ -432,7 +448,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("settings.json");
         let store = SettingsStore::load(&path).unwrap();
-        assert_eq!(store.get().appearance.motion, Motion::Full);
+        assert_eq!(store.get().appearance.motion, Appearance::default().motion);
         for theme in [
             Theme::System,
             Theme::Dark,

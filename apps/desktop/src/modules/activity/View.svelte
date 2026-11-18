@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import CatNap from '../../lib/ui/CatNap.svelte';
@@ -50,9 +51,9 @@
 
   $effect(() => {
     const unlisten = onActivityUpdated(() => void refresh());
-    const poll = setInterval(() => void refresh(), 5000);
+    const poll = every(5000, () => void refresh());
     return () => {
-      clearInterval(poll);
+      poll();
       void unlisten.then((fn) => fn());
     };
   });

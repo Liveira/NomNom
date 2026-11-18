@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { every } from '../../lib/poll';
   import Icon from '../../lib/icons/Icon.svelte';
   import CatNap from '../../lib/ui/CatNap.svelte';
   import ProgressBar from '../../lib/ui/ProgressBar.svelte';
@@ -24,9 +25,9 @@
   $effect(() => {
     void loadPlay();
     const unlisten = onActivityUpdated(() => void loadPlay());
-    const timer = setInterval(() => void loadPlay(), 6000);
+    const timer = every(6000, () => void loadPlay());
     return () => {
-      clearInterval(timer);
+      timer();
       void unlisten.then((fn) => fn());
     };
   });
