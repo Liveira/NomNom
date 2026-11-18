@@ -1,0 +1,32 @@
+{
+  "bundle": {
+    "targets": [
+      "deb",
+      "appimage"
+    ],
+    "category": "Utility",
+    "shortDescription": "Local utility hub: media downloader, file converter, folder organizer and disk analyzer",
+    "icon": [
+      "icons/32x32.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "resources": {
+      "../../../target/release/nomnom-native-host": "nomnom-native-host"
+    },
+    "linux": {
+      "deb": {
+        "section": "utils",
+        "recommends": [
+          "libayatana-appindicator3-1 | libappindicator3-1",
+          "ffmpeg",
+          "libreoffice",
+          "pkexec | policykit-1"
+        ],
+        "desktopTemplate": "../../../packaging/linux/nomnom.desktop.hbs"
+      }
+    }
+  }
+}

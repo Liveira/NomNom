@@ -1,0 +1,24 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=NomNom
+GenericName=Utility Hub
+Comment=Downloads, file converter, folder organizer and disk space analyzer
+Exec=nomnom %U
+Icon=nomnom
+Terminal=false
+Categories=Utility;FileTools;Archiving;AudioVideo;
+MimeType=inode/directory;
+StartupWMClass=nomnom
+Keywords=download;yt-dlp;convert;ffmpeg;organize;disk;storage;treesize;space;
+Actions=AnalyzeDisk;Background;
+
+[Desktop Action AnalyzeDisk]
+Name=Analyze disk space with NomNom
+Exec=nomnom --analyze %f
+Icon=nomnom
+
+[Desktop Action Background]
+Name=Start in system tray
+Exec=nomnom --background
+Icon=nomnom

@@ -1,0 +1,118 @@
+# Maintainer: Liveira <https://github.com/Liveira/NomNom>
+pkgname=nomnom
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Local utility hub: media downloader, file converter, folder organizer and disk space analyzer'
+arch=('x86_64')
+url='https://github.com/Liveira/NomNom'
+license=('MIT')
+depends=(
+  'gcc-libs'
+  'glib2'
+  'glibc'
+  'gtk3'
+  'hicolor-icon-theme'
+  'libayatana-appindicator'
+  'webkit2gtk-4.1'
+)
+makedepends=(
+  'cargo'
+  'nodejs'
+  'npm'
+  'pkgconf'
+  'rust'
+)
+optdepends=(
+  'yt-dlp: download video and audio in Downloader (or install inside Settings -> Tools)'
+  'ffmpeg: merge streams and convert audio/video in File Tools'
+  'libreoffice-fresh: convert Word, Excel and PowerPoint files to PDF'
+  'polkit: run elevated root scans in Disk Analyzer via pkexec'
+  'tar: unpack managed FFmpeg builds'
+  'xz: unpack managed FFmpeg builds'
+)
+options=('!lto')
+source=()
+sha256sums=()
+
+prepare() {
+  local repo_root
+  repo_root="$(realpath "$startdir/../..")"
+  if [[ ! -f "$repo_root/Cargo.toml" ]]; then
+    echo "Expected NomNom repository root at $repo_root" >&2
+    return 1
+  fi
+
+  rm -rf "$srcdir/$pkgname"
+  mkdir -p "$srcdir/$pkgname"
+
+  # Stage a clean Linux build tree without copying host target/ or Windows node_modules/.
+  tar \
+    --exclude='./.git' \
+    --exclude='./target' \
+    --exclude='./node_modules' \
+    --exclude='./dist' \
+    --exclude='./apps/desktop/dist' \
+    --exclude='./apps/desktop/node_modules' \
+    --exclude='./apps/desktop/src-tauri/target' \
+    --exclude='./apps/desktop/src-tauri/gen' \
+    --exclude='./apps/firefox-extension/dist' \
+    --exclude='./apps/firefox-extension/node_modules' \
+    --exclude='./packaging/arch/src' \
+    --exclude='./packaging/arch/pkg' \
+    --exclude='*.pkg.tar*' \
+    -cf - -C "$repo_root" . | tar -xf - -C "$srcdir/$pkgname"
+
+  cd "$srcdir/$pkgname"
+  npm ci --cache "$srcdir/npm-cache"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$srcdir/$pkgname"
+  npm run package -w @nomnom/firefox-extension
+  npm run build -w apps/desktop
+
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  # Embed the built Svelte frontend into the Tauri binary (equivalent to `tauri build --no-bundle`).
+  cargo build --release --locked -p nomnom -p nomnom-native-host --features nomnom/custom-protocol
+}
+
+check() {
+  cd "$srcdir/$pkgname"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  npm run check
+  npm test
+  npm test -w @nomnom/firefox-extension
+  cargo test --workspace --locked
+}
+
+package() {
+  cd "$srcdir/$pkgname"
+
+  install -Dm755 "target/release/nomnom" "$pkgdir/usr/bin/nomnom"
+  install -Dm755 "target/release/nomnom-native-host" "$pkgdir/usr/lib/nomnom/nomnom-native-host"
+
+  install -Dm644 "packaging/linux/nomnom.desktop" "$pkgdir/usr/share/applications/nomnom.desktop"
+  install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+  install -Dm644 "apps/desktop/src-tauri/icons/32x32.png" \
+    "$pkgdir/usr/share/icons/hicolor/32x32/apps/nomnom.png"
+  install -Dm644 "apps/desktop/src-tauri/icons/64x64.png" \
+    "$pkgdir/usr/share/icons/hicolor/64x64/apps/nomnom.png"
+  install -Dm644 "apps/desktop/src-tauri/icons/128x128.png" \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/nomnom.png"
+  install -Dm644 "apps/desktop/src-tauri/icons/128x128@2x.png" \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/nomnom.png"
+  install -Dm644 "apps/desktop/src-tauri/icons/icon.png" \
+    "$pkgdir/usr/share/icons/hicolor/512x512/apps/nomnom.png"
+
+  local ext_zip
+  for ext_zip in dist/extension/*.zip; do
+    if [[ -f "$ext_zip" ]]; then
+      install -Dm644 "$ext_zip" "$pkgdir/usr/share/nomnom/firefox-extension/$(basename "$ext_zip")"
+    fi
+  done
+}

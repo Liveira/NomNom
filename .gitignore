@@ -3,9 +3,12 @@ node_modules/
 dist/
 *.pfx
 *.msix
+*.pkg.tar*
 .DS_Store
 apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/target/
+packaging/arch/src/
+packaging/arch/pkg/
 *.log
 .vscode/
 .idea/

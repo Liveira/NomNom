@@ -182,10 +182,20 @@ pub fn write_integration(state: &AppState) {
     #[cfg(windows)]
     let exe = std::env::current_exe().ok();
     #[cfg(not(windows))]
-    let exe = std::env::var_os("APPIMAGE")
-        .map(PathBuf::from)
-        .filter(|p| p.is_file())
-        .or_else(|| std::env::current_exe().ok());
+    let exe = {
+        let appimage = std::env::var_os("APPIMAGE")
+            .map(PathBuf::from)
+            .filter(|p| p.is_file());
+        if appimage.is_some() {
+            let staged = staged_host_path(state);
+            if staged.is_file() {
+                if let Some(src) = host_exe() {
+                    let _ = stage_host_binary(&src, &staged);
+                }
+            }
+        }
+        appimage.or_else(|| std::env::current_exe().ok())
+    };
     let shell_menu = state.settings.get().system.shell_menu;
     let body =
         serde_json::json!({ "exe": exe, "launchFromBrowser": launch, "shellMenu": shell_menu });
@@ -235,7 +245,11 @@ fn host_exe() -> Option<PathBuf> {
         .ok()
         .and_then(|p| p.parent().map(PathBuf::from))
     {
-        for rel in ["nomnom-native-host", "../lib/nomnom/nomnom-native-host"] {
+        for rel in [
+            "nomnom-native-host",
+            "../lib/nomnom/nomnom-native-host",
+            "../lib/NOMNOM/nomnom-native-host",
+        ] {
             let p = dir.join(rel);
             if p.is_file() {
                 return std::fs::canonicalize(&p).ok().or(Some(p));
@@ -244,6 +258,7 @@ fn host_exe() -> Option<PathBuf> {
     }
     for fixed in [
         "/usr/lib/nomnom/nomnom-native-host",
+        "/usr/lib/NOMNOM/nomnom-native-host",
         "/usr/libexec/nomnom/nomnom-native-host",
         "/usr/local/lib/nomnom/nomnom-native-host",
         "/usr/bin/nomnom-native-host",
@@ -254,6 +269,28 @@ fn host_exe() -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(not(windows))]
+fn staged_host_path(state: &AppState) -> PathBuf {
+    state.paths.data_dir.join("bin").join("nomnom-native-host")
+}
+
+#[cfg(not(windows))]
+fn stage_host_binary(src: &std::path::Path, dest: &std::path::Path) -> Result<PathBuf, String> {
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let tmp = dest.with_extension("tmp");
+    std::fs::copy(src, &tmp).map_err(|e| e.to_string())?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o755))
+            .map_err(|e| e.to_string())?;
+    }
+    std::fs::rename(&tmp, dest).map_err(|e| e.to_string())?;
+    Ok(dest.to_path_buf())
 }
 
 #[cfg(windows)]
@@ -310,9 +347,14 @@ pub fn connect(state: &AppState) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
-        let host = host_exe().ok_or(
+        let found = host_exe().ok_or(
             "The helper program (nomnom-native-host) wasn't found next to NomNom or in /usr/lib/nomnom.",
         )?;
+        let host = if std::env::var_os("APPIMAGE").is_some() {
+            stage_host_binary(&found, &staged_host_path(state))?
+        } else {
+            found
+        };
         let dir = firefox_hosts_dir().ok_or("HOME isn't set, so Firefox's folder wasn't found.")?;
         write_integration(state);
         nomnom_linux::native_host::install(&host, &dir).map_err(|e| e.to_string())
@@ -327,7 +369,7 @@ pub fn disconnect(state: &AppState) -> Result<(), String> {
     }
     #[cfg(not(windows))]
     {
-        let _ = state;
+        let _ = std::fs::remove_file(staged_host_path(state));
         let Some(dir) = firefox_hosts_dir() else {
             return Ok(());
         };

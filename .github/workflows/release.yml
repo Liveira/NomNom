@@ -1,7 +1,8 @@
 name: Release
 
-# Runs when a version tag is pushed (for example v0.1.0). It builds everything, signs what it can,
-# and attaches it to a DRAFT release, so nothing is public until someone presses Publish.
+# Runs when a version tag is pushed (for example v0.1.0). It builds Windows, Arch Linux,
+# Debian/Ubuntu (.deb) and portable AppImage artifacts, computes SHA256SUMS.txt, and attaches
+# everything to a DRAFT release so nothing is public until someone presses Publish.
 on:
   push:
     tags: ["v*"]
@@ -11,6 +12,7 @@ permissions:
 
 jobs:
   windows:
+    name: Windows (NSIS + Sparse MSIX + Firefox add-on)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -97,16 +99,109 @@ jobs:
         run: npx web-ext sign --source-dir apps/firefox-extension/dist --channel unlisted --artifacts-dir dist/extension-signed --api-key $env:AMO_JWT_ISSUER --api-secret $env:AMO_JWT_SECRET
         continue-on-error: true
 
-      - name: Checksums
+      - name: Collect Windows artifacts
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force release | Out-Null
-          Copy-Item target\release\bundle\nsis\*.exe release\
-          Copy-Item dist\extension\*.zip release\
-          Copy-Item target\sparse\nomnom-shell.msix release\
-          if (Test-Path dist\extension-signed) { Copy-Item dist\extension-signed\*.xpi release\ }
-          Get-ChildItem release | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content release\SHA256SUMS.txt
+          New-Item -ItemType Directory -Force out-windows | Out-Null
+          Copy-Item target\release\bundle\nsis\*.exe out-windows\
+          Copy-Item dist\extension\*.zip out-windows\
+          Copy-Item target\sparse\nomnom-shell.msix out-windows\
+          if (Test-Path dist\extension-signed) { Copy-Item dist\extension-signed\*.xpi out-windows\ }
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-assets
+          path: out-windows/*
+          if-no-files-found: error
+
+  linux-ubuntu:
+    name: Linux (Debian/Ubuntu .deb + AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            patchelf \
+            pkg-config \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: cargo test --workspace --no-fail-fast
+      - name: Build .deb and .AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: ./scripts/build-linux.sh --all
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-ubuntu-assets
+          path: |
+            dist/linux/*.deb
+            dist/linux/*.AppImage
+          if-no-files-found: error
+
+  linux-arch:
+    name: Linux (Arch Linux .pkg.tar.zst)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install Arch build dependencies
+        run: |
+          pacman -Syu --noconfirm --needed \
+            git \
+            rust \
+            nodejs \
+            npm \
+            pkgconf \
+            webkit2gtk-4.1 \
+            gtk3 \
+            glib2 \
+            libayatana-appindicator \
+            hicolor-icon-theme
+      - uses: actions/checkout@v4
+      - name: Build Arch package with makepkg
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/arch' && makepkg -sf --noconfirm --nocheck"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arch-assets
+          path: packaging/arch/nomnom-*.pkg.tar.zst
+          if-no-files-found: error
+
+  publish:
+    name: Draft GitHub Release
+    runs-on: ubuntu-latest
+    needs: [windows, linux-ubuntu, linux-arch]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Assemble release directory and SHA256SUMS.txt
+        run: |
+          mkdir -p release
+          find artifacts -type f -exec cp -f {} release/ \;
+          (
+            cd release
+            sha256sum * > SHA256SUMS.txt
+          )
+          ls -lh release
+          cat release/SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           draft: true
