@@ -113,6 +113,24 @@ const MIGRATIONS: &[&str] = &[
      CREATE INDEX backup_runs_plan ON backup_runs(plan_id, id DESC);",
 ];
 
+/// How many row numbers are tried per table when a damaged table has to be read row by row.
+const MAX_SALVAGE_ROWID: i64 = 200_000;
+
+/// True when SQLite says the file is damaged. Other failures (a locked file, say) are real errors
+/// and are passed on, so a busy database is never mistaken for a broken one.
+fn is_damaged(conn: &Connection) -> Result<bool> {
+    use rusqlite::ErrorCode::{DatabaseCorrupt, NotADatabase};
+    match conn.query_row("PRAGMA quick_check", [], |r| r.get::<_, String>(0)) {
+        Ok(answer) => Ok(answer != "ok"),
+        Err(rusqlite::Error::SqliteFailure(e, _))
+            if matches!(e.code, DatabaseCorrupt | NotADatabase) =>
+        {
+            Ok(true)
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
 pub struct Db {
     conn: Mutex<Connection>,
 }
@@ -122,7 +140,125 @@ impl Db {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| crate::Error::io(parent, e))?;
         }
-        Self::init(Connection::open(path)?)
+        let conn = Connection::open(path)?;
+        if is_damaged(&conn)? {
+            drop(conn);
+            return Self::recover(path);
+        }
+        Self::init(conn)
+    }
+
+    /// A damaged database file is moved aside, untouched, into a `damaged-db-<time>` folder next to
+    /// it, and a fresh database is filled with whatever the old one can still give back.
+    fn recover(path: &Path) -> Result<Self> {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let parent = path.parent().unwrap_or_else(|| Path::new("."));
+        let keep = parent.join(format!("damaged-db-{stamp}"));
+        std::fs::create_dir_all(&keep).map_err(|e| crate::Error::io(&keep, e))?;
+        let name = path.file_name().unwrap_or_default().to_os_string();
+        for suffix in ["", "-wal", "-shm"] {
+            let mut file = name.clone();
+            file.push(suffix);
+            let from = parent.join(&file);
+            if from.exists() {
+                std::fs::rename(&from, keep.join(&file)).map_err(|e| crate::Error::io(&from, e))?;
+            }
+        }
+        tracing::error!(
+            "the database was damaged; the original is kept in {}",
+            keep.display()
+        );
+        let db = Self::init(Connection::open(path)?)?;
+        match db.copy_readable_from(&keep.join(&name)) {
+            Ok(report) => tracing::warn!("database rebuilt: {report}"),
+            Err(e) => tracing::error!("couldn't read anything from the damaged database: {e}"),
+        }
+        Ok(db)
+    }
+
+    /// Copies every table from `old`, table by table. A table that can't be read in one go is read
+    /// row by row, keeping the rows that are still intact.
+    fn copy_readable_from(&self, old: &Path) -> Result<String> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "ATTACH DATABASE ?1 AS old",
+            [old.to_string_lossy().as_ref()],
+        )?;
+        let tables: Vec<String> = {
+            let mut st = conn.prepare(
+                "SELECT name FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+            )?;
+            let rows = st.query_map([], |r| r.get(0))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        let mut report = Vec::new();
+        for table in tables {
+            let columns = |schema: &str| -> rusqlite::Result<Vec<String>> {
+                let mut st = conn.prepare(&format!("PRAGMA {schema}.table_info(\"{table}\")"))?;
+                let rows = st.query_map([], |r| r.get::<_, String>(1))?;
+                rows.collect()
+            };
+            let (Ok(mine), Ok(theirs)) = (columns("main"), columns("old")) else {
+                report.push(format!("{table}: unreadable"));
+                continue;
+            };
+            let common: Vec<String> = mine
+                .into_iter()
+                .filter(|c| theirs.contains(c))
+                .map(|c| format!("\"{c}\""))
+                .collect();
+            if common.is_empty() {
+                continue;
+            }
+            let list = common.join(", ");
+            let bulk = conn
+                .execute_batch(&format!(
+                    "BEGIN; INSERT INTO main.\"{table}\" ({list}) SELECT {list} FROM old.\"{table}\"; COMMIT;"
+                ))
+                .is_ok();
+            if bulk {
+                continue;
+            }
+            let _ = conn.execute_batch("ROLLBACK");
+            let marks = vec!["?"; common.len()].join(", ");
+            let mut kept = 0usize;
+            let _ = conn.execute_batch("BEGIN");
+            for rowid in 1..=MAX_SALVAGE_ROWID {
+                let row = conn
+                    .prepare_cached(&format!(
+                        "SELECT {list} FROM old.\"{table}\" WHERE rowid = ?1"
+                    ))
+                    .and_then(|mut read| {
+                        read.query_row([rowid], |r| {
+                            (0..common.len())
+                                .map(|i| r.get::<_, rusqlite::types::Value>(i))
+                                .collect::<rusqlite::Result<Vec<_>>>()
+                        })
+                    });
+                if let Ok(values) = row {
+                    let put = conn.execute(
+                        &format!(
+                            "INSERT OR IGNORE INTO main.\"{table}\" ({list}) VALUES ({marks})"
+                        ),
+                        rusqlite::params_from_iter(values),
+                    );
+                    if matches!(put, Ok(n) if n > 0) {
+                        kept += 1;
+                    }
+                }
+            }
+            let _ = conn.execute_batch("COMMIT");
+            report.push(format!("{table}: {kept} rows salvaged"));
+        }
+        let _ = conn.execute_batch("DETACH DATABASE old");
+        Ok(if report.is_empty() {
+            "every table copied in full".to_string()
+        } else {
+            report.join("; ")
+        })
     }
 
     pub fn open_in_memory() -> Result<Self> {
@@ -174,5 +310,73 @@ mod tests {
             .with(|c| c.query_row("SELECT count(*) FROM org_ops", [], |r| r.get(0)))
             .unwrap();
         assert_eq!(n, 0);
+    }
+
+    fn damaged_copy_of_full_db(path: &Path) {
+        let db = Db::open(path).unwrap();
+        db.with(|c| {
+            c.execute_batch(
+                "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3000)
+                 INSERT INTO backup_runs(plan_id, started_at, ended_at, ok, message)
+                 SELECT 'plan', i, i, 1, 'padding padding padding padding padding padding' FROM n;
+                 PRAGMA wal_checkpoint(TRUNCATE);",
+            )
+        })
+        .unwrap();
+        drop(db);
+        let mut bytes = std::fs::read(path).unwrap();
+        let page = 4096;
+        assert!(bytes.len() > 8 * page, "needs a few pages to damage one");
+        for b in &mut bytes[3 * page..7 * page] {
+            *b = 0xFF;
+        }
+        std::fs::write(path, &bytes).unwrap();
+    }
+
+    #[test]
+    fn a_damaged_database_is_moved_aside_and_rebuilt() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.db");
+        damaged_copy_of_full_db(&path);
+
+        let db = Db::open(&path).expect("the app still starts");
+        assert_eq!(db.schema_version().unwrap(), MIGRATIONS.len());
+        let ok: String = db
+            .with(|c| c.query_row("PRAGMA integrity_check", [], |r| r.get(0)))
+            .unwrap();
+        assert_eq!(ok, "ok");
+        let rows: i64 = db
+            .with(|c| c.query_row("SELECT count(*) FROM backup_runs", [], |r| r.get(0)))
+            .unwrap();
+        assert!(
+            rows > 0 && rows <= 3000,
+            "kept the readable rows, got {rows}"
+        );
+        db.with(|c| {
+            c.execute(
+                "INSERT INTO backup_runs(plan_id, started_at, ended_at, ok) VALUES ('p', 1, 1, 1)",
+                [],
+            )
+        })
+        .expect("the new database takes writes");
+        let kept: Vec<_> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with("damaged-db-"))
+            .collect();
+        assert_eq!(kept.len(), 1, "the damaged original is kept");
+        assert!(kept[0].path().join("t.db").exists());
+    }
+
+    #[test]
+    fn a_healthy_database_is_left_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.db");
+        drop(Db::open(&path).unwrap());
+        drop(Db::open(&path).unwrap());
+        assert!(!std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().starts_with("damaged-db-")));
     }
 }
