@@ -1,170 +1,304 @@
-# NomNom
+<div align="center">
 
-A small, fast local utility hub for **Arch Linux**, **Debian / Ubuntu**, and **Windows 11**.
+<img src=".github/assets/banner.png" alt="NomNom: downloads, files and disk space, all on your own computer" width="100%">
 
-Everything runs on your own machine. No account, no telemetry, and nothing is sent anywhere except the downloads you ask for and an optional update check (Settings, on by default) that reads NomNom's own release page on GitHub.
+<br>
 
-## Features
+[![Latest release](https://img.shields.io/github/v/release/Liveira/NomNom?style=for-the-badge&color=ffa970&labelColor=1a1424&label=release)](https://github.com/Liveira/NomNom/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Liveira/NomNom/total?style=for-the-badge&color=ff8fb8&labelColor=1a1424)](https://github.com/Liveira/NomNom/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/Liveira/NomNom/ci.yml?branch=main&style=for-the-badge&labelColor=1a1424&label=CI)](https://github.com/Liveira/NomNom/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-c0a3ff?style=for-the-badge&labelColor=1a1424)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/Liveira/NomNom?style=for-the-badge&color=ffc093&labelColor=1a1424)](https://github.com/Liveira/NomNom/stargazers)
 
-| Module | What it does |
-|---|---|
-| **NomNom Downloader** | Paste a link, pick video or audio and a quality, download. Uses `yt-dlp` and `ffmpeg` (from your system `PATH` on Linux, or downloaded into NomNom's own tools folder on request). Queue, pause, resume, duplicate check, Firefox cookies, and history. |
-| **Quick download** | `Ctrl+Alt+D` reads the link on your clipboard and opens a small popup window. Enter downloads it immediately. |
-| **Browser extension** | Adds a download button on YouTube, X, Instagram and Reddit posts, with a menu for video or audio, and a button on top of the video player on TikTok, Vimeo, Twitch, Dailymotion, Facebook, Bilibili and a few more. Firefox and LibreWolf; Chrome and Edge from `nomnom-chrome-extension.zip` (Load unpacked). Talks to NomNom over Native Messaging and a per-user local socket/pipe. |
-| **File Organizer** | Sorts a folder (`Downloads`, by default) into `Videos`, `Audio`, `Images` and `Documents`. Shows a full preview first, refuses to touch system or software folders, never overwrites an existing file (`RENAME_NOREPLACE` on Linux, `MOVEFILE_WRITE_THROUGH` without replace on Windows), and every run can be undone. Includes an automatic watch mode for new downloads. |
-| **File Tools** | Converts images, audio, video, text, Markdown, CSV/JSON/YAML/TOML and (with LibreOffice) Office documents to PDF. Source files are only ever read; outputs write to temporary files and move atomically under a free name. |
-| **Disk Analyzer** | Scans a drive, mount point or folder (optionally elevated via Polkit `pkexec` on Linux or UAC Administrator on Windows) and shows where space went: multi-column TreeGrid with `[files]` and free/system space, split list, cushioned treemap, sunburst ring chart, charts by kind, extension, age, size range and file owner, largest items, advanced search with presets, and duplicate finder (send to Trash / Recycle Bin, delete, move, zip, or replace duplicates with hardlinks). Supports filesystem compression (`FS_IOC_SETFLAGS` on Linux where supported, NTFS compression on Windows), extended attributes / NTFS streams, batch rename, saved scan files, reports (CSV, XLSX, PDF, HTML, JSON), and scheduled scan snapshots. |
-| **Backup** | Copies chosen folders to a drive you pick, by hand or on a schedule. Each backup is a dated version, files that did not change take no extra space, old versions are removed beyond the number you keep, and you can restore a file, a folder or a whole version. |
-| **System Monitor** | Processor, memory, disks, network and the busiest programs, live. It only looks. An option shows CPU and memory when you point at the tray icon. |
-| **Focus mode** | A timer for a block of work or a break, next to Playtime. At the end you see which apps you used. |
-| **Quick cleanup** | In the Disk Analyzer: measures browser caches, temporary files and similar places, and clears them only after the usual preview and confirmation. |
-| **PDF tools** | In File Tools: join PDFs, or take pages out of one. The originals are never changed. |
-| **Themes and languages** | Seventeen themes with moving backgrounds (Settings, Appearance), and the whole app in English, Portuguese (Brazil) and Spanish. |
-| **File manager menu** | Right-click files to convert them or right-click a folder to analyze its disk space. Supports **KDE Dolphin** (`kio/servicemenus`), **GNOME Files / Nautilus** (`nautilus/scripts`), **Cinnamon Nemo** (`nemo/actions`), and **Windows 11 Explorer** (Windows 11 sparse package menu with classic HKCU fallback). |
-| **Updates** | Checks GitHub Releases once a day when enabled and verifies downloads against the published `SHA256SUMS.txt`. Applies NSIS updates on Windows, replaces writable `.AppImage` binaries atomically on Linux, or saves `.pkg.tar.zst` / `.deb` packages to `Downloads` for `pacman` or `apt`. |
+**English** · [Português (Brasil)](README.pt-BR.md)
 
----
+[**⬇️ Download**](#download) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Browser extension](#extension) &nbsp;·&nbsp; [Privacy](#privacy) &nbsp;·&nbsp; [Build from source](#build) &nbsp;·&nbsp; [Contributing](CONTRIBUTING.md)
 
-## Install & Build on Linux
+</div>
 
-### Arch Linux (Primary Linux Target)
+<br>
 
-See [packaging/arch/README.md](packaging/arch/README.md) for detailed notes on KDE Plasma, GNOME, Hyprland/Sway, Polkit agents, and LibreWolf.
+NomNom is a small desktop app that puts the everyday jobs you keep opening other programs for in one place: **download a video or a song**, **sort your Downloads folder**, **convert a file**, **find out what is eating your disk**, **back up a folder**, **see how long you really played that game**.
 
-1. Install build and runtime packages:
+It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, open source (MIT), has no account and no telemetry, and everything it does happens on your own computer.
+
+<div align="center">
+<img src=".github/assets/home.webp" alt="NomNom home screen with today's Playtime, active downloads and the toolkit" width="860">
+</div>
+
+<br>
+
+<a id="features"></a>
+## ✨ What is inside
+
+| | Tool | What it does |
+|---|---|---|
+| 📥 | **NomNom Downloader** | Paste a link, pick video or audio and a quality, done. Queue with pause and resume, history, duplicate check, subtitles, scheduled downloads and optional Firefox cookies for sites that need a sign-in. Powered by `yt-dlp` and `ffmpeg`. |
+| ⚡ | **Quick download** | Press `Ctrl+Alt+D`. NomNom reads the link on your clipboard and opens a tiny popup. Enter starts the download. |
+| 🗂️ | **File Organizer** | Sorts a folder (Downloads by default) into Videos, Audio, Images and Documents. You see a full preview first, system and software folders are refused, nothing is ever overwritten, and **every run can be undone**. Has an automatic mode for new downloads. |
+| 🔄 | **File Tools** | Convert images, audio, video, text, Markdown, CSV / JSON / YAML / TOML, and Office documents (with LibreOffice) to PDF. Join PDFs or pull pages out. Your originals are only read, never changed. |
+| 💽 | **Disk Analyzer** | See where your space went: tree, treemap, sunburst, charts by type, age, size and owner, biggest items, advanced search, **duplicate finder**, batch rename, saved scans, scheduled snapshots and reports (CSV, XLSX, PDF, HTML, JSON). Includes a **quick cleanup** for caches and temporary files. |
+| 🎮 | **Playtime** | Counts only the app or game you actually have in focus. Idle time and background processes are not counted. Daily rhythm, categories, a six-month activity map and a **Focus mode** timer. |
+| 🛟 | **Backup** | Copies chosen folders to a drive you pick, by hand or on a schedule. Dated versions, unchanged files take no extra space, old versions are pruned, and you can restore a file, a folder or a whole version. |
+| 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live. It only looks, it never touches anything. |
+| 🖱️ | **File manager menu** | Right-click files to convert them, or a folder to analyze its space. Works in Windows 11 Explorer, KDE Dolphin, GNOME Files and Cinnamon Nemo. |
+| 🌐 | **Browser extension** | Download buttons on YouTube, X, Instagram, Reddit and over the video player on TikTok, Vimeo, Twitch and more. |
+| 🎨 | **17 themes, 3 languages** | Each theme has its own moving background. English, Português (Brasil) and Español. Choose which tools show in the sidebar. |
+
+<br>
+
+<table>
+<tr>
+<td width="50%"><img src=".github/assets/disk.webp" alt="Disk Analyzer treemap showing which files use the most space"></td>
+<td width="50%"><img src=".github/assets/playtime.webp" alt="Playtime page with Focus mode, daily hours and categories"></td>
+</tr>
+<tr>
+<td align="center"><sub><b>Disk Analyzer</b>: treemap, tree, sunburst, duplicates and reports</sub></td>
+<td align="center"><sub><b>Playtime</b>: active hours per app, plus a Focus mode timer</sub></td>
+</tr>
+</table>
+
+<div align="center">
+<img src=".github/assets/themes.webp" alt="NomNom in the Synthwave, Sakura, Deep Ocean and Matcha themes" width="760">
+<br><sub>Four of the 17 themes. The screenshots use sample data.</sub>
+</div>
+
+<br>
+
+<a id="download"></a>
+## ⬇️ Download
+
+Grab the latest build from the **[Releases page](https://github.com/Liveira/NomNom/releases/latest)**.
+
+| Your system | File | How |
+|---|---|---|
+| 🪟 **Windows 11** | `NOMNOM_<version>_x64-setup.exe` | Run it. It installs for your user only and needs no administrator rights. |
+| 🐧 **Arch Linux** | `nomnom-<version>-1-x86_64.pkg.tar.zst` | `sudo pacman -U nomnom-*.pkg.tar.zst` |
+| 🐧 **Debian / Ubuntu** | `NOMNOM_<version>_amd64.deb` | `sudo apt install ./NOMNOM_*_amd64.deb` |
+| 🐧 **Any Linux** | `NOMNOM_<version>_amd64.AppImage` | `chmod +x` it and run it. |
+
+Once installed, NomNom can check GitHub once a day for a new version and update itself. You can turn that off in **Settings → Updates**.
+
+<details>
+<summary><b>Verify your download</b></summary>
+
+<br>
+
+Every release includes `SHA256SUMS.txt`. Compare it with the file you downloaded.
+
+```powershell
+Get-FileHash .\NOMNOM_0.4.2_x64-setup.exe -Algorithm SHA256
+```
+
+```bash
+sha256sum -c SHA256SUMS.txt --ignore-missing
+```
+
+The Windows installer is not signed with a paid code-signing certificate, so SmartScreen may ask you to confirm. The checksum, and the fact that the whole source is in this repository, are how you can check what you are running.
+
+</details>
+
+<details>
+<summary><b>First steps</b></summary>
+
+<br>
+
+1. Open NomNom. A short first-run card asks what it may add to your system (right-click menu, start with the computer, browser connection). Everything is off until you say yes.
+2. Choose which tools you want in the sidebar. The rest stay on the **Tools** page.
+3. **Downloader**: NomNom offers to download `yt-dlp` (about 18 MB) and `ffmpeg` into its own folder. On Linux it uses the ones on your `PATH` when they exist.
+4. Copy a video link and press `Ctrl+Alt+D`.
+
+</details>
+
+<br>
+
+<a id="extension"></a>
+## 🌐 Browser extension
+
+The extension adds a download button on the page and sends the link to the desktop app. It talks to NomNom through Native Messaging and a per-user local pipe or socket, so nothing goes through the internet.
+
+- **Firefox and LibreWolf**: open **Settings → Browser** in NomNom and connect.
+- **Chrome and Edge**: download `nomnom-chrome-extension.zip` from the release, unzip it, open `chrome://extensions`, turn on *Developer mode* and choose *Load unpacked*.
+
+<br>
+
+<a id="privacy"></a>
+## 🔒 Privacy and safety
+
+- **No account. No telemetry. No ads.** The only network traffic is the downloads you ask for, the tools you ask NomNom to fetch, and the optional daily update check against this repository's releases.
+- **Playtime stays on your computer.** It records which app was in focus and for how long. Window titles and URLs are never saved.
+- **Your files are handled carefully.** The organizer and converters never overwrite a file, always show what they are about to do, and keep an undo journal. Deleting goes through a plan and a confirmation, and the Trash or Recycle Bin is the default.
+- **Updates are verified.** Downloads are checked against the published `SHA256SUMS.txt` and must come from this repository's releases.
+- **Small footprint.** In the background NomNom uses about 6 MB and no web view at all. With the window open, add the web view's roughly 80 MB.
+
+<details>
+<summary><b>Where NomNom keeps its data</b></summary>
+
+<br>
+
+NomNom never writes outside your user profile unless you start a file operation.
+
+| Purpose | Linux | Windows 11 |
+|---|---|---|
+| Data, history, snapshots, logs, managed tools | `~/.local/share/nomnom` | `%LOCALAPPDATA%\NOMNOM` |
+| Settings | `~/.config/nomnom` | `%LOCALAPPDATA%\NOMNOM` |
+| Cache and staged updates | `~/.cache/nomnom` | `%LOCALAPPDATA%\NOMNOM\cache` |
+| Local IPC endpoint | `$XDG_RUNTIME_DIR/nomnom.sock` (`0600`) | `\\.\pipe\nomnom-<SID>` (per-user) |
+
+</details>
+
+<br>
+
+<a id="build"></a>
+## 🛠️ Build from source
+
+You need Rust (stable), Node.js 20 or newer and the platform packages below.
+
+```bash
+git clone https://github.com/Liveira/NomNom.git
+cd NomNom
+npm install
+npm run dev          # Vite + Tauri with hot reload
+```
+
+<details>
+<summary><b>🪟 Windows 11</b></summary>
+
+<br>
+
+Rust `stable-x86_64-pc-windows-msvc`, Node.js 20+ and the Windows 10/11 SDK (only needed for the signed Explorer menu package). WebView2 ships with Windows 11.
+
+```powershell
+npm install
+scripts\build-release.ps1                 # app, native host, Explorer package, Firefox add-on, NSIS installer
+scripts\build-release.ps1 -SkipInstaller  # release binaries only
+scripts\bench.ps1                         # memory, idle CPU and window ready time
+```
+
+</details>
+
+<details>
+<summary><b>🐧 Arch Linux</b></summary>
+
+<br>
+
+Notes for KDE Plasma, GNOME, Hyprland / Sway, Polkit agents and LibreWolf are in [packaging/arch/README.md](packaging/arch/README.md).
 
 ```bash
 sudo pacman -S --needed base-devel rust nodejs npm pkgconf \
   webkit2gtk-4.1 gtk3 glib2 libayatana-appindicator hicolor-icon-theme
-```
 
-2. Optional runtime tools (NomNom detects system binaries on `PATH` automatically, or can download static `yt-dlp` and `ffmpeg` builds inside **Settings -> Tools**):
-
-```bash
+# optional runtime tools (NomNom can also download yt-dlp and ffmpeg itself)
 sudo pacman -S --needed yt-dlp ffmpeg libreoffice-fresh polkit
-```
 
-3. Build and install the native `.pkg.tar.zst` package:
-
-```bash
 ./scripts/build-linux.sh --arch
 sudo pacman -U dist/linux/nomnom-*.pkg.tar.zst
 ```
 
-Or directly with `makepkg`:
+Or with `makepkg` directly: `cd packaging/arch && makepkg -si`.
 
-```bash
-cd packaging/arch
-makepkg -si
-```
+</details>
 
-### Debian / Ubuntu
+<details>
+<summary><b>🐧 Debian / Ubuntu</b></summary>
 
-Tested against Ubuntu 22.04 LTS, Ubuntu 24.04 LTS, and Debian 12+.
+<br>
 
-1. Install build dependencies (plus Rust `stable` via `rustup` and Node.js 20+):
+Built against Ubuntu 22.04 LTS, Ubuntu 24.04 LTS and Debian 12 or newer.
 
 ```bash
 sudo apt update
 sudo apt install -y build-essential pkg-config curl file patchelf \
   libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
   librsvg2-dev libssl-dev
-```
 
-2. Optional runtime packages:
-
-```bash
+# optional runtime packages
 sudo apt install -y ffmpeg libreoffice policykit-1
-```
 
-3. Build and install the `.deb` package (or portable `.AppImage`):
-
-```bash
 ./scripts/build-linux.sh --deb
 sudo apt install ./dist/linux/NOMNOM_*_amd64.deb
 
-# Or build a self-contained AppImage:
+# or a self-contained AppImage
 ./scripts/build-linux.sh --appimage
 ```
 
-### Linux Desktop Notes
+</details>
 
-- **Wayland + NVIDIA GPUs**: On startup, if NomNom detects a Wayland session together with `/proc/driver/nvidia/version` and `WEBKIT_DISABLE_DMABUF_RENDERER` is unset, it sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` automatically to avoid blank WebKitGTK windows on proprietary NVIDIA drivers.
-- **Elevated Disk Scans**: Scanning root-owned paths (such as `/var/lib/docker` or `/root`) uses `pkexec` over a `0600` Unix domain socket owned by your UID. Tiling Wayland compositors (Hyprland, Sway) require a running Polkit agent such as `polkit-kde-agent`, `hyprpolkitagent`, or `mate-polkit`.
-- **Background Mode**: With no window open (`nomnom --background`), NomNom keeps no WebKitGTK web process alive, keeping idle memory low until you open the main window or press the Quick Download shortcut.
+<details>
+<summary><b>🐧 Linux desktop notes</b></summary>
 
----
+<br>
 
-## Install & Build on Windows 11
+- **Wayland with an NVIDIA GPU**: NomNom sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` for you when it detects this, to avoid a blank WebKitGTK window.
+- **Scanning root-owned folders**: uses `pkexec` over a `0600` socket owned by your user. On tiling compositors (Hyprland, Sway) keep a Polkit agent running, such as `polkit-kde-agent`, `hyprpolkitagent` or `mate-polkit`.
+- **Background mode**: `nomnom --background` keeps no web view alive, so idle memory stays low until you open the window or press the quick download shortcut.
 
-Requirements: Windows 11, Rust (`stable-x86_64-pc-windows-msvc`), Node.js 20 or newer, and the Windows 10/11 SDK (only needed when building the signed sparse MSIX Explorer menu package). WebView2 ships with Windows 11.
+</details>
 
-```powershell
-npm install
-scripts\build-release.ps1                 # app, native host, Explorer package, Firefox add-on and NSIS installer
-scripts\build-release.ps1 -SkipInstaller  # release binaries only
-scripts\bench.ps1                         # memory, idle CPU and window ready time
-```
+<details>
+<summary><b>✅ Checks and tests</b></summary>
 
----
-
-## Development & Tests
+<br>
 
 ```bash
-npm install
-npm run dev                      # Vite + Tauri with hot reload
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-npm run check                    # svelte-check TypeScript + template verification
-npm test                         # Vitest unit, accessibility contrast and UI copy tests
-npm test -w @nomnom/firefox-extension
+npm run check                          # svelte-check
+npm test                               # Vitest: unit, contrast and UI text tests
+npm test -w @nomnom/firefox-extension  # extension tests
 ```
 
-Linux memory, CPU and startup benchmark on a release build:
+Linux memory, CPU and start-up benchmark on a release build: `./scripts/build-linux.sh --skip-bundle && ./scripts/bench-linux.sh`
 
-```bash
-./scripts/build-linux.sh --skip-bundle
-./scripts/bench-linux.sh
-```
+</details>
 
----
+<details>
+<summary><b>🧱 How the repository is laid out</b></summary>
 
-## Where NomNom Stores Data
+<br>
 
-NomNom never writes outside your user profile unless you run an explicit file operation:
+| Path | What is there |
+|---|---|
+| `apps/desktop` | Svelte 5 + TypeScript interface and the Tauri v2 host (`src-tauri`) |
+| `apps/firefox-extension` | Manifest V3 extension for Firefox, LibreWolf, Chrome and Edge, built from one source |
+| `crates/nomnom-core` | Paths, settings, SQLite history, safe file moves, process groups |
+| `crates/nomnom-downloads` | Download queue, `yt-dlp` runner, format selection, cookie discovery |
+| `crates/nomnom-tools` | `yt-dlp` and `ffmpeg` discovery, SHA-256 verified installs, release updater |
+| `crates/nomnom-converter` | Image, audio, video, document, structured text and PDF conversions |
+| `crates/nomnom-organizer` | Preview-first organizer with an undo journal and system path guards |
+| `crates/nomnom-storage` | Parallel disk scanner, duplicates, search, reports, Trash, elevation |
+| `crates/nomnom-backup` | Versioned backups, restore and verification |
+| `crates/nomnom-activity` | Focused-window tracking and idle detection for Playtime |
+| `crates/nomnom-ipc` · `nomnom-native-host` | Native Messaging framing and the per-user pipe / socket to the browser |
+| `crates/nomnom-linux` · `nomnom-win` · `nomnom-shell` | Autostart, browser registration and file manager menus per platform, including the Windows 11 `IExplorerCommand` DLL |
+| `packaging` | Arch `PKGBUILD`, Debian and Freedesktop files, Windows sparse package manifest |
+| `scripts` | Release and benchmark scripts |
 
-| Purpose | Linux (XDG Base Directory) | Windows 11 |
-|---|---|---|
-| Data, SQLite history, snapshots, logs, managed tools | `$XDG_DATA_HOME/nomnom` (`~/.local/share/nomnom`) | `%LOCALAPPDATA%\NOMNOM` |
-| Settings (`settings.json`) | `$XDG_CONFIG_HOME/nomnom` (`~/.config/nomnom`) | `%LOCALAPPDATA%\NOMNOM` |
-| Cache & staged updates | `$XDG_CACHE_HOME/nomnom` (`~/.cache/nomnom`) | `%LOCALAPPDATA%\NOMNOM\cache` |
-| Local IPC endpoint | `$XDG_RUNTIME_DIR/nomnom.sock` (`0600`) | `\\.\pipe\nomnom-<SID>` (SDDL per-user) |
-| Firefox Native Messaging manifest | `~/.mozilla/native-messaging-hosts/com.nomnom.host.json` (plus `~/.librewolf/...` when LibreWolf is present) | `HKCU\Software\Mozilla\NativeMessagingHosts\com.nomnom.host` (plus the Chrome and Edge keys) |
+The library crates never depend on Tauri. Only `apps/desktop/src-tauri` does.
 
----
+</details>
 
-## Repository Layout
+<br>
 
-- `apps/desktop` — Svelte 5 + TypeScript UI and Tauri v2 host (`apps/desktop/src-tauri`)
-- `apps/firefox-extension` — Manifest V3 extension for Firefox, LibreWolf, Chrome and Edge (two builds from one source)
-- `crates/nomnom-core` — XDG / Known Folder paths, settings, SQLite history, safe file moves, process groups
-- `crates/nomnom-ipc` — Native Messaging framing and per-user Named Pipe / Unix domain socket transport
-- `crates/nomnom-native-host` — Bridge binary launched by Firefox
-- `crates/nomnom-tools` — `yt-dlp` and `ffmpeg` discovery, SHA-256 verified installs, and GitHub Release updater
-- `crates/nomnom-downloads` — Download queue, `yt-dlp` runner, format selection, Firefox cookie discovery
-- `crates/nomnom-converter` — Image, audio, video, document and structured text conversions
-- `crates/nomnom-organizer` — Preview-first folder organizer with undo journal and system path guards
-- `crates/nomnom-storage` — Parallel disk scanner, mount enumeration, duplicates, search, reports, Trash/Recycle Bin, Polkit/UAC elevation
-- `crates/nomnom-linux` — Linux XDG autostart, Firefox/LibreWolf host registration, Dolphin/Nautilus/Nemo menus
-- `crates/nomnom-win` & `crates/nomnom-shell` — Windows HKCU integrations and Windows 11 Explorer `IExplorerCommand` DLL
-- `packaging/arch` — Arch Linux `PKGBUILD`, `.SRCINFO`, and Arch setup guide
-- `packaging/linux` — Freedesktop `.desktop` entry and Debian template
-- `packaging/sparse` — Windows 11 sparse MSIX manifest template
-- `scripts` — Release build and benchmark scripts for Linux (`*.sh`) and Windows (`*.ps1`)
+## 🤝 Contributing
 
-## License
+Bug reports, ideas and pull requests are welcome. The quickest ways to help:
 
-MIT. `ffmpeg`, `yt-dlp` and LibreOffice are separate programs under their own licenses; NomNom uses your system packages when installed or downloads `yt-dlp` and `ffmpeg` on request without bundling them.
+- **Try it and tell me what broke.** Linux support is newer than Windows support, so reports from different desktops and distributions are especially useful.
+- **Translate.** The app already speaks English, Português (Brasil) and Español. More languages fit the same catalog.
+- **Pick an issue** labelled `good first issue`, or open one with your idea first.
 
-Icons and fonts come from open source projects; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and [SECURITY.md](SECURITY.md) for security problems.
+
+If NomNom saved you some time, a ⭐ on the repository helps other people find it.
+
+<br>
+
+## 📄 License and credits
+
+[MIT](LICENSE). `ffmpeg`, `yt-dlp` and LibreOffice are separate programs under their own licenses. NomNom uses the ones installed on your system, or downloads `yt-dlp` and `ffmpeg` on request, and never bundles them.
+
+Icons are [Lucide](https://lucide.dev) (ISC). Fonts are [Fredoka](https://fonts.google.com/specimen/Fredoka) and [Nunito](https://fonts.google.com/specimen/Nunito) (SIL Open Font License). Full notices are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+NomNom is not affiliated with YouTube, X, Instagram, Reddit, TikTok or any other site it can download from. Please respect the terms of the sites you use and the rights of the people who made what you download.

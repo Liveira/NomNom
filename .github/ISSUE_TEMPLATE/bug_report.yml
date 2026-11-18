@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in NomNom does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The more exact you are, the faster it gets fixed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: NomNom version
+      description: Settings → About
+      placeholder: "0.4.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows 11
+        - Arch Linux
+        - Debian / Ubuntu
+        - Other Linux
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop environment (Linux only)
+      placeholder: "KDE Plasma 6 on Wayland, GNOME 47 on X11, Hyprland, ..."
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which tool?
+      options:
+        - NomNom Downloader / Quick download
+        - Browser extension
+        - File Organizer
+        - File Tools
+        - Disk Analyzer
+        - Playtime / Focus mode
+        - Backup
+        - System Monitor
+        - Settings / themes
+        - Installer / updates
+        - Other
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log or screenshot
+      description: Logs are in the data folder (see the README, "Where NomNom keeps its data"). Remove anything private before pasting.
+      render: shell
