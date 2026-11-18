@@ -1,6 +1,6 @@
 use crate::modules::downloads;
 use crate::{
-    activity, browser, commands, events, filetools, focus, integrations, modules, notifier,
+    activity, backup, browser, commands, events, filetools, focus, integrations, modules, notifier,
     organizer, pdftools, pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup,
     storage_history, storage_ops, storage_tools, tray, updater, windows,
 };
@@ -148,6 +148,7 @@ pub fn run() {
         .manage(state)
         .manage(updater::UpdateState::default())
         .manage(focus::FocusState::default())
+        .manage(backup::BackupState::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
             commands::get_settings,
@@ -217,6 +218,15 @@ pub fn run() {
             downloads::dl_schedule,
             downloads::dl_scheduled,
             downloads::dl_unschedule,
+            backup::bk_plans,
+            backup::bk_save,
+            backup::bk_delete,
+            backup::bk_run,
+            backup::bk_cancel,
+            backup::bk_versions,
+            backup::bk_tree,
+            backup::bk_restore,
+            backup::bk_verify,
             focus::focus_start,
             focus::focus_stop,
             focus::focus_status,
@@ -267,6 +277,7 @@ pub fn run() {
             activity::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
+            backup::spawn_scheduler(app.handle().clone());
             downloads::spawn_scheduler(app.handle().clone());
             downloads::apply_subtitles(&app.state::<AppState>());
             if let Some(action) = filetools::parse_shell_args(&args) {

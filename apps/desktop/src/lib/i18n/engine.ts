@@ -55,7 +55,12 @@ export function translateText(cat: Catalog, text: string, memo?: Map<string, str
         const m = p.re.exec(key);
         if (m) {
           // The values inside may be translatable too ("Today", "Unknown").
-          hit = fill(p.out, m.slice(1).map((g) => cat.exact.get(g) ?? g));
+          hit = fill(
+            p.out,
+            // A value inside may itself be text that can be translated ("5 minutes ago"). It is shorter
+            // than the whole, so this always ends.
+            m.slice(1).map((g) => translateText(cat, g)),
+          );
           break;
         }
       }

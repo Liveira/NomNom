@@ -984,3 +984,67 @@ export const scheduleIpc = {
 export function onScheduledChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('downloads://scheduled', () => handler());
 }
+
+// ---- Backup -------------------------------------------------------------------------------------
+export interface BackupPlan {
+  id: string;
+  name: string;
+  sources: string[];
+  destination: string;
+  schedule: 'manual' | 'hourly' | 'daily' | 'weekly';
+  keep: number;
+  exclude: string;
+  enabled: boolean;
+}
+export interface BackupLastRun {
+  started_at: number;
+  ended_at: number;
+  ok: boolean;
+  files: number;
+  bytes: number;
+  copied: number;
+  message: string | null;
+}
+export interface BackupPlanView {
+  plan: BackupPlan;
+  last: BackupLastRun | null;
+  next_at: number | null;
+  running: boolean;
+  problem: string | null;
+}
+export interface BackupVersion {
+  name: string;
+  started_at: number;
+  files: number;
+  bytes: number;
+}
+export interface BackupTree {
+  folders: { name: string; files: number; bytes: number }[];
+  files: { name: string; bytes: number; modified: number }[];
+}
+export interface BackupRestoreReport {
+  restored: number;
+  bytes: number;
+  renamed: number;
+  failed: string[];
+  cancelled: boolean;
+}
+export const backupIpc = {
+  plans: () => invoke<BackupPlanView[]>('bk_plans'),
+  save: (plan: BackupPlan) => invoke<BackupPlan>('bk_save', { plan }),
+  remove: (id: string) => invoke<void>('bk_delete', { id }),
+  run: (id: string) => invoke<void>('bk_run', { id }),
+  cancel: () => invoke<void>('bk_cancel'),
+  versions: (id: string) => invoke<BackupVersion[]>('bk_versions', { id }),
+  tree: (id: string, version: string, prefix: string) => invoke<BackupTree>('bk_tree', { id, version, prefix }),
+  restore: (id: string, version: string, only: string[] | null, target: string) =>
+    invoke<BackupRestoreReport>('bk_restore', { id, version, only, target }),
+  verify: (id: string, version: string) =>
+    invoke<{ checked: number; missing: string[]; wrong_size: string[] }>('bk_verify', { id, version }),
+};
+export function onBackupChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('backup://changed', () => handler());
+}
+export function onBackupProgress(handler: (p: { plan_id: string; files: number; bytes: number; current: string }) => void): Promise<UnlistenFn> {
+  return listen('backup://progress', (e) => handler(e.payload as never));
+}

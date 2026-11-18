@@ -3,6 +3,7 @@
 
 mod activity;
 mod app;
+mod backup;
 mod browser;
 mod commands;
 mod events;

@@ -94,6 +94,23 @@ const MIGRATIONS: &[&str] = &[
         run_at INTEGER NOT NULL,
         created_at INTEGER NOT NULL);
      CREATE INDEX scheduled_downloads_time ON scheduled_downloads(run_at);",
+    // v9: Backup plans and a record of each run.
+    "CREATE TABLE backup_plans(
+        id TEXT PRIMARY KEY,
+        json TEXT NOT NULL,
+        created_at INTEGER NOT NULL);
+     CREATE TABLE backup_runs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plan_id TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        ended_at INTEGER NOT NULL,
+        ok INTEGER NOT NULL,
+        files INTEGER NOT NULL DEFAULT 0,
+        bytes INTEGER NOT NULL DEFAULT 0,
+        copied INTEGER NOT NULL DEFAULT 0,
+        version TEXT,
+        message TEXT);
+     CREATE INDEX backup_runs_plan ON backup_runs(plan_id, id DESC);",
 ];
 
 pub struct Db {

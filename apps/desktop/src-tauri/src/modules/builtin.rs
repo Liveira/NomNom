@@ -174,6 +174,30 @@ static ACTIVITY: ModuleManifest = ModuleManifest {
     capabilities: &[],
 };
 
+static BACKUP: ModuleManifest = ModuleManifest {
+    id: "backup",
+    name: "Backup",
+    nav: Some(NavEntry {
+        order: 35,
+        icon: "backup",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct Backup;
+#[async_trait]
+impl Module for Backup {
+    fn manifest(&self) -> &ModuleManifest {
+        &BACKUP
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub struct Activity;
 #[async_trait]
 impl Module for Activity {

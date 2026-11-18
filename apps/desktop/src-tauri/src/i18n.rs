@@ -185,6 +185,38 @@ pub fn organized_toast(lang: Lang, moved: usize) -> String {
     }
 }
 
+/// The notification after a scheduled backup, or any backup that failed.
+pub fn backup_done(lang: Lang, ok: bool, name: &str, note: &str) -> (String, String) {
+    let t = |en: &str, pt: &str, es: &str| match lang {
+        Lang::En => en.to_string(),
+        Lang::Pt => pt.to_string(),
+        Lang::Es => es.to_string(),
+    };
+    if ok {
+        (
+            t(
+                "Backup finished",
+                "Backup concluído",
+                "Copia de seguridad terminada",
+            ),
+            if note.is_empty() {
+                name.to_string()
+            } else {
+                format!("{name}: {note}")
+            },
+        )
+    } else {
+        (
+            t(
+                "Backup didn't finish",
+                "O backup não terminou",
+                "La copia de seguridad no terminó",
+            ),
+            format!("{name}: {note}"),
+        )
+    }
+}
+
 /// The notification when a timer ends: its title and body.
 pub fn focus_done(
     lang: Lang,
