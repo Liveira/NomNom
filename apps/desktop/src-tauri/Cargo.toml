@@ -19,6 +19,7 @@ nomnom-organizer = { path = "../../../crates/nomnom-organizer" }
 nomnom-converter = { path = "../../../crates/nomnom-converter" }
 nomnom-storage = { path = "../../../crates/nomnom-storage" }
 nomnom-backup = { path = "../../../crates/nomnom-backup" }
+sysinfo = { version = "0.33", default-features = false, features = ["system", "disk", "network", "component"] }
 nomnom-activity = { path = "../../../crates/nomnom-activity" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 rusqlite = { version = "0.32", features = ["bundled"] }

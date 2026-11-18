@@ -12,6 +12,7 @@ mod focus;
 mod i18n;
 mod integrations;
 mod modules;
+mod monitor;
 mod notifier;
 mod organizer;
 mod pdftools;

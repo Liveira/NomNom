@@ -257,6 +257,14 @@ impl Default for Activity {
     }
 }
 
+/// The system monitor.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct Monitor {
+    /// Show processor and memory in the tray tooltip (read every few seconds while on).
+    pub tray_tooltip: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -270,6 +278,7 @@ pub struct Settings {
     pub system: System,
     pub storage: Storage,
     pub updates: Updates,
+    pub monitor: Monitor,
     pub activity: Activity,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
@@ -288,6 +297,7 @@ impl Default for Settings {
             system: System::default(),
             storage: Storage::default(),
             updates: Updates::default(),
+            monitor: Monitor::default(),
             activity: Activity::default(),
             extra: Map::new(),
         }

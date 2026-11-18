@@ -198,6 +198,30 @@ impl Module for Backup {
     }
 }
 
+static MONITOR: ModuleManifest = ModuleManifest {
+    id: "monitor",
+    name: "System Monitor",
+    nav: Some(NavEntry {
+        order: 40,
+        icon: "activity",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: Some("monitor"),
+    capabilities: &[],
+};
+
+pub struct Monitor;
+#[async_trait]
+impl Module for Monitor {
+    fn manifest(&self) -> &ModuleManifest {
+        &MONITOR
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 pub struct Activity;
 #[async_trait]
 impl Module for Activity {

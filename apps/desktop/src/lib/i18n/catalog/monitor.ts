@@ -1,0 +1,33 @@
+import type { Entry } from '../engine';
+
+/** The system monitor. */
+export const MONITOR: Entry[] = [
+  ['System Monitor', 'Monitor do Sistema', 'Monitor del Sistema'],
+  ['Live, and only looking', 'Ao vivo, e só olhando', 'En vivo, y solo mirando'],
+  ['See what your computer is doing right now: processor, memory, disks, network and the programs that use the most.', 'Veja o que o seu computador está fazendo agora: processador, memória, discos, rede e os programas que mais usam.', 'Mira lo que hace tu equipo ahora mismo: procesador, memoria, discos, red y los programas que más usan.'],
+  ['Show CPU and memory when I point at the tray icon', 'Mostrar CPU e memória quando eu apontar para o ícone da bandeja', 'Mostrar CPU y memoria al apuntar al icono de la bandeja'],
+  ['On for', 'Ligado há', 'Encendido hace'],
+  ['Processor and memory', 'Processador e memória', 'Procesador y memoria'],
+  ['Processor', 'Processador', 'Procesador'],
+  ['Memory', 'Memória', 'Memoria'],
+  ['Processor {} percent', 'Processador {} por cento', 'Procesador {} por ciento'],
+  ['Memory {} percent', 'Memória {} por cento', 'Memoria {} por ciento'],
+  ['{} threads', '{} threads', '{} hilos'],
+  ['{} of {}', '{} de {}', '{} de {}'],
+  ['Swap: {} of {}', 'Swap: {} de {}', 'Swap: {} de {}'],
+  ['Network', 'Rede', 'Red'],
+  ['Down', 'Baixando', 'Bajada'],
+  ['Up', 'Enviando', 'Subida'],
+  ['Disks', 'Discos', 'Discos'],
+  ['{} used', '{} usados', '{} usados'],
+  ['{} percent used', '{} por cento usados', '{} por ciento usados'],
+  ['{} free of {}', '{} livres de {}', '{} libres de {}'],
+  ['Busiest programs', 'Programas mais ativos', 'Programas más activos'],
+  ['Sort by', 'Ordenar por', 'Ordenar por'],
+  ['Programs that run as several processes, like a browser, are added together. NomNom only shows them; it never closes anything.', 'Programas que rodam como vários processos, como um navegador, são somados. O NomNom só mostra; nunca fecha nada.', 'Los programas que se ejecutan como varios procesos, como un navegador, se suman. NomNom solo los muestra; nunca cierra nada.'],
+  ['Reading your computer…', 'Lendo o seu computador…', 'Leyendo tu equipo…'],
+  ['{} min', '{} min', '{} min'],
+  ['{} h {} min', '{} h {} min', '{} h {} min'],
+  ['{} day {} h', '{} dia {} h', '{} día {} h'],
+  ['{} days {} h', '{} dias {} h', '{} días {} h'],
+];

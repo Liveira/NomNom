@@ -12,6 +12,10 @@ pub struct TrayStatus {
     pub status: MenuItem<Wry>,
     pub folder: MenuItem<Wry>,
     pub quit: MenuItem<Wry>,
+    /// What the downloads are doing, and whether nothing is running.
+    pub text: std::sync::Mutex<(String, bool)>,
+    /// Processor and memory, when the person switched that on.
+    pub extra: std::sync::Mutex<Option<String>>,
 }
 
 fn lang(app: &AppHandle) -> Lang {
@@ -71,6 +75,8 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         status,
         folder,
         quit,
+        text: std::sync::Mutex::new((String::new(), true)),
+        extra: std::sync::Mutex::new(None),
     });
     Ok(())
 }
@@ -92,13 +98,32 @@ pub fn relabel(app: &AppHandle) {
 pub fn set_status(app: &AppHandle, text: &str, idle: bool) {
     if let Some(t) = app.try_state::<TrayStatus>() {
         let _ = t.status.set_text(text);
+        *t.text.lock().unwrap() = (text.to_string(), idle);
+    }
+    refresh_tooltip(app);
+}
+
+/// Adds a line (like "CPU 12% · 8.0 of 16 GB") to the tooltip, or removes it with `None`.
+pub fn set_extra(app: &AppHandle, line: Option<String>) {
+    if let Some(t) = app.try_state::<TrayStatus>() {
+        *t.extra.lock().unwrap() = line;
+    }
+    refresh_tooltip(app);
+}
+
+fn refresh_tooltip(app: &AppHandle) {
+    let Some(t) = app.try_state::<TrayStatus>() else {
+        return;
+    };
+    let (text, idle) = t.text.lock().unwrap().clone();
+    let mut tip = String::from("NomNom");
+    if !idle && !text.is_empty() {
+        tip.push_str(&format!(" · {text}"));
+    }
+    if let Some(extra) = t.extra.lock().unwrap().as_ref() {
+        tip.push_str(&format!("\n{extra}"));
     }
     if let Some(tray) = app.tray_by_id("main") {
-        let tip = if idle {
-            "NomNom".to_string()
-        } else {
-            format!("NomNom · {text}")
-        };
         let _ = tray.set_tooltip(Some(tip));
     }
 }

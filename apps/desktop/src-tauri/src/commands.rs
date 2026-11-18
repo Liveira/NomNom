@@ -53,6 +53,7 @@ pub struct SettingsPatch {
     storage_big_mb: Option<u32>,
     auto_update_check: Option<bool>,
     subtitles: Option<bool>,
+    monitor_tray: Option<bool>,
     subtitle_langs: Option<String>,
     activity_enabled: Option<bool>,
     activity_idle_secs: Option<u32>,
@@ -200,6 +201,9 @@ pub fn update_settings(
             }
             if let Some(v) = patch.storage_depth {
                 s.storage.snapshot_depth = v.clamp(1, 12);
+            }
+            if let Some(v) = patch.monitor_tray {
+                s.monitor.tray_tooltip = v;
             }
             if let Some(v) = patch.subtitles {
                 s.downloads.subtitles = v;

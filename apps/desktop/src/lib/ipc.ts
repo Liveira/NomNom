@@ -39,6 +39,7 @@ export interface Settings {
     keep_scheduled: number;
   };
   updates: { auto_check: boolean; last_checked: number };
+  monitor: { tray_tooltip: boolean };
   activity: { enabled: boolean; idle_timeout_secs: number; track_nomnom: boolean };
 }
 
@@ -75,6 +76,7 @@ export interface SettingsPatch {
   autoUpdateCheck?: boolean;
   subtitles?: boolean;
   subtitleLangs?: string;
+  monitorTray?: boolean;
   activityEnabled?: boolean;
   activityIdleSecs?: number;
   activityTrackNomnom?: boolean;
@@ -1048,3 +1050,30 @@ export function onBackupChanged(handler: () => void): Promise<UnlistenFn> {
 export function onBackupProgress(handler: (p: { plan_id: string; files: number; bytes: number; current: string }) => void): Promise<UnlistenFn> {
   return listen('backup://progress', (e) => handler(e.payload as never));
 }
+
+// ---- System monitor -----------------------------------------------------------------------------
+export interface MonProc {
+  name: string;
+  pid: number;
+  cpu: number;
+  memory: number;
+}
+export interface MonSnapshot {
+  cpu: number;
+  cores: number[];
+  cpu_name: string;
+  mem_used: number;
+  mem_total: number;
+  swap_used: number;
+  swap_total: number;
+  disks: { name: string; mount: string; total: number; used: number; removable: boolean }[];
+  net_down: number;
+  net_up: number;
+  uptime_secs: number;
+  temp_c: number | null;
+  by_cpu: MonProc[];
+  by_memory: MonProc[];
+}
+export const monitorIpc = {
+  snapshot: () => invoke<MonSnapshot>('mon_snapshot'),
+};

@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
-    activity, backup, browser, commands, events, filetools, focus, integrations, modules, notifier,
-    organizer, pdftools, pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup,
-    storage_history, storage_ops, storage_tools, tray, updater, windows,
+    activity, backup, browser, commands, events, filetools, focus, integrations, modules, monitor,
+    notifier, organizer, pdftools, pipe_server, quick, shortcuts, state::AppState, storage,
+    storage_cleanup, storage_history, storage_ops, storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -149,6 +149,7 @@ pub fn run() {
         .manage(updater::UpdateState::default())
         .manage(focus::FocusState::default())
         .manage(backup::BackupState::default())
+        .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_modules,
             commands::get_settings,
@@ -227,6 +228,7 @@ pub fn run() {
             backup::bk_tree,
             backup::bk_restore,
             backup::bk_verify,
+            monitor::mon_snapshot,
             focus::focus_start,
             focus::focus_stop,
             focus::focus_status,
@@ -278,6 +280,7 @@ pub fn run() {
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
             backup::spawn_scheduler(app.handle().clone());
+            monitor::spawn_tray(app.handle().clone());
             downloads::spawn_scheduler(app.handle().clone());
             downloads::apply_subtitles(&app.state::<AppState>());
             if let Some(action) = filetools::parse_shell_args(&args) {
