@@ -1,5 +1,5 @@
-//! Disk analysis for NomNom: drives, a fast scanner, an in-memory index and the questions asked of
-//! it. Windows only. No Tauri code lives here.
+//! Disk analysis for NomNom: drives and mounts, a fast parallel scanner, an in-memory index and
+//! the questions asked of it. Supports Windows and Linux. No Tauri code lives here.
 
 pub mod analyze;
 pub mod batch;

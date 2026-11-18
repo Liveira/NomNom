@@ -1,7 +1,7 @@
 //! The quick-download popup: a small frameless window opened by the global shortcut.
 //!
-//! Creating a WebView2 window from nothing costs about a second on a typical PC, because with no
-//! window open there is no WebView process at all. So there are two modes:
+//! Creating a WebView2 or WebKitGTK window from nothing costs up to a second on a typical PC,
+//! because with no window open there is no WebView process at all. So there are two modes:
 //! - default: create the window when the shortcut is pressed (slower, uses no memory when idle);
 //! - "keep ready": keep one hidden, already-loaded window and just show it (instant, costs memory).
 

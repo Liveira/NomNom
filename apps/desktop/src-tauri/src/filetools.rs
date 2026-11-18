@@ -1,5 +1,5 @@
 //! File Tools inside the app: inspect dropped files, run conversions, and handle the
-//! `--shell-action` command line that the Explorer menu uses.
+//! `--shell-action` command line that the file manager right-click menu uses.
 //!
 //! Conversions never overwrite or modify a source. The window sends file paths and options; every
 //! request is checked again here before anything runs.
