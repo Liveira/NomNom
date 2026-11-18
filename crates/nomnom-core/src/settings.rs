@@ -51,6 +51,8 @@ pub struct General {
     pub tray_notice_shown: bool,
     /// "auto" (the computer's language), "en", "pt" or "es".
     pub language: String,
+    /// Linux only. How the web view draws: "auto", "gpu" or "cpu". Applies after a restart.
+    pub renderer: String,
 }
 impl Default for General {
     fn default() -> Self {
@@ -58,6 +60,7 @@ impl Default for General {
             close_to_tray: true,
             tray_notice_shown: false,
             language: "auto".into(),
+            renderer: "auto".into(),
         }
     }
 }
@@ -70,6 +73,9 @@ pub struct Appearance {
     pub sidebar_collapsed: bool,
     /// The tools the person put in the sidebar. `None` means they never chose, so all show.
     pub sidebar_tools: Option<Vec<String>>,
+    /// Linux: the moving background starts calm once, for settings made before that was the
+    /// default. After that the person's own choice stands.
+    pub linux_tuned: bool,
 }
 
 impl Default for Appearance {
@@ -85,6 +91,7 @@ impl Default for Appearance {
             },
             sidebar_collapsed: false,
             sidebar_tools: None,
+            linux_tuned: false,
         }
     }
 }
@@ -347,6 +354,13 @@ impl SettingsStore {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Settings::default(),
             Err(e) => return Err(Error::io(path, e)),
         };
+        #[cfg_attr(not(target_os = "linux"), allow(unused_mut))]
+        let mut settings = settings;
+        #[cfg(target_os = "linux")]
+        if !settings.appearance.linux_tuned {
+            settings.appearance.motion = Motion::Calm;
+            settings.appearance.linux_tuned = true;
+        }
         let (tx, _) = broadcast::channel(16);
         Ok(SettingsStore {
             path: path.to_path_buf(),

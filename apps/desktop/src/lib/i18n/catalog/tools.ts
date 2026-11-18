@@ -16,4 +16,13 @@ export const TOOLS: Entry[] = [
   ['Scheduled folder backups with versions, restore and a check that they are intact.', 'Backups agendados de pastas com versões, restauração e verificação de integridade.', 'Copias de seguridad programadas de carpetas con versiones, restauración y comprobación de integridad.'],
   ['Live processor, memory, disks, network and the programs using the most.', 'Processador, memória, discos, rede e os programas que mais usam, ao vivo.', 'Procesador, memoria, discos, red y los programas que más usan, en vivo.'],
   ['Hold Ctrl, Alt, Shift or Super while you press the key.', 'Segure Ctrl, Alt, Shift ou Super enquanto pressiona a tecla.', 'Mantén Ctrl, Alt, Shift o Super mientras pulsas la tecla.'],
+  ['Graphics', 'Gráficos', 'Gráficos'],
+  ['How NomNom draws its window. If the fans spin up or it feels choppy, try another one.', 'Como o NomNom desenha a janela. Se as ventoinhas aceleram ou ficar travando, experimente outra opção.', 'Cómo NomNom dibuja su ventana. Si los ventiladores se aceleran o va a tirones, prueba otra opción.'],
+  ['Automatic', 'Automático', 'Automático'],
+  ['The graphics card, unless this computer needs the safe way.', 'A placa de vídeo, a não ser que este computador precise do modo seguro.', 'La tarjeta gráfica, salvo que este equipo necesite el modo seguro.'],
+  ['Graphics card', 'Placa de vídeo', 'Tarjeta gráfica'],
+  ['Smoothest. Use it if Automatic feels slow.', 'Mais fluido. Use se o Automático estiver lento.', 'Más fluido. Úsalo si Automático va lento.'],
+  ['Processor only', 'Só o processador', 'Solo el procesador'],
+  ['Never wakes the graphics card. Good for quiet fans.', 'Nunca acorda a placa de vídeo. Bom para ventoinhas silenciosas.', 'Nunca despierta la tarjeta gráfica. Bueno para ventiladores silenciosos.'],
+  ['Saved. Close and open NomNom again to use it.', 'Salvo. Feche e abra o NomNom de novo para usar.', 'Guardado. Cierra y abre NomNom de nuevo para usarlo.'],
 ];

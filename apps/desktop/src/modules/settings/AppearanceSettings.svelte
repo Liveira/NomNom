@@ -3,11 +3,24 @@
   import Backdrop from '../../lib/fx/Backdrop.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import type { Motion, Theme } from '../../lib/ipc';
+  import { isLinux } from '../../lib/platform';
   import { MOTIONS, THEME_GROUPS, THEMES_IN_ORDER } from './themes';
 
   const theme = $derived(app.settings?.appearance.theme ?? 'system');
   const motion = $derived(app.settings?.appearance.motion ?? 'full');
   let hovered = $state<string | null>(null);
+
+  const renderer = $derived(app.settings?.general.renderer ?? 'auto');
+  let rendererSaved = $state(false);
+  const RENDERERS = [
+    { id: 'auto', icon: 'sparkle', name: 'Automatic', hint: 'The graphics card, unless this computer needs the safe way.' },
+    { id: 'gpu', icon: 'sliders', name: 'Graphics card', hint: 'Smoothest. Use it if Automatic feels slow.' },
+    { id: 'cpu', icon: 'monitor', name: 'Processor only', hint: 'Never wakes the graphics card. Good for quiet fans.' },
+  ] as const;
+  async function pickRenderer(id: 'auto' | 'gpu' | 'cpu') {
+    await app.update({ renderer: id });
+    rendererSaved = true;
+  }
 
   function pick(t: Theme, e: MouseEvent | KeyboardEvent) {
     const el = e.currentTarget as HTMLElement;
@@ -96,6 +109,24 @@
     {/each}
   </div>
 </section>
+
+{#if isLinux}
+  <section class="group" aria-labelledby="graphics">
+    <h3 id="graphics">Graphics</h3>
+    <p class="lead">How NomNom draws its window. If the fans spin up or it feels choppy, try another one.</p>
+    <div class="motions" role="radiogroup" aria-label="Graphics">
+      {#each RENDERERS as r (r.id)}
+        {@const on = renderer === r.id}
+        <button class="mo" class:on role="radio" aria-checked={on} onclick={() => void pickRenderer(r.id)}>
+          <span class="mo-ico"><Icon name={r.icon} size={18} /></span>
+          <span class="mo-text"><strong>{r.name}</strong><span>{r.hint}</span></span>
+          {#if on}<span class="check" aria-hidden="true"><Icon name="check" size={13} stroke={3} /></span>{/if}
+        </button>
+      {/each}
+    </div>
+    {#if rendererSaved}<p class="lead" role="status">Saved. Close and open NomNom again to use it.</p>{/if}
+  </section>
+{/if}
 
 <style>
   .lead { margin: 0 0 14px; color: var(--text-2); font-size: 13px; }

@@ -9,6 +9,7 @@ mod commands;
 mod events;
 mod filetools;
 mod focus;
+mod graphics;
 mod i18n;
 mod integrations;
 mod memory;

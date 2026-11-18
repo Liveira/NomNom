@@ -59,6 +59,7 @@ pub struct SettingsPatch {
     activity_idle_secs: Option<u32>,
     activity_track_nomnom: Option<bool>,
     sidebar_tools: Option<Vec<String>>,
+    renderer: Option<String>,
 }
 
 #[tauri::command]
@@ -75,6 +76,11 @@ pub fn update_settings(
     if let Some(l) = patch.language.as_deref() {
         if !matches!(l, "auto" | "en" | "pt" | "es") {
             return Err("Pick Automatic, English, Portugues or Espanol.".into());
+        }
+    }
+    if let Some(r) = patch.renderer.as_deref() {
+        if !matches!(r, "auto" | "gpu" | "cpu") {
+            return Err("Pick Automatic, Graphics card or Processor only.".into());
         }
     }
     if let Some(c) = patch.organizer_conflict.as_deref() {
@@ -242,6 +248,9 @@ pub fn update_settings(
             }
             if let Some(v) = &patch.language {
                 s.general.language = v.clone();
+            }
+            if let Some(v) = &patch.renderer {
+                s.general.renderer = v.clone();
             }
             if let Some(v) = patch.sidebar_collapsed {
                 s.appearance.sidebar_collapsed = v;

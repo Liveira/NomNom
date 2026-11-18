@@ -58,23 +58,15 @@ pub fn run() {
     }
     let background = wants_background(&args);
 
-    #[cfg(target_os = "linux")]
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none()
-        && std::env::var_os("WAYLAND_DISPLAY").is_some()
-        && (std::path::Path::new("/dev/nvidia0").exists()
-            || std::path::Path::new("/proc/driver/nvidia/version").exists())
-    {
-        // Prevents blank WebKitGTK surfaces on Wayland compositors (Hyprland, Sway, Plasma, GNOME)
-        // with proprietary NVIDIA drivers unless the user explicitly set the variable themselves.
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-    }
-
     let paths = Paths::resolve().expect("couldn't locate the user's known folders");
     let _ = std::fs::create_dir_all(&paths.data_dir);
     let _log_guard = init_logging(&paths);
     tracing::info!(background, "NOMNOM starting");
 
     let settings = Arc::new(SettingsStore::load(&paths.settings_file()).expect("settings"));
+    // How the web view draws is decided before the first window exists.
+    #[cfg(target_os = "linux")]
+    crate::graphics::apply(&settings.get().general.renderer);
     let db = Arc::new(Db::open(&paths.db_file()).expect("database"));
     let mut registry = ModuleRegistry::new();
     modules::register_all(&mut registry);

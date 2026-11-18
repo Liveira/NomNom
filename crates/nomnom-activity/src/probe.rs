@@ -267,6 +267,9 @@ struct LinuxState {
     /// The session D-Bus link used on Wayland (KDE's KWin script, idle time). Opened once.
     wayland: Option<crate::wayland_linux::Link>,
     wayland_tried: bool,
+    /// Looking through every process is not free, so what it found is kept for a few seconds.
+    lock: Option<(std::time::Instant, bool)>,
+    game: Option<(std::time::Instant, Option<(u32, String)>)>,
     /// Which way the focused window was found last time, so the log says when that changes.
     source: &'static str,
 }
@@ -635,8 +638,35 @@ mod linux_impl {
             }
         }
 
+        /// Is a screen locker running? Checked at most every few seconds.
+        fn locked_cached(&mut self) -> bool {
+            if let Some((at, locked)) = self.linux.lock {
+                if at.elapsed() < Duration::from_secs(6) {
+                    return locked;
+                }
+            }
+            let locked = is_screen_locked();
+            self.linux.lock = Some((std::time::Instant::now(), locked));
+            locked
+        }
+
+        /// The running game, looked up at most every ten seconds (and again if it has quit).
+        fn game_cached(&mut self) -> Option<(u32, String)> {
+            if let Some((at, game)) = &self.linux.game {
+                let still_there = game
+                    .as_ref()
+                    .is_none_or(|(pid, _)| Path::new(&format!("/proc/{pid}")).exists());
+                if at.elapsed() < Duration::from_secs(10) && still_there {
+                    return game.clone();
+                }
+            }
+            let game = running_game();
+            self.linux.game = Some((std::time::Instant::now(), game.clone()));
+            game
+        }
+
         pub(super) fn sample_linux(&mut self) -> ForegroundSample {
-            if is_screen_locked() {
+            if self.locked_cached() {
                 return ForegroundSample::LockedOrNone;
             }
 
@@ -746,7 +776,7 @@ mod linux_impl {
             // 5. A desktop that doesn't tell which window has focus (GNOME on Wayland, others):
             // a game that is running counts, the way Steam counts its own playtime.
             if on_wayland {
-                if let Some((pid, exe_path)) = running_game() {
+                if let Some((pid, exe_path)) = self.game_cached() {
                     self.note_source(
                         "a running game (this desktop doesn't share the focused window)",
                     );
