@@ -35,13 +35,14 @@ pub fn validate_roots(o: &Options) -> Result<(), OrganizerError> {
         ));
     }
     let info = winfs::info(&o.source).map_err(|_| refuse("That folder can't be opened."))?;
-    if !info.is_dir() {
-        return Err(refuse("That isn't a folder."));
-    }
+    // Links first: on Linux a symlink to a folder doesn't report itself as a folder.
     if info.is_reparse() {
         return Err(refuse(
             "That folder is a link to somewhere else, so it was left alone.",
         ));
+    }
+    if !info.is_dir() {
+        return Err(refuse("That isn't a folder."));
     }
     if o.protected_exact.iter().any(|p| is_same(&o.source, p)) {
         return Err(refuse(

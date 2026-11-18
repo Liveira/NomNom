@@ -97,6 +97,8 @@ mod tests {
         assert_eq!(p2.file_name().unwrap(), "photo (converted 2).webp");
     }
 
+    // Windows and macOS treat Photo.WEBP and photo.webp as one name; Linux keeps them apart.
+    #[cfg(windows)]
     #[test]
     fn a_taken_name_is_matched_without_regard_to_case() {
         let dir = tempfile::tempdir().unwrap();

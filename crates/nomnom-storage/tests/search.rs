@@ -151,7 +151,7 @@ fn path_dates_and_kind_conditions_work() {
     let in_archive = Query::And {
         items: vec![
             Query::Path {
-                text: "docs\\archive".into(),
+                text: format!("docs{}archive", std::path::MAIN_SEPARATOR),
                 mode: TextMode::Contains,
             },
             Query::Item {
@@ -164,7 +164,7 @@ fn path_dates_and_kind_conditions_work() {
         names(
             &s,
             &Query::Path {
-                text: "docs\\archive".into(),
+                text: format!("docs{}archive", std::path::MAIN_SEPARATOR),
                 mode: TextMode::Contains
             }
         )

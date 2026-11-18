@@ -412,6 +412,15 @@ mod tests {
         list.iter().map(|s| s.to_string()).collect()
     }
 
+    /// A complete path for this platform: `C:\name` on Windows, `/name` elsewhere.
+    fn abs(name: &str) -> String {
+        if cfg!(windows) {
+            format!("C:\\{name}")
+        } else {
+            format!("/{name}")
+        }
+    }
+
     #[test]
     fn shell_args_with_several_files() {
         let a = parse_shell_args(&args(&[
@@ -419,14 +428,14 @@ mod tests {
             "--shell-action",
             "convert:webp",
             "--files",
-            "C:\\a.png",
-            "C:\\b c.png",
+            &abs("a.png"),
+            &abs("b c.png"),
         ]))
         .unwrap();
         assert_eq!(a.action, "convert:webp");
         assert_eq!(
             a.files,
-            [PathBuf::from("C:\\a.png"), PathBuf::from("C:\\b c.png")]
+            [PathBuf::from(abs("a.png")), PathBuf::from(abs("b c.png"))]
         );
     }
 
@@ -438,10 +447,10 @@ mod tests {
             "convert:webp",
             "--files",
             "rel.png",
-            "C:\\ok.png",
+            &abs("ok.png"),
         ]))
         .unwrap();
-        assert_eq!(a.files, [PathBuf::from("C:\\ok.png")]);
+        assert_eq!(a.files, [PathBuf::from(abs("ok.png"))]);
         assert!(parse_shell_args(&args(&[
             "x",
             "--shell-action",

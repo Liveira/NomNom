@@ -421,6 +421,8 @@ fn organize_new(
 mod tests {
     use super::*;
 
+    // Uses Windows drive paths.
+    #[cfg(windows)]
     #[test]
     fn destinations_inside_system_folders_or_on_a_bare_drive_are_not_acceptable() {
         let zones = vec![
