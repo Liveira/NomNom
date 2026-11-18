@@ -12,7 +12,6 @@ regex = "1"
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 nomnom-converter = { path = "../nomnom-converter" }
-winreg = "0.55"
 rusqlite = { version = "0.32", features = ["bundled"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -20,6 +19,7 @@ thiserror.workspace = true
 tracing.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+winreg = "0.55"
 windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_Security",
@@ -33,7 +33,12 @@ windows = { version = "0.58", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
+
 [dev-dependencies]
 lopdf = { version = "0.34", default-features = false, features = ["nom_parser"] }
 tempfile.workspace = true
+
+[target.'cfg(windows)'.dev-dependencies]
 junction = "1"

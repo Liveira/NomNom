@@ -288,9 +288,17 @@ pub fn last_time(conn: &Connection, root: &str, source: &str) -> rusqlite::Resul
     )
 }
 
-/// The folder name as snapshots store it: no closing `\`, except for a drive root like `C:\`.
+/// The folder name as snapshots store it: no closing separator, except for a root like `C:\` or `/`.
 pub fn root_key(root: &std::path::Path) -> String {
-    let s = root.to_string_lossy().replace('/', "\\");
+    let raw = root.to_string_lossy();
+    if raw.starts_with('/') {
+        let s = raw.replace('\\', "/");
+        if s.bytes().all(|b| b == b'/') {
+            return "/".to_string();
+        }
+        return s.trim_end_matches('/').to_string();
+    }
+    let s = raw.replace('/', "\\");
     let t = s.trim_end_matches('\\');
     if t.len() == 2 && t.ends_with(':') {
         format!("{t}\\")

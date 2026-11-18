@@ -115,6 +115,7 @@ fn owners_size_buckets_own_files_and_excludes_work() {
 }
 
 #[test]
+#[cfg(windows)]
 fn alternate_streams_and_ntfs_compression_work() {
     let d = tempfile::tempdir().unwrap();
     let r = d.path();
@@ -291,4 +292,52 @@ fn scan_file_round_trips_and_extended_reports_render() {
     );
     assert_eq!(picked.columns.len(), 5);
     assert!(!report::render(&picked, Format::Csv).unwrap().is_empty());
+}
+
+#[test]
+#[cfg(unix)]
+fn linux_freedesktop_trash_moves_file_and_writes_trashinfo() {
+    let d = tempfile::tempdir().unwrap();
+    let xdg_data = d.path().join("xdg-data");
+    std::fs::create_dir_all(&xdg_data).unwrap();
+    std::env::set_var("XDG_DATA_HOME", &xdg_data);
+
+    let data_root = d.path().join("work");
+    write_bytes(
+        &data_root.join("notes with spaces.txt"),
+        b"keep safe in trash",
+    );
+    let s = scan_with(&data_root, ScanOptions::default());
+    let fid = s
+        .index
+        .read()
+        .unwrap()
+        .resolve_path(&data_root.join("notes with spaces.txt"))
+        .unwrap();
+    let plan = ops::plan(
+        &s.index.read().unwrap(),
+        Kind::Recycle,
+        &[fid],
+        None,
+        None,
+        &Protected::default(),
+    );
+    assert_eq!(plan.items.len(), 1, "{:?}", plan.refused);
+    let rep = ops::run(
+        &plan,
+        RunOptions::default(),
+        &AtomicBool::new(false),
+        &|_| {},
+    );
+    assert_eq!(rep.count(Status::Done), 1, "{:?}", rep.results);
+    assert!(!data_root.join("notes with spaces.txt").exists());
+    assert_eq!(
+        std::fs::read(xdg_data.join("Trash/files/notes with spaces.txt")).unwrap(),
+        b"keep safe in trash"
+    );
+    let info = std::fs::read_to_string(xdg_data.join("Trash/info/notes with spaces.txt.trashinfo"))
+        .unwrap();
+    assert!(info.starts_with("[Trash Info]\nPath="), "{info}");
+    assert!(info.contains("notes%20with%20spaces.txt"), "{info}");
+    assert!(info.contains("DeletionDate="), "{info}");
 }

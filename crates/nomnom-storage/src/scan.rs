@@ -1,46 +1,37 @@
-//! The scanner. It reads each folder with one `FindFirstFileExW` pass (names, sizes, times and
-//! attributes arrive together, no file is opened for basic metadata) and never enters a junction,
-//! symlink or mount point. Several workers walk different folders at once; each folder's result is
-//! added to the index in one short step, so the window can browse a partial result while scanning.
+//! The parallel directory scanner.
+//!
+//! - On Windows, each folder is read in one `FindFirstFileExW` pass (`FIND_FIRST_EX_LARGE_FETCH`)
+//!   and junctions, symlinks and mount points are never entered.
+//! - On Linux, each folder is read via `read_dir` + `symlink_metadata`, recording real kernel block
+//!   allocation (`st_blocks * 512`), deduplicating hardlinks via `(st_dev, st_ino)` without extra
+//!   opens, resolving file owners from `/etc/passwd`, and skipping virtual pseudo-filesystems
+//!   (`/proc`, `/sys`, `/dev`, `/run`) and symlinks.
 
 use crate::index::*;
 use crate::ntfs::{self, OwnerCache};
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::os::windows::fs::OpenOptionsExt;
-use std::os::windows::io::AsRawHandle;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::time::{Duration, Instant};
-use windows::core::PCWSTR;
-use windows::Win32::Foundation::{GetLastError, HANDLE};
-use windows::Win32::Storage::FileSystem::{
-    FindClose, FindExInfoBasic, FindExSearchNameMatch, FindFirstFileExW, FindNextFileW,
-    GetCompressedFileSizeW, GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION,
-    FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FIND_FIRST_EX_LARGE_FETCH,
-    WIN32_FIND_DATAW,
-};
 
-const ATTR_SPARSE: u32 = 0x200;
-const ATTR_COMPRESSED: u32 = 0x800;
-const ATTR_OFFLINE: u32 = 0x1000;
-const ATTR_RECALL_ON_OPEN: u32 = 0x4_0000;
-const ATTR_RECALL_ON_DATA_ACCESS: u32 = 0x40_0000;
 const MAX_ERRORS_KEPT: usize = 2000;
+pub const ATTR_DIRECTORY_FLAG: u32 = ATTR_DIRECTORY;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ScanOptions {
     pub workers: usize,
-    /// Files at least this big are checked for hardlinks (it costs one open each).
+    /// Files at least this big are checked for hardlinks (on Windows it costs one open each; on
+    /// Linux `st_nlink` arrives with `lstat`).
     pub hardlink_min: u64,
     pub cluster: u32,
     pub volume_serial: u32,
-    /// Look up NTFS file/folder owners (cached by raw SID so account lookup runs once per user).
+    /// Look up file/folder owners.
     pub collect_owners: bool,
-    /// Check files for NTFS alternate data streams (`FindFirstStreamW`).
+    /// Check files for NTFS alternate data streams or Linux extended attributes (`xattr`).
     pub collect_streams: bool,
     /// Entry names or wildcards (`*.tmp`, `node_modules`) to leave out of the scan.
     pub exclude: Vec<String>,
@@ -166,6 +157,14 @@ struct Queue {
     active: usize,
 }
 
+fn display_root_name(root: &Path) -> String {
+    let raw = root.to_string_lossy();
+    if raw == "/" {
+        return "/".to_string();
+    }
+    raw.trim_end_matches(['\\', '/']).to_string()
+}
+
 impl Session {
     pub fn state(&self) -> State {
         match self.state.load(Ordering::SeqCst) {
@@ -220,9 +219,9 @@ impl Session {
     }
 
     /// Creates an empty running session shell whose progress and final index will be populated by
-    /// an external worker (such as the elevated UAC helper).
+    /// an external worker (such as the elevated UAC or Polkit helper).
     pub fn new_shell(id: u64, root: PathBuf, opts: ScanOptions, elevated: bool) -> Arc<Session> {
-        let name = root.to_string_lossy().trim_end_matches('\\').to_string();
+        let name = display_root_name(&root);
         let excludes = compile_excludes(&opts.exclude);
         Arc::new(Session {
             id,
@@ -431,7 +430,14 @@ impl Session {
         !self.excludes.is_empty() && self.excludes.iter().any(|r| r.matches(name))
     }
 
+    #[cfg(windows)]
     fn scan_dir(&self, id: NodeId) -> Vec<NodeId> {
+        use windows::core::PCWSTR;
+        use windows::Win32::Storage::FileSystem::{
+            FindClose, FindExInfoBasic, FindExSearchNameMatch, FindFirstFileExW, FindNextFileW,
+            FIND_FIRST_EX_LARGE_FETCH, WIN32_FIND_DATAW,
+        };
+
         let dir = self.index.read().unwrap().path_of(id);
         let mut pattern = long_path(&dir);
         pattern.pop();
@@ -495,14 +501,12 @@ impl Session {
             if let Err(e) = unsafe { FindNextFileW(handle, &mut data) } {
                 let code = (e.code().0 & 0xFFFF) as u32;
                 if code != 18 {
-                    // 18 is "no more files", the normal end.
                     self.record_error(&dir, code);
                     incomplete = true;
                 }
                 break;
             }
         }
-        // SAFETY: handle came from FindFirstFileExW.
         unsafe {
             let _ = FindClose(handle);
         }
@@ -526,14 +530,21 @@ impl Session {
         found
     }
 
+    #[cfg(windows)]
     fn make_entry(
         &self,
         dir: &Path,
         name: String,
         lossy: bool,
-        d: &WIN32_FIND_DATAW,
+        d: &windows::Win32::Storage::FileSystem::WIN32_FIND_DATAW,
         dir_owner: Option<&str>,
     ) -> NewEntry {
+        const ATTR_SPARSE: u32 = 0x200;
+        const ATTR_COMPRESSED: u32 = 0x800;
+        const ATTR_OFFLINE: u32 = 0x1000;
+        const ATTR_RECALL_ON_OPEN: u32 = 0x4_0000;
+        const ATTR_RECALL_ON_DATA_ACCESS: u32 = 0x40_0000;
+
         let attrs = d.dwFileAttributes;
         let is_dir = attrs & ATTR_DIRECTORY != 0;
         let is_reparse = attrs & ATTR_REPARSE != 0;
@@ -586,8 +597,6 @@ impl Session {
                 flags |= F_HARDLINK_DUP;
             }
         }
-        // Folders and large files query their own ACL owner; smaller files inherit the folder's
-        // owner unless they have custom security, keeping 1M-file scans fast without extra opens.
         let owner = if !self.opts.collect_owners || lossy {
             None
         } else if let Some(p) = full.as_ref().filter(|_| is_dir || size >= (1 << 20)) {
@@ -618,10 +627,17 @@ impl Session {
         }
     }
 
-    /// True when this file is another name for data already counted.
+    #[cfg(windows)]
     fn is_duplicate_hardlink(&self, path: &Path) -> bool {
+        use std::os::windows::fs::OpenOptionsExt;
+        use std::os::windows::io::AsRawHandle;
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::Storage::FileSystem::{
+            GetFileInformationByHandle, BY_HANDLE_FILE_INFORMATION, FILE_FLAG_BACKUP_SEMANTICS,
+            FILE_FLAG_OPEN_REPARSE_POINT,
+        };
         let Ok(file) = std::fs::OpenOptions::new()
-            .access_mode(0x80) // FILE_READ_ATTRIBUTES
+            .access_mode(0x80)
             .share_mode(7)
             .custom_flags((FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT).0)
             .open(long_os_path(path))
@@ -629,7 +645,6 @@ impl Session {
             return false;
         };
         let mut raw = BY_HANDLE_FILE_INFORMATION::default();
-        // SAFETY: handle is valid while `file` lives; `raw` is a plain output struct.
         if unsafe { GetFileInformationByHandle(HANDLE(file.as_raw_handle()), &mut raw) }.is_err() {
             return false;
         }
@@ -642,9 +657,224 @@ impl Session {
         );
         !self.seen_links.lock().unwrap().insert(key)
     }
+
+    #[cfg(unix)]
+    fn scan_dir(&self, id: NodeId) -> Vec<NodeId> {
+        use std::os::unix::ffi::OsStrExt;
+        use std::os::unix::fs::{FileTypeExt, MetadataExt};
+        const FILETIME_UNIX_EPOCH: i64 = 116_444_736_000_000_000;
+
+        let dir = self.index.read().unwrap().path_of(id);
+        let rd = match std::fs::read_dir(&dir) {
+            Ok(r) => r,
+            Err(e) => {
+                self.record_error(&dir, e.raw_os_error().unwrap_or(1) as u32);
+                return self
+                    .index
+                    .write()
+                    .unwrap()
+                    .add_children(id, Vec::new(), true);
+            }
+        };
+
+        let mut entries = Vec::new();
+        let mut incomplete = false;
+        for item in rd {
+            let entry = match item {
+                Ok(e) => e,
+                Err(e) => {
+                    self.record_error(&dir, e.raw_os_error().unwrap_or(1) as u32);
+                    incomplete = true;
+                    continue;
+                }
+            };
+            let os_name = entry.file_name();
+            let raw_bytes = os_name.as_bytes();
+            if raw_bytes == b"." || raw_bytes == b".." {
+                continue;
+            }
+            let name_cow = os_name.to_string_lossy();
+            let lossy = matches!(name_cow, std::borrow::Cow::Owned(_));
+            let name_string = name_cow.into_owned();
+            if self.is_excluded(&name_string) {
+                continue;
+            }
+
+            let full = dir.join(&os_name);
+            if id == 0 && self.root == Path::new("/") && is_virtual_root_dir(&full) {
+                continue;
+            }
+            let md = match std::fs::symlink_metadata(&full) {
+                Ok(m) => m,
+                Err(e) => {
+                    self.record_error(&full, e.raw_os_error().unwrap_or(1) as u32);
+                    incomplete = true;
+                    continue;
+                }
+            };
+            let ft = md.file_type();
+            let is_symlink = ft.is_symlink();
+            let is_dir =
+                ft.is_dir() || (is_symlink && std::fs::metadata(&full).is_ok_and(|m| m.is_dir()));
+            let is_special =
+                ft.is_fifo() || ft.is_socket() || ft.is_block_device() || ft.is_char_device();
+
+            if is_dir && !is_symlink && is_pseudo_fs(&full) {
+                continue;
+            }
+
+            let mut flags = 0u16;
+            let mut attrs = 0u32;
+            if is_dir {
+                flags |= F_DIR;
+                attrs |= ATTR_DIRECTORY;
+            }
+            if is_symlink {
+                flags |= F_LINK;
+                attrs |= ATTR_REPARSE;
+            }
+            if is_special {
+                attrs |= ATTR_SYSTEM;
+            }
+            if name_string.starts_with('.') {
+                attrs |= ATTR_HIDDEN;
+            }
+            if !is_symlink && (md.mode() & 0o222 == 0) {
+                attrs |= ATTR_READONLY;
+            }
+
+            let size = if is_dir || is_symlink || is_special {
+                0
+            } else {
+                md.size()
+            };
+            let mut alloc = 0u64;
+            if !is_dir && !is_symlink && !is_special && size > 0 {
+                let raw_blocks = md.blocks().saturating_mul(512);
+                if raw_blocks == 0 {
+                    if size > 65_536 {
+                        flags |= F_SPARSE;
+                        alloc = 0;
+                    } else {
+                        // Freshly written or inline extents (e.g. Btrfs delalloc/inline) before flush.
+                        alloc = round_up(size, self.opts.cluster);
+                    }
+                } else {
+                    alloc = raw_blocks;
+                    if alloc < size {
+                        flags |= F_SPARSE;
+                    }
+                }
+                if alloc > 0 && md.nlink() > 1 && size >= self.opts.hardlink_min {
+                    let dev = md.dev();
+                    let dev_u32 = (dev as u32) ^ ((dev >> 32) as u32);
+                    if !self.seen_links.lock().unwrap().insert((dev_u32, md.ino())) {
+                        alloc = 0;
+                        flags |= F_HARDLINK_DUP;
+                    }
+                }
+            }
+
+            let to_ft = |secs: i64, nsec: i64| {
+                secs.saturating_mul(10_000_000)
+                    .saturating_add(nsec / 100)
+                    .saturating_add(FILETIME_UNIX_EPOCH)
+            };
+            let mtime = to_ft(md.mtime(), md.mtime_nsec());
+            let ctime = to_ft(md.ctime(), md.ctime_nsec());
+            let atime = to_ft(md.atime(), md.atime_nsec());
+
+            let owner = if self.opts.collect_owners {
+                self.owners.owner_of_uid(md.uid())
+            } else {
+                None
+            };
+            let (ads_count, ads_size) =
+                if !is_dir && !is_symlink && self.opts.collect_streams && !lossy {
+                    ntfs::alternate_streams(&full)
+                } else {
+                    (0, 0)
+                };
+
+            entries.push(NewEntry {
+                name: name_string,
+                lossy,
+                flags,
+                size,
+                alloc,
+                mtime,
+                ctime,
+                atime,
+                attrs,
+                owner,
+                ads_count,
+                ads_size,
+            });
+        }
+
+        let (mut files, mut dirs, mut bytes) = (0u64, 0u64, 0u64);
+        for e in &entries {
+            if e.flags & F_DIR != 0 {
+                dirs += 1;
+            } else {
+                files += 1;
+                bytes += e.size;
+            }
+        }
+        let found = self
+            .index
+            .write()
+            .unwrap()
+            .add_children(id, entries, incomplete);
+        self.stats.files.fetch_add(files, Ordering::Relaxed);
+        self.stats.dirs.fetch_add(dirs, Ordering::Relaxed);
+        self.stats.bytes.fetch_add(bytes, Ordering::Relaxed);
+        found
+    }
 }
 
-pub const ATTR_DIRECTORY_FLAG: u32 = ATTR_DIRECTORY;
+#[cfg(unix)]
+fn is_virtual_root_dir(p: &Path) -> bool {
+    matches!(p.to_str(), Some("/proc" | "/sys" | "/dev" | "/run"))
+}
+
+#[cfg(unix)]
+fn is_pseudo_fs(p: &Path) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        let Ok(c_path) = CString::new(p.as_os_str().as_bytes()) else {
+            return false;
+        };
+        let mut st: libc::statfs = unsafe { std::mem::zeroed() };
+        if unsafe { libc::statfs(c_path.as_ptr(), &mut st) } != 0 {
+            return false;
+        }
+        let magic = (st.f_type as u64) & 0xFFFF_FFFF;
+        // PROC_SUPER_MAGIC, SYSFS_MAGIC, DEVTMPFS_SUPER_MAGIC (TMPFS on /dev), CGROUP, CGROUP2,
+        // DEBUGFS_MAGIC, TRACEFS_MAGIC, SECURITYFS_MAGIC, EFIVARFS_MAGIC, BPF_FS_MAGIC, NSFS_MAGIC
+        matches!(
+            magic,
+            0x9fa0
+                | 0x6265_6572
+                | 0x1cd1
+                | 0x27e0_eb
+                | 0x6367_7270
+                | 0x6462_6720
+                | 0x7472_6163
+                | 0x7363_6673
+                | 0xde5e_81e4
+                | 0xcafe_4a11
+                | 0x6e73_6673
+        )
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = p;
+        false
+    }
+}
 
 pub fn round_up(size: u64, cluster: u32) -> u64 {
     if size == 0 || cluster == 0 {
@@ -654,24 +884,31 @@ pub fn round_up(size: u64, cluster: u32) -> u64 {
     }
 }
 
-/// Space a compressed or sparse file really uses.
+/// Space a compressed or sparse file really uses on disk.
+#[cfg(windows)]
 pub fn compressed_size(path: &Path) -> Option<u64> {
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::GetLastError;
+    use windows::Win32::Storage::FileSystem::GetCompressedFileSizeW;
     let w = long_path(path);
     let mut high = 0u32;
-    // SAFETY: w is NUL-terminated; `high` is a valid out pointer.
     let low = unsafe { GetCompressedFileSizeW(PCWSTR(w.as_ptr()), Some(&mut high)) };
-    if low == u32::MAX {
-        // SAFETY: plain thread-local error read.
-        if unsafe { GetLastError() }.0 != 0 {
-            return None;
-        }
+    if low == u32::MAX && unsafe { GetLastError() }.0 != 0 {
+        return None;
     }
     Some((u64::from(high) << 32) | u64::from(low))
 }
 
-/// Extended-length form so paths over 260 characters work: `\\?\C:\...` or `\\?\UNC\server\...`.
+#[cfg(unix)]
+pub fn compressed_size(path: &Path) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    let md = std::fs::symlink_metadata(path).ok()?;
+    Some(md.blocks().saturating_mul(512))
+}
+
+/// Extended-length form on Windows so paths over 260 characters work; identity on Linux.
+#[cfg(windows)]
 pub fn long_os_path(p: &Path) -> PathBuf {
-    // The extended-length form isn't normalized by Windows, so forward slashes must go here.
     let s = p.to_string_lossy().replace('/', "\\");
     let s = s.as_str();
     if s.starts_with(r"\\?\") {
@@ -683,6 +920,12 @@ pub fn long_os_path(p: &Path) -> PathBuf {
     }
 }
 
+#[cfg(not(windows))]
+pub fn long_os_path(p: &Path) -> PathBuf {
+    p.to_path_buf()
+}
+
+#[cfg(windows)]
 fn long_path(p: &Path) -> Vec<u16> {
     use std::os::windows::ffi::OsStrExt;
     long_os_path(p)
@@ -692,6 +935,7 @@ fn long_path(p: &Path) -> Vec<u16> {
         .collect()
 }
 
+#[cfg(windows)]
 fn describe_error(code: u32) -> String {
     match code {
         5 => "Access denied".into(),
@@ -700,5 +944,17 @@ fn describe_error(code: u32) -> String {
         53 | 67 => "Network path unavailable".into(),
         1920 => "Can't be opened (cloud or special folder)".into(),
         c => format!("Windows error {c}"),
+    }
+}
+
+#[cfg(unix)]
+fn describe_error(code: u32) -> String {
+    match code as i32 {
+        libc::EACCES | libc::EPERM => "Permission denied".into(),
+        libc::ENOENT => "Not found (changed during the scan)".into(),
+        libc::EBUSY => "Device or folder busy".into(),
+        libc::EIO => "Disk read error".into(),
+        libc::ELOOP => "Symbolic link loop".into(),
+        c => format!("System error {c}"),
     }
 }

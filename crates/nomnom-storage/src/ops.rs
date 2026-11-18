@@ -9,13 +9,51 @@ use nomnom_organizer::winfs::{self, FileId};
 use serde::Serialize;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Write};
-use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+#[cfg(windows)]
 const ATTR_READONLY: u32 = 0x1;
+#[cfg(windows)]
 const ATTR_DIRECTORY: u32 = 0x10;
+#[cfg(windows)]
 const ATTR_REPARSE: u32 = 0x400;
+
+pub(crate) fn is_link_metadata(md: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        md.file_attributes() & ATTR_REPARSE != 0
+    }
+    #[cfg(not(windows))]
+    {
+        md.file_type().is_symlink()
+    }
+}
+
+fn is_dir_metadata(md: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        md.file_attributes() & ATTR_DIRECTORY != 0
+    }
+    #[cfg(not(windows))]
+    {
+        md.file_type().is_dir()
+    }
+}
+
+fn is_readonly_metadata(md: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        md.file_attributes() & ATTR_READONLY != 0
+    }
+    #[cfg(not(windows))]
+    {
+        md.permissions().readonly()
+    }
+}
 
 /// Past these a permanent delete asks for more than one click.
 pub const BIG_FILES: u64 = 1000;
@@ -553,6 +591,7 @@ fn result(item: &Item, status: Status, message: Option<String>, to: Option<PathB
     }
 }
 
+#[cfg(windows)]
 fn explain(e: &io::Error) -> String {
     match e.raw_os_error() {
         Some(5) => "Access denied. NomNom doesn't take over permissions.".into(),
@@ -560,6 +599,20 @@ fn explain(e: &io::Error) -> String {
         Some(112) => "The disk is full.".into(),
         Some(145) => "The folder isn't empty.".into(),
         Some(3) | Some(2) => "It was already gone.".into(),
+        _ => e.to_string(),
+    }
+}
+
+#[cfg(unix)]
+fn explain(e: &io::Error) -> String {
+    match e.raw_os_error() {
+        Some(c) if c == libc::EACCES || c == libc::EPERM => {
+            "Permission denied. NomNom doesn't override file permissions.".into()
+        }
+        Some(c) if c == libc::EBUSY => "The item or mount is busy.".into(),
+        Some(c) if c == libc::ENOSPC => "The disk is full.".into(),
+        Some(c) if c == libc::ENOTEMPTY => "The folder isn't empty.".into(),
+        Some(c) if c == libc::ENOENT => "It was already gone.".into(),
         _ => e.to_string(),
     }
 }
@@ -609,7 +662,6 @@ fn delete_item(item: &Item, opts: RunOptions, cancel: &AtomicBool) -> io::Result
 }
 
 /// Deletes a file or folder. A link (junction or symlink) is removed itself and never entered.
-#[allow(clippy::permissions_set_readonly_false)] // Windows only: this clears the read-only attribute, nothing else
 fn delete_tree(path: &Path, include_readonly: bool, cancel: &AtomicBool, f: &mut Failures) {
     let long = long_os_path(path);
     let md = match std::fs::symlink_metadata(&long) {
@@ -617,17 +669,19 @@ fn delete_tree(path: &Path, include_readonly: bool, cancel: &AtomicBool, f: &mut
         Err(e) if e.kind() == io::ErrorKind::NotFound => return,
         Err(e) => return fail(f, path, &e),
     };
-    let attrs = md.file_attributes();
-    if attrs & ATTR_REPARSE != 0 {
-        let r = if attrs & ATTR_DIRECTORY != 0 {
+    if is_link_metadata(&md) {
+        #[cfg(windows)]
+        let r = if is_dir_metadata(&md) {
             std::fs::remove_dir(&long)
         } else {
             std::fs::remove_file(&long)
         };
+        #[cfg(not(windows))]
+        let r = std::fs::remove_file(&long);
         if let Err(e) = r {
             fail(f, path, &e);
         }
-    } else if attrs & ATTR_DIRECTORY != 0 {
+    } else if is_dir_metadata(&md) {
         match std::fs::read_dir(&long) {
             Ok(rd) => {
                 for entry in rd.flatten() {
@@ -646,7 +700,7 @@ fn delete_tree(path: &Path, include_readonly: bool, cancel: &AtomicBool, f: &mut
             }
         }
     } else {
-        if attrs & ATTR_READONLY != 0 {
+        if is_readonly_metadata(&md) {
             if !include_readonly {
                 return fail_msg(
                     f,
@@ -655,7 +709,14 @@ fn delete_tree(path: &Path, include_readonly: bool, cancel: &AtomicBool, f: &mut
                 );
             }
             let mut perm = md.permissions();
+            #[cfg(windows)]
+            #[allow(clippy::permissions_set_readonly_false)]
             perm.set_readonly(false);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                perm.set_mode(perm.mode() | 0o200);
+            }
             if let Err(e) = std::fs::set_permissions(&long, perm) {
                 return fail(f, path, &e);
             }
@@ -679,6 +740,7 @@ fn fail_msg(f: &mut Failures, path: &Path, msg: &str) {
 
 /// Checks that Windows can really keep this in the Recycle Bin. When it can't, Windows may delete
 /// the item for good without asking, so NomNom refuses instead.
+#[cfg(windows)]
 pub fn recycle_ok(path: &Path, size: u64) -> Result<(), String> {
     let drive = crate::drives::drive_of(path)
         .ok_or("The Recycle Bin only works for items on a local drive.")?;
@@ -713,13 +775,13 @@ pub fn recycle_ok(path: &Path, size: u64) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(windows)]
 fn bitbucket_settings(root: &str) -> Option<(bool, Option<u64>)> {
     use windows::core::PCWSTR;
     use windows::Win32::Storage::FileSystem::GetVolumeNameForVolumeMountPointW;
     use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
     let wroot: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
     let mut buf = [0u16; 64];
-    // SAFETY: wroot is NUL-terminated and buf is large enough for a volume GUID path.
     unsafe { GetVolumeNameForVolumeMountPointW(PCWSTR(wroot.as_ptr()), &mut buf) }.ok()?;
     let name = String::from_utf16_lossy(&buf[..buf.iter().position(|c| *c == 0)?]);
     let guid = name.split(['{', '}']).nth(1)?;
@@ -736,7 +798,8 @@ fn bitbucket_settings(root: &str) -> Option<(bool, Option<u64>)> {
     Some((nuke == 1, max.map(u64::from)))
 }
 
-/// Sends one item to the Recycle Bin through the shell.
+/// Sends one item to the Recycle Bin through the Windows shell.
+#[cfg(windows)]
 pub fn recycle(path: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use windows::core::PCWSTR;
@@ -758,7 +821,6 @@ pub fn recycle(path: &Path) -> io::Result<()> {
             .0 as u16,
         ..Default::default()
     };
-    // SAFETY: `from` is double-NUL terminated and outlives the call.
     let code = unsafe { SHFileOperationW(&mut op) };
     if code != 0 || op.fAnyOperationsAborted.as_bool() {
         return Err(io::Error::other(format!(
@@ -769,6 +831,188 @@ pub fn recycle(path: &Path) -> io::Result<()> {
         return Err(io::Error::other("Windows left the item where it was."));
     }
     Ok(())
+}
+
+#[cfg(unix)]
+fn linux_home_trash() -> Option<PathBuf> {
+    let data_home = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .filter(|p| p.is_absolute())
+                .map(|h| h.join(".local").join("share"))
+        })?;
+    Some(data_home.join("Trash"))
+}
+
+#[cfg(unix)]
+fn dev_of_existing_ancestor(p: &Path) -> Option<u64> {
+    use std::os::unix::fs::MetadataExt;
+    p.ancestors()
+        .find_map(|a| std::fs::symlink_metadata(a).ok().map(|m| m.dev()))
+}
+
+#[cfg(unix)]
+fn resolve_linux_trash(path: &Path) -> Result<PathBuf, String> {
+    if !path.is_absolute()
+        || path.starts_with("/proc/")
+        || path.starts_with("/sys/")
+        || path.starts_with("/dev/")
+    {
+        return Err("Trash only works for items on a local filesystem.".into());
+    }
+    let drive =
+        crate::drives::drive_of(path).ok_or("Trash only works for items on a local filesystem.")?;
+    if matches!(
+        drive.kind,
+        crate::drives::DriveKind::Network | crate::drives::DriveKind::Optical
+    ) {
+        return Err("This mount has no Trash. Use Shift+Delete to delete it permanently.".into());
+    }
+    let item_dev =
+        dev_of_existing_ancestor(path).ok_or("Couldn't find which filesystem holds this item.")?;
+    if let Some(home_trash) = linux_home_trash() {
+        if dev_of_existing_ancestor(&home_trash) == Some(item_dev) {
+            return Ok(home_trash);
+        }
+    }
+    let uid = unsafe { libc::geteuid() };
+    let top_trash = Path::new(&drive.root).join(format!(".Trash-{uid}"));
+    if nomnom_organizer::pathutil::is_inside(path, &top_trash) {
+        return Err("This item is already inside Trash.".into());
+    }
+    Ok(top_trash)
+}
+
+#[cfg(unix)]
+pub fn recycle_ok(path: &Path, size: u64) -> Result<(), String> {
+    let trash_dir = resolve_linux_trash(path)?;
+    let drive =
+        crate::drives::drive_of(path).ok_or("Trash only works for items on a local filesystem.")?;
+    if drive.total > 0 && size > drive.total {
+        return Err("Too big for Trash. Use Shift+Delete if you want it gone for good.".into());
+    }
+    if nomnom_organizer::pathutil::is_inside(path, &trash_dir) {
+        return Err("This item is already inside Trash.".into());
+    }
+    Ok(())
+}
+
+/// Moves `path` to the freedesktop.org Trash (`$XDG_DATA_HOME/Trash` or `<mount>/.Trash-<uid>`).
+#[cfg(unix)]
+pub fn recycle(path: &Path) -> io::Result<()> {
+    use std::os::unix::ffi::OsStrExt;
+    use std::os::unix::fs::DirBuilderExt;
+
+    let trash_dir = resolve_linux_trash(path).map_err(io::Error::other)?;
+    let files_dir = trash_dir.join("files");
+    let info_dir = trash_dir.join("info");
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(&files_dir)?;
+    std::fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(&info_dir)?;
+
+    let raw_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| io::Error::other("Item has no file name for Trash."))?;
+    let (stem, ext) = match raw_name.rfind('.') {
+        Some(i) if i > 0 => (&raw_name[..i], &raw_name[i..]),
+        _ => (raw_name, ""),
+    };
+
+    let encoded_path = percent_encode_trash_path(path.as_os_str().as_bytes());
+    let deletion_date = local_iso8601_now();
+    let info_body = format!("[Trash Info]\nPath={encoded_path}\nDeletionDate={deletion_date}\n");
+
+    for attempt in 1..=9999u32 {
+        let chosen = if attempt == 1 {
+            raw_name.to_string()
+        } else {
+            format!("{stem} ({attempt}){ext}")
+        };
+        let target_file = files_dir.join(&chosen);
+        if std::fs::symlink_metadata(&target_file).is_ok() {
+            continue;
+        }
+        let info_path = info_dir.join(format!("{chosen}.trashinfo"));
+        let mut info_file = match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&info_path)
+        {
+            Ok(f) => f,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e),
+        };
+        if let Err(e) = info_file
+            .write_all(info_body.as_bytes())
+            .and_then(|_| info_file.flush())
+        {
+            drop(info_file);
+            let _ = std::fs::remove_file(&info_path);
+            return Err(e);
+        }
+        drop(info_file);
+
+        match nomnom_core::fs::move_no_replace(path, &target_file) {
+            Ok(()) => return Ok(()),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => {
+                let _ = std::fs::remove_file(&info_path);
+                continue;
+            }
+            Err(e) => {
+                let _ = std::fs::remove_file(&info_path);
+                return Err(e);
+            }
+        }
+    }
+    Err(io::Error::other(
+        "Trash already has too many items with this name.",
+    ))
+}
+
+#[cfg(unix)]
+fn percent_encode_trash_path(bytes: &[u8]) -> String {
+    let mut out = String::with_capacity(bytes.len() + 16);
+    for &b in bytes {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~' | b'/') {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
+#[cfg(unix)]
+fn local_iso8601_now() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as libc::time_t)
+        .unwrap_or(0);
+    let mut tm: libc::tm = unsafe { std::mem::zeroed() };
+    // SAFETY: `secs` and `tm` are valid local stack values for reentrant `localtime_r`.
+    if unsafe { !libc::localtime_r(&secs, &mut tm).is_null() } {
+        format!(
+            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}",
+            tm.tm_year + 1900,
+            tm.tm_mon + 1,
+            tm.tm_mday,
+            tm.tm_hour,
+            tm.tm_min,
+            tm.tm_sec
+        )
+    } else {
+        "1970-01-01T00:00:00".to_string()
+    }
 }
 
 // ---- copy and move ---------------------------------------------------------------------
@@ -878,12 +1122,11 @@ pub fn copy_tree(
     }
     let (ls, ld) = (long_os_path(src), long_os_path(dst));
     let md = std::fs::symlink_metadata(&ls)?;
-    let attrs = md.file_attributes();
-    if attrs & ATTR_REPARSE != 0 {
+    if is_link_metadata(&md) {
         skipped.push(src.to_path_buf());
         return Ok(());
     }
-    if attrs & ATTR_DIRECTORY != 0 {
+    if is_dir_metadata(&md) {
         std::fs::create_dir(&ld)?;
         for e in std::fs::read_dir(&ls)? {
             let e = e?;
@@ -1021,15 +1264,14 @@ fn compress_tree(path: &Path, compress: bool, cancel: &AtomicBool, f: &mut Failu
         Err(e) if e.kind() == io::ErrorKind::NotFound => return,
         Err(e) => return fail(f, path, &e),
     };
-    let attrs = md.file_attributes();
-    if attrs & ATTR_REPARSE != 0 {
+    if is_link_metadata(&md) {
         return; // never follow junctions or symlinks
     }
     if let Err(e) = crate::ntfs::set_ntfs_compression(path, compress) {
         fail(f, path, &e);
         return;
     }
-    if attrs & ATTR_DIRECTORY != 0 {
+    if is_dir_metadata(&md) {
         match std::fs::read_dir(&long) {
             Ok(rd) => {
                 for entry in rd.flatten() {

@@ -148,6 +148,17 @@ fn inclusive_folders_overlap_and_exclusive_folders_do_not() {
     );
 }
 
+fn link_dir(target: &Path, link: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        junction::create(target, link)
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
+
 #[test]
 fn a_junction_loop_is_recorded_but_never_entered() {
     let dir = tempfile::tempdir().unwrap();
@@ -155,8 +166,8 @@ fn a_junction_loop_is_recorded_but_never_entered() {
     write(&r.join("real/data.bin"), 2000);
     let outside = tempfile::tempdir().unwrap();
     write(&outside.path().join("huge.bin"), 50_000);
-    if junction::create(outside.path(), r.join("real/to_outside")).is_err()
-        || junction::create(r, r.join("real/to_root")).is_err()
+    if link_dir(outside.path(), &r.join("real/to_outside")).is_err()
+        || link_dir(r, &r.join("real/to_root")).is_err()
     {
         eprintln!("SKIPPED: this account can't create junctions");
         return;
@@ -296,7 +307,12 @@ fn a_scan_can_be_paused_resumed_and_cancelled() {
 
 #[test]
 fn a_missing_folder_is_reported_not_crashed_on() {
-    let s = scan(&PathBuf::from(r"C:\this\folder\does\not\exist\nomnom"));
+    let missing = if cfg!(windows) {
+        PathBuf::from(r"C:\this\folder\does\not\exist\nomnom")
+    } else {
+        PathBuf::from("/tmp/this/folder/does/not/exist/nomnom")
+    };
+    let s = scan(&missing);
     assert_eq!(s.state(), State::Done);
     assert_eq!(s.stats.errors.load(std::sync::atomic::Ordering::Relaxed), 1);
     assert_eq!(s.errors().len(), 1);
@@ -325,13 +341,26 @@ fn extension_and_category_totals_add_up() {
 #[test]
 fn the_system_drive_is_listed_with_real_numbers() {
     let all = drives::list();
-    let c = all
-        .iter()
-        .find(|d| d.letter == "C")
-        .expect("C: should exist");
-    assert!(c.total > 0 && c.free <= c.total && c.used == c.total - c.free);
-    assert_eq!(c.filesystem, "NTFS");
-    assert!(c.cluster >= 512);
+    #[cfg(windows)]
+    {
+        let c = all
+            .iter()
+            .find(|d| d.letter == "C")
+            .expect("C: should exist");
+        assert!(c.total > 0 && c.free <= c.total && c.used == c.total - c.free);
+        assert_eq!(c.filesystem, "NTFS");
+        assert!(c.cluster >= 512);
+    }
+    #[cfg(not(windows))]
+    {
+        let r = all
+            .iter()
+            .find(|d| d.root == "/")
+            .expect("/ mount should exist");
+        assert!(r.total > 0 && r.free <= r.total && r.used == r.total - r.free);
+        assert!(!r.filesystem.is_empty());
+        assert!(r.cluster >= 512);
+    }
 }
 
 #[test]

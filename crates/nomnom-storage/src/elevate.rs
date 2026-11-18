@@ -1,36 +1,20 @@
 //! Elevated scan helper (`--elevated-scan`) and full-scan file save/load.
 //!
-//! Keeping the main window un-elevated preserves Explorer drag-and-drop, per-user settings and
-//! single-instance behaviour. When the person asks to scan as Administrator, Windows shows its
-//! standard UAC prompt for a short-lived helper copy of `nomnom.exe`, which enables
-//! `SeBackupPrivilege`, scans the requested drive or folder, and streams progress and the finished
-//! index back over a private Named Pipe.
+//! Keeping the main window un-elevated preserves desktop drag-and-drop, per-user settings and
+//! single-instance behaviour.
+//! - On Windows, UAC (`runas`) launches a short-lived helper copy of `nomnom.exe` over a private
+//!   Named Pipe.
+//! - On Linux, Polkit (`pkexec`) launches a short-lived helper copy of `nomnom` over a `0600` Unix
+//!   domain socket inside a `0700` temporary directory.
 
 use crate::index::Index;
 use crate::scan::{SavedScan, ScanOptions, Session, State};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::os::windows::ffi::OsStrExt;
-use std::os::windows::io::FromRawHandle;
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
-use windows::core::PCWSTR;
-use windows::Win32::Foundation::{
-    CloseHandle, GetLastError, ERROR_PIPE_CONNECTED, INVALID_HANDLE_VALUE,
-};
-use windows::Win32::Storage::FileSystem::{
-    CreateFileW, FILE_FLAGS_AND_ATTRIBUTES, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_NONE,
-    OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
-};
-use windows::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
-    PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
-};
-use windows::Win32::UI::Shell::ShellExecuteW;
-use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
 
 #[derive(Serialize, Deserialize)]
 enum WireMsg {
@@ -45,194 +29,72 @@ enum WireMsg {
     Failed(String),
 }
 
-fn wide_nul(s: &str) -> Vec<u16> {
-    std::ffi::OsStr::new(s)
-        .encode_wide()
-        .chain(std::iter::once(0))
-        .collect()
-}
-
-/// Starts an elevated helper process via Windows UAC (`runas`) and returns a live `Session` whose
-/// counters and final index are populated from the helper.
-pub fn spawn_elevated_scan(
-    exe: &Path,
-    id: u64,
-    root: PathBuf,
-    opts: ScanOptions,
-) -> Result<Arc<Session>, String> {
-    let nonce = format!(
-        "{}-{:x}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .unwrap_or(0)
-    );
-    let pipe_name = format!(r"\\.\pipe\nomnom-elev-scan-{nonce}");
-    let wpipe = wide_nul(&pipe_name);
-    // SAFETY: `wpipe` is NUL-terminated; 1 instance only so no second client can attach.
-    let pipe_handle = unsafe {
-        CreateNamedPipeW(
-            PCWSTR(wpipe.as_ptr()),
-            PIPE_ACCESS_DUPLEX,
-            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-            1.min(PIPE_UNLIMITED_INSTANCES),
-            1 << 20,
-            1 << 20,
-            15_000,
-            None,
-        )
-    };
-    if pipe_handle.is_invalid() || pipe_handle == INVALID_HANDLE_VALUE {
-        return Err("Couldn't prepare the communication pipe for the elevated scan.".into());
-    }
-
-    let opts_json = serde_json::to_string(&opts).unwrap_or_else(|_| "{}".into());
-    let params = format!(
-        "--elevated-scan {} {} {}",
-        quote(&pipe_name),
-        quote(&root.to_string_lossy()),
-        quote(&opts_json),
-    );
-    let wverb = wide_nul("runas");
-    let wfile = wide_nul(&exe.to_string_lossy());
-    let wparams = wide_nul(&params);
-    // SAFETY: `wverb`, `wfile` and `wparams` are valid NUL-terminated wide buffers.
-    let hinst = unsafe {
-        ShellExecuteW(
-            None,
-            PCWSTR(wverb.as_ptr()),
-            PCWSTR(wfile.as_ptr()),
-            PCWSTR(wparams.as_ptr()),
-            PCWSTR::null(),
-            SW_HIDE,
-        )
-    };
-    let status = hinst.0 as isize;
-    if status <= 32 {
-        unsafe {
-            let _ = CloseHandle(pipe_handle);
+fn receive_stream<R: Read>(reader: BufReader<R>, session_bg: &Session) {
+    for line in reader.lines() {
+        if session_bg.is_cancelled() {
+            session_bg.finish(true);
+            return;
         }
-        if status == 5 {
-            return Err("Administrator permission was declined.".into());
+        let Ok(line) = line else {
+            break;
+        };
+        if line.trim().is_empty() {
+            continue;
         }
-        return Err(format!("Couldn't start the elevated scan (code {status})."));
-    }
-
-    let session = Session::new_shell(id, root, opts, true);
-    let session_bg = session.clone();
-    // Raw HANDLE is Send-safe inside the dedicated pipe reader thread.
-    let raw_pipe = pipe_handle.0 as usize;
-    std::thread::Builder::new()
-        .name("storage-elev-recv".into())
-        .spawn(move || {
-            let handle = windows::Win32::Foundation::HANDLE(raw_pipe as *mut _);
-            // SAFETY: `handle` is the server end created by CreateNamedPipeW above.
-            let connected = unsafe { ConnectNamedPipe(handle, None) };
-            let ok = connected.is_ok() || unsafe { GetLastError() } == ERROR_PIPE_CONNECTED;
-            if !ok {
-                unsafe {
-                    let _ = CloseHandle(handle);
-                }
-                session_bg.finish(true);
-                return;
+        match serde_json::from_str::<WireMsg>(&line) {
+            Ok(WireMsg::Progress {
+                files,
+                dirs,
+                bytes,
+                errors,
+                mft_bytes,
+            }) => {
+                session_bg.stats.files.store(files, Ordering::Relaxed);
+                session_bg.stats.dirs.store(dirs, Ordering::Relaxed);
+                session_bg.stats.bytes.store(bytes, Ordering::Relaxed);
+                session_bg.stats.errors.store(errors, Ordering::Relaxed);
+                session_bg.mft_bytes.store(mft_bytes, Ordering::Relaxed);
             }
-            // SAFETY: exclusive ownership of `handle` transferred to `File`.
-            let file = unsafe { File::from_raw_handle(handle.0) };
-            let reader = BufReader::new(file);
-            for line in reader.lines() {
-                if session_bg.is_cancelled() {
-                    // Dropping `reader` closes the pipe, signalling the helper to abort.
+            Ok(WireMsg::Finished(saved)) => {
+                session_bg
+                    .mft_bytes
+                    .store(saved.mft_bytes, Ordering::Relaxed);
+                session_bg
+                    .elapsed_ms
+                    .store(saved.elapsed_ms, Ordering::SeqCst);
+                session_bg.set_errors(saved.errors);
+                if let Ok(idx) = Index::from_archive(saved.index) {
+                    if let Some(r) = idx.node(0) {
+                        session_bg
+                            .stats
+                            .files
+                            .store(u64::from(r.files), Ordering::Relaxed);
+                        session_bg
+                            .stats
+                            .dirs
+                            .store(u64::from(r.dirs), Ordering::Relaxed);
+                        session_bg.stats.bytes.store(r.size, Ordering::Relaxed);
+                    }
+                    *session_bg.index.write().unwrap() = idx;
+                    session_bg.finish(false);
+                    return;
+                } else {
                     session_bg.finish(true);
                     return;
                 }
-                let Ok(line) = line else {
-                    break;
-                };
-                if line.trim().is_empty() {
-                    continue;
-                }
-                match serde_json::from_str::<WireMsg>(&line) {
-                    Ok(WireMsg::Progress {
-                        files,
-                        dirs,
-                        bytes,
-                        errors,
-                        mft_bytes,
-                    }) => {
-                        session_bg.stats.files.store(files, Ordering::Relaxed);
-                        session_bg.stats.dirs.store(dirs, Ordering::Relaxed);
-                        session_bg.stats.bytes.store(bytes, Ordering::Relaxed);
-                        session_bg.stats.errors.store(errors, Ordering::Relaxed);
-                        session_bg.mft_bytes.store(mft_bytes, Ordering::Relaxed);
-                    }
-                    Ok(WireMsg::Finished(saved)) => {
-                        session_bg
-                            .mft_bytes
-                            .store(saved.mft_bytes, Ordering::Relaxed);
-                        session_bg
-                            .elapsed_ms
-                            .store(saved.elapsed_ms, Ordering::SeqCst);
-                        session_bg.set_errors(saved.errors);
-                        if let Ok(idx) = Index::from_archive(saved.index) {
-                            if let Some(r) = idx.node(0) {
-                                session_bg
-                                    .stats
-                                    .files
-                                    .store(u64::from(r.files), Ordering::Relaxed);
-                                session_bg
-                                    .stats
-                                    .dirs
-                                    .store(u64::from(r.dirs), Ordering::Relaxed);
-                                session_bg.stats.bytes.store(r.size, Ordering::Relaxed);
-                            }
-                            *session_bg.index.write().unwrap() = idx;
-                            session_bg.finish(false);
-                            return;
-                        } else {
-                            session_bg.finish(true);
-                            return;
-                        }
-                    }
-                    Ok(WireMsg::Failed(_)) | Err(_) => {
-                        session_bg.finish(true);
-                        return;
-                    }
-                }
             }
-            if !session_bg.is_finished() {
+            Ok(WireMsg::Failed(_)) | Err(_) => {
                 session_bg.finish(true);
+                return;
             }
-        })
-        .map_err(|e| e.to_string())?;
-
-    Ok(session)
+        }
+    }
+    if !session_bg.is_finished() {
+        session_bg.finish(true);
+    }
 }
 
-/// Entrypoint run inside the elevated helper (`nomnom.exe --elevated-scan <pipe> <root> <opts>`).
-pub fn run_elevated_helper(pipe_name: &str, root: &str, opts_json: &str) -> i32 {
-    if !pipe_name.starts_with(r"\\.\pipe\nomnom-elev-scan-") {
-        return 2;
-    }
-    let wpipe = wide_nul(pipe_name);
-    // SAFETY: `wpipe` is NUL-terminated.
-    let Ok(handle) = (unsafe {
-        CreateFileW(
-            PCWSTR(wpipe.as_ptr()),
-            (FILE_GENERIC_READ | FILE_GENERIC_WRITE).0,
-            FILE_SHARE_NONE,
-            None,
-            OPEN_EXISTING,
-            FILE_FLAGS_AND_ATTRIBUTES(0),
-            None,
-        )
-    }) else {
-        return 3;
-    };
-    // SAFETY: exclusive ownership of `handle` transferred to `File`.
-    let file = unsafe { File::from_raw_handle(handle.0) };
-    let mut writer = BufWriter::new(file);
-
+fn run_helper_loop<W: Write>(mut writer: BufWriter<W>, root: &str, opts_json: &str) -> i32 {
     let mut opts: ScanOptions = serde_json::from_str(opts_json).unwrap_or_default();
     if opts.workers < 8 {
         opts.workers = 8;
@@ -266,37 +128,298 @@ pub fn run_elevated_helper(pipe_name: &str, root: &str, opts_json: &str) -> i32 
     }
 }
 
-fn send_line(w: &mut BufWriter<File>, msg: &WireMsg) -> std::io::Result<()> {
+fn send_line<W: Write>(w: &mut BufWriter<W>, msg: &WireMsg) -> std::io::Result<()> {
     serde_json::to_writer(&mut *w, msg).map_err(std::io::Error::other)?;
     w.write_all(b"\n")?;
     w.flush()
 }
 
-fn quote(arg: &str) -> String {
-    if !arg.is_empty() && !arg.contains([' ', '\t', '"', '\n']) {
-        return arg.to_string();
+#[cfg(windows)]
+mod imp {
+    use super::*;
+    use std::fs::File;
+    use std::os::windows::ffi::OsStrExt;
+    use std::os::windows::io::FromRawHandle;
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{
+        CloseHandle, GetLastError, ERROR_PIPE_CONNECTED, INVALID_HANDLE_VALUE,
+    };
+    use windows::Win32::Storage::FileSystem::{
+        CreateFileW, FILE_FLAGS_AND_ATTRIBUTES, FILE_GENERIC_READ, FILE_GENERIC_WRITE,
+        FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
+    };
+    use windows::Win32::System::Pipes::{
+        ConnectNamedPipe, CreateNamedPipeW, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
+        PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+    };
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_HIDE;
+
+    fn wide_nul(s: &str) -> Vec<u16> {
+        std::ffi::OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
     }
-    let mut out = String::from("\"");
-    let mut bs = 0usize;
-    for c in arg.chars() {
-        match c {
-            '\\' => bs += 1,
-            '"' => {
-                out.push_str(&"\\".repeat(bs * 2 + 1));
-                out.push('"');
-                bs = 0;
-            }
-            _ => {
-                out.push_str(&"\\".repeat(bs));
-                out.push(c);
-                bs = 0;
+
+    fn quote(arg: &str) -> String {
+        if !arg.is_empty() && !arg.contains([' ', '\t', '"', '\n']) {
+            return arg.to_string();
+        }
+        let mut out = String::from("\"");
+        let mut bs = 0usize;
+        for c in arg.chars() {
+            match c {
+                '\\' => bs += 1,
+                '"' => {
+                    out.push_str(&"\\".repeat(bs * 2 + 1));
+                    out.push('"');
+                    bs = 0;
+                }
+                _ => {
+                    out.push_str(&"\\".repeat(bs));
+                    out.push(c);
+                    bs = 0;
+                }
             }
         }
+        out.push_str(&"\\".repeat(bs * 2));
+        out.push('"');
+        out
     }
-    out.push_str(&"\\".repeat(bs * 2));
-    out.push('"');
-    out
+
+    pub fn spawn_elevated_scan(
+        exe: &Path,
+        id: u64,
+        root: PathBuf,
+        opts: ScanOptions,
+    ) -> Result<Arc<Session>, String> {
+        let nonce = format!(
+            "{}-{:x}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        );
+        let pipe_name = format!(r"\\.\pipe\nomnom-elev-scan-{nonce}");
+        let wpipe = wide_nul(&pipe_name);
+        // SAFETY: `wpipe` is NUL-terminated; 1 instance only so no second client can attach.
+        let pipe_handle = unsafe {
+            CreateNamedPipeW(
+                PCWSTR(wpipe.as_ptr()),
+                PIPE_ACCESS_DUPLEX,
+                PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+                1.min(PIPE_UNLIMITED_INSTANCES),
+                1 << 20,
+                1 << 20,
+                15_000,
+                None,
+            )
+        };
+        if pipe_handle.is_invalid() || pipe_handle == INVALID_HANDLE_VALUE {
+            return Err("Couldn't prepare the communication pipe for the elevated scan.".into());
+        }
+
+        let opts_json = serde_json::to_string(&opts).unwrap_or_else(|_| "{}".into());
+        let params = format!(
+            "--elevated-scan {} {} {}",
+            quote(&pipe_name),
+            quote(&root.to_string_lossy()),
+            quote(&opts_json),
+        );
+        let wverb = wide_nul("runas");
+        let wfile = wide_nul(&exe.to_string_lossy());
+        let wparams = wide_nul(&params);
+        let hinst = unsafe {
+            ShellExecuteW(
+                None,
+                PCWSTR(wverb.as_ptr()),
+                PCWSTR(wfile.as_ptr()),
+                PCWSTR(wparams.as_ptr()),
+                PCWSTR::null(),
+                SW_HIDE,
+            )
+        };
+        let status = hinst.0 as isize;
+        if status <= 32 {
+            unsafe {
+                let _ = CloseHandle(pipe_handle);
+            }
+            if status == 5 {
+                return Err("Administrator permission was declined.".into());
+            }
+            return Err(format!("Couldn't start the elevated scan (code {status})."));
+        }
+
+        let session = Session::new_shell(id, root, opts, true);
+        let session_bg = session.clone();
+        let raw_pipe = pipe_handle.0 as usize;
+        std::thread::Builder::new()
+            .name("storage-elev-recv".into())
+            .spawn(move || {
+                let handle = windows::Win32::Foundation::HANDLE(raw_pipe as *mut _);
+                let connected = unsafe { ConnectNamedPipe(handle, None) };
+                let ok = connected.is_ok() || unsafe { GetLastError() } == ERROR_PIPE_CONNECTED;
+                if !ok {
+                    unsafe {
+                        let _ = CloseHandle(handle);
+                    }
+                    session_bg.finish(true);
+                    return;
+                }
+                let file = unsafe { File::from_raw_handle(handle.0) };
+                receive_stream(BufReader::new(file), &session_bg);
+            })
+            .map_err(|e| e.to_string())?;
+
+        Ok(session)
+    }
+
+    pub fn run_elevated_helper(pipe_name: &str, root: &str, opts_json: &str) -> i32 {
+        if !pipe_name.starts_with(r"\\.\pipe\nomnom-elev-scan-") {
+            return 2;
+        }
+        let wpipe = wide_nul(pipe_name);
+        let Ok(handle) = (unsafe {
+            CreateFileW(
+                PCWSTR(wpipe.as_ptr()),
+                (FILE_GENERIC_READ | FILE_GENERIC_WRITE).0,
+                FILE_SHARE_NONE,
+                None,
+                OPEN_EXISTING,
+                FILE_FLAGS_AND_ATTRIBUTES(0),
+                None,
+            )
+        }) else {
+            return 3;
+        };
+        let file = unsafe { File::from_raw_handle(handle.0) };
+        run_helper_loop(BufWriter::new(file), root, opts_json)
+    }
 }
+
+#[cfg(unix)]
+mod imp {
+    use super::*;
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+    use std::os::unix::net::{UnixListener, UnixStream};
+    use std::process::{Command, Stdio};
+
+    fn find_pkexec() -> Option<PathBuf> {
+        if let Some(path) = std::env::var_os("PATH") {
+            for d in std::env::split_paths(&path) {
+                let p = d.join("pkexec");
+                if p.is_file() {
+                    return Some(p);
+                }
+            }
+        }
+        let fixed = PathBuf::from("/usr/bin/pkexec");
+        fixed.is_file().then_some(fixed)
+    }
+
+    pub fn spawn_elevated_scan(
+        exe: &Path,
+        id: u64,
+        root: PathBuf,
+        opts: ScanOptions,
+    ) -> Result<Arc<Session>, String> {
+        let pkexec = find_pkexec().ok_or_else(|| {
+            "pkexec (Polkit) wasn't found. Install polkit and a desktop authentication agent to scan as root."
+                .to_string()
+        })?;
+        let uid = unsafe { libc::geteuid() };
+        let nonce = format!(
+            "{}-{:x}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        );
+        let sock_dir = PathBuf::from(format!("/tmp/nomnom-elev-{uid}-{nonce}"));
+        std::fs::DirBuilder::new()
+            .mode(0o700)
+            .create(&sock_dir)
+            .map_err(|e| format!("Couldn't create private socket folder: {e}"))?;
+        let sock_path = sock_dir.join("scan.sock");
+        let listener = UnixListener::bind(&sock_path).map_err(|e| {
+            let _ = std::fs::remove_dir_all(&sock_dir);
+            format!("Couldn't open socket for elevated scan: {e}")
+        })?;
+        let _ = std::fs::set_permissions(&sock_path, std::fs::Permissions::from_mode(0o600));
+        let _ = listener.set_nonblocking(true);
+
+        let opts_json = serde_json::to_string(&opts).unwrap_or_else(|_| "{}".into());
+        let mut child = Command::new(pkexec)
+            .arg(exe)
+            .arg("--elevated-scan")
+            .arg(&sock_path)
+            .arg(&root)
+            .arg(&opts_json)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|e| {
+                let _ = std::fs::remove_dir_all(&sock_dir);
+                format!("Couldn't start pkexec: {e}")
+            })?;
+
+        let session = Session::new_shell(id, root, opts, true);
+        let session_bg = session.clone();
+        std::thread::Builder::new()
+            .name("storage-elev-recv".into())
+            .spawn(move || {
+                let deadline = std::time::Instant::now() + Duration::from_secs(120);
+                let stream = loop {
+                    if session_bg.is_cancelled() || std::time::Instant::now() > deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        let _ = std::fs::remove_dir_all(&sock_dir);
+                        session_bg.finish(true);
+                        return;
+                    }
+                    match listener.accept() {
+                        Ok((s, _)) => break s,
+                        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                            if let Ok(Some(_)) = child.try_wait() {
+                                let _ = std::fs::remove_dir_all(&sock_dir);
+                                session_bg.finish(true);
+                                return;
+                            }
+                            std::thread::sleep(Duration::from_millis(50));
+                        }
+                        Err(_) => {
+                            let _ = std::fs::remove_dir_all(&sock_dir);
+                            session_bg.finish(true);
+                            return;
+                        }
+                    }
+                };
+                let _ = stream.set_nonblocking(false);
+                receive_stream(BufReader::new(stream), &session_bg);
+                let _ = child.wait();
+                let _ = std::fs::remove_dir_all(&sock_dir);
+            })
+            .map_err(|e| e.to_string())?;
+
+        Ok(session)
+    }
+
+    pub fn run_elevated_helper(sock_path: &str, root: &str, opts_json: &str) -> i32 {
+        if !sock_path.starts_with("/tmp/nomnom-elev-") || !sock_path.ends_with("/scan.sock") {
+            return 2;
+        }
+        let Ok(stream) = UnixStream::connect(sock_path) else {
+            return 3;
+        };
+        run_helper_loop(BufWriter::new(stream), root, opts_json)
+    }
+}
+
+pub use imp::{run_elevated_helper, spawn_elevated_scan};
 
 /// Saves a finished scan to a `.json` file on disk so it can be opened and browsed later.
 pub fn save_scan_file(session: &Session, path: &Path) -> Result<u64, String> {

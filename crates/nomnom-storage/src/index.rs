@@ -111,14 +111,21 @@ pub struct Index {
     root_utf16_len: u32,
 }
 
+fn path_code_units(p: &std::path::Path) -> u32 {
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        p.as_os_str().encode_wide().count() as u32
+    }
+    #[cfg(not(windows))]
+    {
+        p.to_string_lossy().chars().count() as u32
+    }
+}
+
 impl Index {
     pub fn new(root_path: PathBuf, root_name: &str) -> Index {
-        use std::os::windows::ffi::OsStrExt;
-        let root_utf16_len = root_path
-            .as_os_str()
-            .encode_wide()
-            .collect::<Vec<_>>()
-            .len() as u32;
+        let root_utf16_len = path_code_units(&root_path);
         let mut idx = Index {
             nodes: Vec::new(),
             names: String::new(),
@@ -377,18 +384,25 @@ impl Index {
     /// Finds the node for a path inside the scan (names compared without regard to case).
     pub fn resolve_path(&self, path: &std::path::Path) -> Option<NodeId> {
         let norm = |p: &std::path::Path| {
-            p.to_string_lossy()
-                .replace('/', "\\")
-                .trim_end_matches('\\')
-                .to_lowercase()
+            let s = p.to_string_lossy().replace('/', "\\");
+            if s == "\\" {
+                "\\".to_string()
+            } else {
+                s.trim_end_matches('\\').to_lowercase()
+            }
         };
         let (p, root) = (norm(path), norm(&self.root_path));
         if p == root {
             return Some(0);
         }
-        let rest = p.strip_prefix(&format!("{root}\\"))?;
+        let prefix = if root == "\\" {
+            "\\".to_string()
+        } else {
+            format!("{root}\\")
+        };
+        let rest = p.strip_prefix(&prefix)?;
         let mut cur = 0;
-        for part in rest.split('\\') {
+        for part in rest.split('\\').filter(|s| !s.is_empty()) {
             cur = self
                 .children(cur)
                 .find(|c| self.name(*c).to_lowercase() == part)?;
@@ -585,12 +599,7 @@ impl Index {
             }
         }
         let root_path = PathBuf::from(&a.root_path);
-        use std::os::windows::ffi::OsStrExt;
-        let root_utf16_len = root_path
-            .as_os_str()
-            .encode_wide()
-            .collect::<Vec<_>>()
-            .len() as u32;
+        let root_utf16_len = path_code_units(&root_path);
         let mut owner_map = HashMap::with_capacity(a.owners.len());
         for (i, o) in a.owners.iter().enumerate() {
             owner_map.insert(o.clone(), i as u16);

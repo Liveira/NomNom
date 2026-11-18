@@ -11,7 +11,6 @@ use serde::Deserialize;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, Write};
-use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -316,7 +315,7 @@ fn add_tree(
     }
     let lp = long_os_path(path);
     let md = std::fs::symlink_metadata(&lp)?;
-    if md.file_attributes() & 0x400 != 0 {
+    if crate::ops::is_link_metadata(&md) {
         *skipped_links += 1;
         return Ok(());
     }

@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 
 fn main() {
     let mut args = std::env::args().skip(1);
-    let root = PathBuf::from(args.next().unwrap_or_else(|| r"C:\".into()));
+    let default_root = if cfg!(windows) { r"C:\" } else { "/" };
+    let root = PathBuf::from(args.next().unwrap_or_else(|| default_root.into()));
     let workers: Option<usize> = args.next().and_then(|s| s.parse().ok());
     let hold: u64 = args.next().and_then(|s| s.parse().ok()).unwrap_or(0);
 

@@ -230,7 +230,7 @@ fn a_hardlink_of_the_kept_file_is_refused() {
         &Protected::default(),
     );
     assert_eq!(plan.items.len(), 1, "{:?}", plan.refused);
-    assert!(plan.items[0].path.ends_with("c\\f.bin"));
+    assert!(plan.items[0].path.ends_with(Path::new("c").join("f.bin")));
     assert!(plan.refused[0].reason.contains("same file"));
 }
 

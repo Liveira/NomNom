@@ -213,14 +213,23 @@ fn path_dates_and_kind_conditions_work() {
 
 #[test]
 fn attributes_can_be_required_or_excluded() {
-    use std::os::windows::fs::OpenOptionsExt;
     let d = tempfile::tempdir().unwrap();
-    std::fs::File::options()
-        .write(true)
-        .create_new(true)
-        .attributes(0x2)
-        .open(d.path().join("secret.txt"))
-        .unwrap();
+    #[cfg(windows)]
+    let secret_name = {
+        use std::os::windows::fs::OpenOptionsExt;
+        std::fs::File::options()
+            .write(true)
+            .create_new(true)
+            .attributes(0x2)
+            .open(d.path().join("secret.txt"))
+            .unwrap();
+        "secret.txt"
+    };
+    #[cfg(not(windows))]
+    let secret_name = {
+        std::fs::write(d.path().join(".secret.txt"), b"x").unwrap();
+        ".secret.txt"
+    };
     std::fs::write(d.path().join("plain.txt"), b"x").unwrap();
     let s = scan(d.path());
     assert_eq!(
@@ -231,7 +240,7 @@ fn attributes_can_be_required_or_excluded() {
                 set: true
             }
         ),
-        ["secret.txt"]
+        [secret_name]
     );
     assert_eq!(
         names(

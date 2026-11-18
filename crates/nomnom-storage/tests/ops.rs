@@ -67,6 +67,17 @@ fn permanent_delete_removes_a_folder_tree_and_reports_it() {
     assert!(r.join("keep/c.bin").exists());
 }
 
+fn link_dir(target: &Path, link: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        junction::create(target, link)
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
+
 #[test]
 fn deleting_a_folder_with_a_junction_removes_the_link_not_what_it_points_to() {
     let dir = tempfile::tempdir().unwrap();
@@ -74,7 +85,7 @@ fn deleting_a_folder_with_a_junction_removes_the_link_not_what_it_points_to() {
     let outside = tempfile::tempdir().unwrap();
     write(&outside.path().join("precious.txt"), 1234);
     write(&r.join("victim/own.bin"), 10);
-    if junction::create(outside.path(), r.join("victim/link_to_outside")).is_err() {
+    if link_dir(outside.path(), &r.join("victim/link_to_outside")).is_err() {
         eprintln!("SKIPPED: this account can't create junctions");
         return;
     }
@@ -305,7 +316,7 @@ fn copy_never_replaces_and_does_not_follow_links() {
     std::fs::create_dir_all(r.join("dest/src")).unwrap();
     let outside = tempfile::tempdir().unwrap();
     write(&outside.path().join("big.bin"), 9999);
-    let linked = junction::create(outside.path(), r.join("src/linked")).is_ok();
+    let linked = link_dir(outside.path(), &r.join("src/linked")).is_ok();
     let s = scan(r);
     let idx = s.index.read().unwrap();
     let plan = ops::plan(
@@ -532,7 +543,12 @@ fn the_recycle_bin_check_refuses_what_windows_could_delete_for_good() {
     );
     // Far bigger than any bin: refused, so nothing is silently destroyed.
     assert!(ops::recycle_ok(&dir.path().join("huge.bin"), u64::MAX / 2).is_err());
-    assert!(ops::recycle_ok(Path::new(r"\\server\share\x.bin"), 1).is_err());
+    let non_local = if cfg!(windows) {
+        Path::new(r"\\server\share\x.bin")
+    } else {
+        Path::new("/proc/1/cmdline")
+    };
+    assert!(ops::recycle_ok(non_local, 1).is_err());
 }
 
 #[test]
