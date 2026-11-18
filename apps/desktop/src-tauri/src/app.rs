@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
     activity, browser, commands, events, filetools, integrations, modules, notifier, organizer,
-    pipe_server, quick, shortcuts, state::AppState, storage, storage_history, storage_ops,
-    storage_tools, tray, updater, windows,
+    pipe_server, quick, shortcuts, state::AppState, storage, storage_cleanup, storage_history,
+    storage_ops, storage_tools, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -209,6 +209,7 @@ pub fn run() {
             storage_history::st_export_comparison,
             storage_history::st_snapshot_trend,
             storage_history::st_schedule_status,
+            storage_cleanup::st_cleanup_spots,
             updater::update_version,
             updater::update_known,
             updater::update_check,

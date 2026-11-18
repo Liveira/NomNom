@@ -414,6 +414,21 @@ class StorageStore {
     this.show(plan);
   }
 
+  /** Scans a cleanup place and offers to delete what is inside it, with the usual preview and confirmation. */
+  async cleanFolder(path: string) {
+    await this.start(path);
+    // Wait for the (small) scan to finish.
+    for (let i = 0; i < 1200 && this.busy; i++) await new Promise((r) => setTimeout(r, 100));
+    await this.reload();
+    const ids = this.rows.map((r) => r.id);
+    if (ids.length === 0) {
+      this.say('Nothing to clean here.');
+      return;
+    }
+    this.selected = new Set(ids);
+    await this.remove(true, ids);
+  }
+
   async compressSelection(compress: boolean, nodes: number[] = [...this.selected]) {
     const plan = await this.plan(compress ? 'compress' : 'decompress', nodes);
     if (plan) this.show(plan);

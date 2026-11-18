@@ -3,6 +3,7 @@
   import { formatBytes } from '../../lib/format';
   import { adminName, isLinux } from '../../lib/platform';
   import { driveKindLabel, driveTitle, usagePercent } from './logic';
+  import QuickCleanup from './QuickCleanup.svelte';
   import { storage } from './store.svelte';
 
   let showOpts = $state(false);
@@ -64,6 +65,7 @@
       </div>
     {/each}
   </div>
+  <QuickCleanup />
 </section>
 
 <style>

@@ -1,0 +1,42 @@
+import type { Entry } from '../engine';
+
+/** Newer tools: quick cleanup, focus mode, image and PDF tools, downloader extras, backup, system monitor. */
+export const FEATURES: Entry[] = [
+  // Quick cleanup
+  ['Quick cleanup', 'Limpeza rápida', 'Limpieza rápida'],
+  [
+    'Places where programs keep files they can make again, like browser caches and temporary files. NomNom only measures them. Nothing is deleted until you review the list and confirm.',
+    'Lugares onde os programas guardam arquivos que podem refazer, como caches de navegador e arquivos temporários. O NomNom só mede. Nada é excluído até você revisar a lista e confirmar.',
+    'Lugares donde los programas guardan archivos que pueden rehacer, como cachés de navegador y archivos temporales. NomNom solo los mide. No se elimina nada hasta que revises la lista y confirmes.',
+  ],
+  ['Look for things to clean', 'Procurar o que limpar', 'Buscar qué limpiar'],
+  ['Measuring…', 'Medindo…', 'Midiendo…'],
+  ['Measure again', 'Medir de novo', 'Medir de nuevo'],
+  ['Nothing worth cleaning was found.', 'Não foi encontrado nada que valha a pena limpar.', 'No se encontró nada que valga la pena limpiar.'],
+  ['{} could be cleaned in {} place.', '{} podem ser limpos em {} lugar.', 'Se pueden limpiar {} en {} lugar.'],
+  ['{} could be cleaned in {} places.', '{} podem ser limpos em {} lugares.', 'Se pueden limpiar {} en {} lugares.'],
+  ['Review and clean…', 'Revisar e limpar…', 'Revisar y limpiar…'],
+  ['Nothing to clean here.', 'Nada para limpar aqui.', 'Nada que limpiar aquí.'],
+  ['Temporary files', 'Arquivos temporários', 'Archivos temporales'],
+  ['Files programs left in your temporary folder. A file that is in use is skipped and the rest can go.', 'Arquivos que programas deixaram na sua pasta temporária. Um arquivo em uso é pulado e o resto pode ir embora.', 'Archivos que los programas dejaron en tu carpeta temporal. Un archivo en uso se omite y el resto se puede quitar.'],
+  ["NomNom's own leftovers", 'Restos do próprio NomNom', 'Restos del propio NomNom'],
+  ['Installers NomNom downloaded for updates and other short-lived files.', 'Instaladores que o NomNom baixou para atualizações e outros arquivos de curta duração.', 'Instaladores que NomNom descargó para actualizaciones y otros archivos de corta vida.'],
+  ['Crash reports', 'Relatórios de falhas', 'Informes de fallos'],
+  ['Records Windows kept when a program crashed.', 'Registros que o Windows guardou quando um programa travou.', 'Registros que Windows guardó cuando un programa falló.'],
+  ['Internet cache', 'Cache da internet', 'Caché de internet'],
+  ['Web files Windows and some programs saved for speed.', 'Arquivos da web que o Windows e alguns programas guardaram para ganhar velocidade.', 'Archivos web que Windows y algunos programas guardaron para ir más rápido.'],
+  ['Graphics shader cache', 'Cache de shaders gráficos', 'Caché de shaders gráficos'],
+  ['Compiled graphics code that games and apps rebuild when needed.', 'Código gráfico compilado que jogos e apps refazem quando precisam.', 'Código gráfico compilado que juegos y apps rehacen cuando hace falta.'],
+  ['Google Chrome cache', 'Cache do Google Chrome', 'Caché de Google Chrome'],
+  ['Chromium cache', 'Cache do Chromium', 'Caché de Chromium'],
+  ['Microsoft Edge cache', 'Cache do Microsoft Edge', 'Caché de Microsoft Edge'],
+  ['Brave cache', 'Cache do Brave', 'Caché de Brave'],
+  ['Firefox cache', 'Cache do Firefox', 'Caché de Firefox'],
+  ['Pages and pictures the browser saved to load faster. It fetches them again when needed.', 'Páginas e imagens que o navegador guardou para carregar mais rápido. Ele busca de novo quando precisa.', 'Páginas e imágenes que el navegador guardó para cargar más rápido. Las vuelve a buscar cuando hace falta.'],
+  ['npm download cache', 'Cache de downloads do npm', 'Caché de descargas de npm'],
+  ['Packages npm downloaded before. It downloads them again if a project needs them.', 'Pacotes que o npm já baixou. Ele baixa de novo se um projeto precisar.', 'Paquetes que npm ya descargó. Los descarga de nuevo si un proyecto los necesita.'],
+  ['pip download cache', 'Cache de downloads do pip', 'Caché de descargas de pip'],
+  ['Python packages pip downloaded before.', 'Pacotes Python que o pip já baixou.', 'Paquetes de Python que pip ya descargó.'],
+  ['Picture thumbnails', 'Miniaturas de imagens', 'Miniaturas de imágenes'],
+  ['Small previews your file manager made. It makes them again when you open a folder.', 'Pequenas prévias que o gerenciador de arquivos criou. Ele as refaz quando você abre uma pasta.', 'Pequeñas vistas previas que creó tu gestor de archivos. Las rehace al abrir una carpeta.'],
+];

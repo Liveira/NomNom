@@ -3,6 +3,7 @@
 
 pub mod analyze;
 pub mod batch;
+pub mod cleanup;
 pub mod drives;
 pub mod dupes;
 pub mod elevate;

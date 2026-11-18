@@ -17,6 +17,7 @@ mod quick;
 mod shortcuts;
 mod state;
 mod storage;
+mod storage_cleanup;
 mod storage_history;
 mod storage_ops;
 mod storage_tools;

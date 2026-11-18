@@ -413,6 +413,20 @@ export function onUpdateProgress(handler: (p: { done: number; total: number | nu
   return listen('update://progress', (e) => handler(e.payload as never));
 }
 
+// ---- Disk Analyzer: cleanup ---------------------------------------------------------------------
+export interface StCleanSpot {
+  id: string;
+  title: string;
+  why: string;
+  path: string;
+  size: number;
+  files: number;
+  partial: boolean;
+}
+export const cleanupIpc = {
+  spots: () => invoke<StCleanSpot[]>('st_cleanup_spots'),
+};
+
 // ---- Disk Analyzer ---------------------------------------------------------------------------
 export interface StDrive {
   root: string;
