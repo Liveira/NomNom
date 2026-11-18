@@ -2662,7 +2662,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2704,7 +2704,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-activity"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -2720,7 +2720,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-backup"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -2729,7 +2729,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-converter"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "blake3",
  "flate2",
@@ -2752,7 +2752,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-core"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "async-trait",
  "libc",
@@ -2772,7 +2772,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-downloads"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "async-trait",
  "nomnom-core",
@@ -2793,7 +2793,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-ipc"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "libc",
  "serde",
@@ -2805,7 +2805,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-linux"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -2815,7 +2815,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-native-host"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "libc",
  "nomnom-ipc",
@@ -2827,7 +2827,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-organizer"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "blake3",
  "junction",
@@ -2845,7 +2845,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-shell"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "nomnom-win",
  "serde_json",
@@ -2856,7 +2856,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-storage"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "blake3",
  "junction",
@@ -2880,7 +2880,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-tools"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "nomnom-core",
  "reqwest 0.12.28",
@@ -2896,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "nomnom-win"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "nomnom-converter",
  "serde_json",
