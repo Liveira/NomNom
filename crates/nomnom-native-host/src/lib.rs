@@ -1,6 +1,6 @@
 //! The small program Firefox starts for each message from the NOMNOM extension. It passes the
-//! message to the running app over the pipe and returns the answer. If the app is not running it
-//! can start it in the background (never with a window), when the user allowed that.
+//! message to the running app over the local IPC channel and returns the answer. If the app is not
+//! running it can start it in the background (never with a window), when the user allowed that.
 
 use nomnom_ipc::{parse_request, ErrorCode, Response};
 use std::path::{Path, PathBuf};
@@ -102,7 +102,7 @@ pub fn relay(
     }
 }
 
-/// What the app tells the host through `%LOCALAPPDATA%\NOMNOM\integration.json`.
+/// What the app tells the host through `integration.json`.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Integration {
     pub exe: Option<PathBuf>,
@@ -126,7 +126,9 @@ pub fn read_integration(path: &Path) -> Integration {
     }
 }
 
-/// Only an existing file literally named nomnom.exe is ever started.
+/// Only an existing NomNom binary (`nomnom.exe` on Windows, executable `nomnom` or
+/// `NomNom*.AppImage` on Linux) is ever started.
+#[cfg(windows)]
 pub fn launchable(integration: &Integration) -> Option<&Path> {
     let exe = integration.exe.as_deref()?;
     let name_ok = exe
@@ -134,6 +136,26 @@ pub fn launchable(integration: &Integration) -> Option<&Path> {
         .and_then(|n| n.to_str())
         .is_some_and(|n| n.eq_ignore_ascii_case("nomnom.exe"));
     (integration.launch_from_browser && name_ok && exe.is_file()).then_some(exe)
+}
+
+#[cfg(unix)]
+pub fn launchable(integration: &Integration) -> Option<&Path> {
+    use std::os::unix::fs::PermissionsExt;
+    let exe = integration.exe.as_deref()?;
+    let name_ok = exe.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
+        let lower = n.to_ascii_lowercase();
+        lower == "nomnom" || (lower.starts_with("nomnom") && lower.ends_with(".appimage"))
+    });
+    let is_exec = exe
+        .metadata()
+        .map(|m| m.is_file() && (m.permissions().mode() & 0o111 != 0))
+        .unwrap_or(false);
+    (integration.launch_from_browser && name_ok && is_exec).then_some(exe)
+}
+
+#[cfg(not(any(windows, unix)))]
+pub fn launchable(_integration: &Integration) -> Option<&Path> {
+    None
 }
 
 /// Stops this process's standard handles (Firefox's pipes) from being inherited by anything we start.
@@ -176,25 +198,46 @@ pub fn launch_in_background(exe: &Path) -> bool {
         .is_ok()
 }
 
-#[cfg(not(windows))]
+#[cfg(unix)]
+pub fn launch_in_background(exe: &Path) -> bool {
+    use std::os::unix::process::CommandExt;
+    use std::process::{Command, Stdio};
+    Command::new(exe)
+        .arg("--background")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .spawn()
+        .is_ok()
+}
+
+#[cfg(not(any(windows, unix)))]
 pub fn launch_in_background(_exe: &Path) -> bool {
     false
 }
 
-#[cfg(all(test, windows))]
+#[cfg(test)]
 mod tests {
     use super::*;
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-    use tokio::net::windows::named_pipe::ServerOptions;
 
     const PING: &[u8] = br#"{"v":1,"id":"p1","type":"ping"}"#;
 
+    #[cfg(windows)]
     fn name(tag: &str) -> String {
         format!(r"\\.\pipe\nomnom-hosttest-{tag}-{}", std::process::id())
     }
 
+    #[cfg(unix)]
+    fn name(tag: &str) -> String {
+        format!("/tmp/nomnom-hosttest-{tag}-{}.sock", std::process::id())
+    }
+
     /// A stand-in app: answers one request with `reply` (or never answers if `None`).
+    #[cfg(windows)]
     async fn serve_once(pipe: String, reply: Option<Vec<u8>>) -> Vec<u8> {
+        use tokio::net::windows::named_pipe::ServerOptions;
         let server = ServerOptions::new()
             .first_pipe_instance(true)
             .create(&pipe)
@@ -211,6 +254,26 @@ mod tests {
         } else {
             tokio::time::sleep(Duration::from_secs(3)).await;
         }
+        line.trim().as_bytes().to_vec()
+    }
+
+    #[cfg(unix)]
+    async fn serve_once(pipe: String, reply: Option<Vec<u8>>) -> Vec<u8> {
+        let _ = std::fs::remove_file(&pipe);
+        let listener = tokio::net::UnixListener::bind(&pipe).unwrap();
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        reader.read_line(&mut line).await.unwrap();
+        if let Some(mut r) = reply {
+            r.push(b'\n');
+            reader.get_mut().write_all(&r).await.unwrap();
+            reader.get_mut().flush().await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        } else {
+            tokio::time::sleep(Duration::from_secs(3)).await;
+        }
+        let _ = std::fs::remove_file(&pipe);
         line.trim().as_bytes().to_vec()
     }
 
@@ -265,7 +328,6 @@ mod tests {
                 &p,
                 &mut || {
                     flag.store(true, std::sync::atomic::Ordering::SeqCst);
-                    // The "app" takes a moment to open its pipe after being started.
                     let pipe = pipe_for_launch.clone();
                     std::thread::spawn(move || {
                         std::thread::sleep(Duration::from_millis(500));
@@ -354,12 +416,24 @@ mod tests {
     }
 
     #[test]
-    fn only_an_existing_nomnom_exe_with_permission_is_ever_launched() {
+    fn only_an_existing_nomnom_binary_with_permission_is_ever_launched() {
         let dir = tempfile::tempdir().unwrap();
-        let good = dir.path().join("nomnom.exe");
-        let other = dir.path().join("calc.exe");
+        let bin_name = if cfg!(windows) {
+            "nomnom.exe"
+        } else {
+            "nomnom"
+        };
+        let bad_name = if cfg!(windows) { "calc.exe" } else { "sh" };
+        let good = dir.path().join(bin_name);
+        let other = dir.path().join(bad_name);
         std::fs::write(&good, b"x").unwrap();
         std::fs::write(&other, b"x").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&good, std::fs::Permissions::from_mode(0o755)).unwrap();
+            std::fs::set_permissions(&other, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
         let mk = |exe: Option<&Path>, allow| Integration {
             exe: exe.map(Path::to_path_buf),
             launch_from_browser: allow,
@@ -372,7 +446,7 @@ mod tests {
         );
         assert_eq!(launchable(&mk(Some(&other), true)), None, "wrong file name");
         assert_eq!(
-            launchable(&mk(Some(&dir.path().join("nomnom.exe.missing")), true)),
+            launchable(&mk(Some(&dir.path().join("nomnom.missing")), true)),
             None
         );
         assert_eq!(launchable(&mk(None, true)), None);
@@ -385,7 +459,7 @@ mod tests {
         assert_eq!(read_integration(&f), Integration::default());
         std::fs::write(
             &f,
-            "\u{feff}{\"exe\":\"C:\\\\x\\\\nomnom.exe\",\"launchFromBrowser\":true}",
+            "\u{feff}{\"exe\":\"/usr/bin/nomnom\",\"launchFromBrowser\":true}",
         )
         .unwrap();
         let i = read_integration(&f);

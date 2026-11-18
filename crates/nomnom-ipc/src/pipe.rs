@@ -1,11 +1,12 @@
-//! The named pipe between the native host and the app. The name contains the user's SID so each
-//! Windows user has their own, and the server only accepts that user (see the app's pipe server).
+//! The local IPC channel between the native host and the app.
+//!
+//! On Windows this is a per-SID Named Pipe (`\\.\pipe\nomnom-<SID>`) restricted by SDDL to the
+//! current user. On Linux it is a `0600` Unix domain socket inside `$XDG_RUNTIME_DIR` (or a `0700`
+//! `/tmp/nomnom-<uid>` fallback) verified by `SO_PEERCRED` / peer UID.
 
 use crate::framing::{read_line_limited, write_line};
-use std::fs::OpenOptions;
 use std::io::{self, BufReader};
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[cfg(windows)]
 pub fn current_user_sid() -> io::Result<String> {
@@ -46,22 +47,48 @@ pub fn current_user_sid() -> io::Result<String> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(unix)]
 pub fn current_user_sid() -> io::Result<String> {
-    Err(io::Error::other("Windows only"))
+    // SAFETY: geteuid is a thread-safe syscall with no arguments and cannot fail.
+    Ok(unsafe { libc::geteuid() }.to_string())
 }
 
-/// `\\.\pipe\nomnom-<user SID>`.
+#[cfg(not(any(windows, unix)))]
+pub fn current_user_sid() -> io::Result<String> {
+    Err(io::Error::other("unsupported platform"))
+}
+
+/// Returns the IPC endpoint path for the current user:
+/// - Windows: `\\.\pipe\nomnom-<user SID>`
+/// - Linux: `$XDG_RUNTIME_DIR/nomnom.sock` (or `/tmp/nomnom-<uid>/nomnom.sock`)
+#[cfg(windows)]
 pub fn pipe_path() -> String {
     let id = current_user_sid().unwrap_or_else(|_| "unknown".to_string());
     format!(r"\\.\pipe\nomnom-{id}")
+}
+
+#[cfg(not(windows))]
+pub fn pipe_path() -> String {
+    if let Some(dir) = std::env::var_os("XDG_RUNTIME_DIR")
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_absolute())
+    {
+        return dir.join("nomnom.sock").to_string_lossy().into_owned();
+    }
+    let id = current_user_sid().unwrap_or_else(|_| "unknown".to_string());
+    format!("/tmp/nomnom-{id}/nomnom.sock")
 }
 
 /// Sends one request line and returns the response line.
 ///
 /// `NotFound` means nothing is listening (the app isn't running). A busy pipe is retried until
 /// `timeout`. The whole exchange is bounded by `timeout`.
+#[cfg(windows)]
 pub fn exchange(path: &str, request: &[u8], timeout: Duration) -> io::Result<Vec<u8>> {
+    use std::fs::OpenOptions;
+    use std::sync::mpsc;
+    use std::time::Instant;
+
     const ERROR_PIPE_BUSY: i32 = 231;
     let started = Instant::now();
     let file = loop {
@@ -93,11 +120,57 @@ pub fn exchange(path: &str, request: &[u8], timeout: Duration) -> io::Result<Vec
         .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "NOMNOM did not answer in time"))?
 }
 
-#[cfg(all(test, windows))]
+#[cfg(unix)]
+pub fn exchange(path: &str, request: &[u8], timeout: Duration) -> io::Result<Vec<u8>> {
+    use std::os::unix::net::UnixStream;
+    use std::time::Instant;
+
+    let started = Instant::now();
+    let mut stream = match UnixStream::connect(path) {
+        Ok(s) => s,
+        Err(e)
+            if matches!(
+                e.kind(),
+                io::ErrorKind::NotFound | io::ErrorKind::ConnectionRefused
+            ) =>
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "NOMNOM is not running",
+            ));
+        }
+        Err(e) => return Err(e),
+    };
+
+    let map_timeout = |e: io::Error| {
+        if matches!(
+            e.kind(),
+            io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut
+        ) {
+            io::Error::new(io::ErrorKind::TimedOut, "NOMNOM did not answer in time")
+        } else {
+            e
+        }
+    };
+
+    stream.set_write_timeout(Some(timeout))?;
+    write_line(&mut stream, request).map_err(map_timeout)?;
+
+    let remaining = timeout
+        .saturating_sub(started.elapsed())
+        .max(Duration::from_millis(200));
+    stream.set_read_timeout(Some(remaining))?;
+    let mut reader = BufReader::new(stream);
+    read_line_limited(&mut reader).map_err(map_timeout)
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Instant;
 
     #[test]
+    #[cfg(windows)]
     fn sid_looks_like_a_sid_and_the_path_contains_it() {
         let sid = current_user_sid().unwrap();
         assert!(sid.starts_with("S-1-5-"), "{sid}");
@@ -106,14 +179,22 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
+    fn uid_is_numeric_and_socket_path_ends_with_sock() {
+        let uid = current_user_sid().unwrap();
+        assert!(uid.chars().all(|c| c.is_ascii_digit()), "{uid}");
+        assert!(pipe_path().ends_with("nomnom.sock"), "{}", pipe_path());
+    }
+
+    #[test]
     fn no_listener_means_not_found_quickly() {
         let started = Instant::now();
-        let err = exchange(
-            r"\\.\pipe\nomnom-test-nobody-home",
-            b"{}",
-            Duration::from_secs(5),
-        )
-        .unwrap_err();
+        let missing = if cfg!(windows) {
+            r"\\.\pipe\nomnom-test-nobody-home".to_string()
+        } else {
+            format!("/tmp/nomnom-test-nobody-home-{}.sock", std::process::id())
+        };
+        let err = exchange(&missing, b"{}", Duration::from_secs(5)).unwrap_err();
         assert_eq!(err.kind(), io::ErrorKind::NotFound);
         assert!(started.elapsed() < Duration::from_secs(1));
     }

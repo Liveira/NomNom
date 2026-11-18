@@ -6,9 +6,24 @@ use nomnom_native_host::{launch_in_background, launchable, read_integration, rel
 use std::io::{stdin, stdout};
 use std::path::PathBuf;
 
+#[cfg(windows)]
 fn integration_file() -> Option<PathBuf> {
     std::env::var_os("LOCALAPPDATA")
         .map(|d| PathBuf::from(d).join("NOMNOM").join("integration.json"))
+}
+
+#[cfg(not(windows))]
+fn integration_file() -> Option<PathBuf> {
+    let data_home = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .filter(|p| p.is_absolute())
+                .map(|h| h.join(".local").join("share"))
+        })?;
+    Some(data_home.join("nomnom").join("integration.json"))
 }
 
 fn main() {

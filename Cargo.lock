@@ -2763,6 +2763,7 @@ dependencies = [
 name = "nomnom-ipc"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
@@ -2774,6 +2775,7 @@ dependencies = [
 name = "nomnom-native-host"
 version = "0.1.0"
 dependencies = [
+ "libc",
  "nomnom-ipc",
  "serde_json",
  "tempfile",
