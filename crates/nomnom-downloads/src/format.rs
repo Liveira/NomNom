@@ -108,6 +108,23 @@ fn os(s: &str) -> OsString {
     OsString::from(s)
 }
 
+fn firefox_cookie_source() -> String {
+    #[cfg(not(windows))]
+    if let Some(home) = std::env::var_os("HOME").map(std::path::PathBuf::from) {
+        if !home.join(".mozilla/firefox").is_dir() {
+            for alt in [
+                home.join("snap/firefox/common/.mozilla/firefox"),
+                home.join(".var/app/org.mozilla.firefox/.mozilla/firefox"),
+            ] {
+                if alt.is_dir() {
+                    return format!("firefox:{}", alt.display());
+                }
+            }
+        }
+    }
+    "firefox".to_string()
+}
+
 /// Options shared by analysis and download.
 pub fn common_args(firefox_cookies: bool) -> Vec<OsString> {
     let mut a: Vec<OsString> = [
@@ -121,7 +138,7 @@ pub fn common_args(firefox_cookies: bool) -> Vec<OsString> {
     .collect();
     if firefox_cookies {
         a.push(os("--cookies-from-browser"));
-        a.push(os("firefox"));
+        a.push(os(&firefox_cookie_source()));
     }
     a
 }

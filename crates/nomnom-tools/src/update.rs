@@ -1,6 +1,7 @@
 //! NomNom's own updates. NomNom looks at the latest published release on its GitHub page, and only
 //! when asked (or once a day if the user left that on). Nothing is downloaded or installed until the
-//! user presses the button. The installer is checked against the SHA-256 listed in the same release.
+//! user presses the button. The package or installer is checked against the SHA-256 listed in the
+//! same release.
 
 use crate::install::{download_to, fetch_text};
 use crate::{parse_checksum, verify_sha256, InstallProgress, ToolError};
@@ -12,6 +13,48 @@ pub const REPO: &str = "Liveira/NomNom";
 
 fn net(e: impl std::fmt::Display) -> ToolError {
     ToolError::Network(e.to_string())
+}
+
+/// Which package style fits the current system best when looking at a GitHub release.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetKind {
+    WindowsSetup,
+    LinuxAppImage,
+    ArchPackage,
+    DebianPackage,
+}
+
+impl TargetKind {
+    pub fn detect() -> Self {
+        #[cfg(windows)]
+        {
+            TargetKind::WindowsSetup
+        }
+        #[cfg(not(windows))]
+        {
+            if std::env::var_os("APPIMAGE").is_some() {
+                return TargetKind::LinuxAppImage;
+            }
+            let os_release = std::fs::read_to_string("/etc/os-release")
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            if Path::new("/etc/arch-release").exists()
+                || os_release.contains("id=arch")
+                || os_release.contains("id_like=arch")
+                || os_release.contains("id_like=\"arch\"")
+            {
+                return TargetKind::ArchPackage;
+            }
+            if Path::new("/etc/debian_version").exists()
+                || os_release.contains("id=debian")
+                || os_release.contains("id=ubuntu")
+                || os_release.contains("debian")
+            {
+                return TargetKind::DebianPackage;
+            }
+            TargetKind::LinuxAppImage
+        }
+    }
 }
 
 /// A version number like `1.2.3`, with an optional `-beta.1` part that sorts before the plain release.
@@ -62,7 +105,7 @@ impl Ord for Version {
     }
 }
 
-/// An update that can be installed.
+/// An update that can be downloaded and installed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, serde::Deserialize)]
 pub struct Available {
     pub version: String,
@@ -87,10 +130,56 @@ fn is_release_asset(url: &str) -> bool {
     url.starts_with(&prefix) && !url.contains("..")
 }
 
-/// Reads the answer of GitHub's "latest release" call. Split from the network call so it can be tested.
+fn pick_asset(assets: &[serde_json::Value], target: TargetKind) -> Option<&serde_json::Value> {
+    let suffixes: &[&str] = match target {
+        TargetKind::WindowsSetup => &["-setup.exe", "_setup.exe"],
+        TargetKind::ArchPackage => &[".pkg.tar.zst", ".appimage", ".tar.gz", ".tar.xz"],
+        TargetKind::DebianPackage => &[".deb", ".appimage", ".tar.gz", ".tar.xz"],
+        TargetKind::LinuxAppImage => &[".appimage", ".pkg.tar.zst", ".deb", ".tar.gz", ".tar.xz"],
+    };
+    for suffix in suffixes {
+        if let Some(found) = assets.iter().find(|a| {
+            let n = a["name"].as_str().unwrap_or_default().to_ascii_lowercase();
+            !n.ends_with(".sig") && n.ends_with(suffix)
+        }) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+pub fn is_valid_update_filename(name: &str) -> bool {
+    if name.is_empty() || name.contains(['/', '\\']) || name.contains("..") {
+        return false;
+    }
+    let lower = name.to_ascii_lowercase();
+    #[cfg(windows)]
+    {
+        lower.ends_with(".exe")
+    }
+    #[cfg(not(windows))]
+    {
+        [".appimage", ".deb", ".pkg.tar.zst", ".tar.gz", ".tar.xz"]
+            .iter()
+            .any(|ext| lower.ends_with(ext))
+    }
+}
+
+/// Reads the answer of GitHub's "latest release" call for the current platform.
 pub fn evaluate(
     current: &str,
     release: &str,
+    sums: impl Fn(&str) -> Option<String>,
+) -> Result<Check, ToolError> {
+    evaluate_for_target(current, release, TargetKind::detect(), sums)
+}
+
+/// Split by `TargetKind` so Windows, Arch Linux, Debian/Ubuntu and AppImage asset selection can all
+/// be unit-tested on any host.
+pub fn evaluate_for_target(
+    current: &str,
+    release: &str,
+    target: TargetKind,
     sums: impl Fn(&str) -> Option<String>,
 ) -> Result<Check, ToolError> {
     let cur = Version::parse(current).ok_or_else(|| {
@@ -119,12 +208,10 @@ pub fn evaluate(
         });
     }
     let assets = v["assets"].as_array().cloned().unwrap_or_default();
-    let installer = assets.iter().find(|a| {
-        let n = a["name"].as_str().unwrap_or_default().to_ascii_lowercase();
-        n.ends_with("-setup.exe") || n.ends_with("_setup.exe")
-    });
-    let Some(installer) = installer else {
-        return Err(net(format!("version {tag} has no installer attached yet")));
+    let Some(installer) = pick_asset(&assets, target) else {
+        return Err(net(format!(
+            "version {tag} has no package for this system attached yet"
+        )));
     };
     let name = installer["name"].as_str().unwrap_or_default().to_string();
     let url = installer["browser_download_url"]
@@ -198,7 +285,8 @@ pub async fn check(current: &str) -> Result<Check, ToolError> {
     }
 }
 
-/// Downloads the installer into `dir` and checks it. Returns the path of the verified file.
+/// Downloads the installer or package into `dir` and checks its SHA-256. Returns the path of the
+/// verified file.
 pub async fn download(
     update: &Available,
     dir: &Path,
@@ -213,7 +301,7 @@ pub async fn download(
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or_default();
-    if name.is_empty() || name != update.file_name || !name.to_ascii_lowercase().ends_with(".exe") {
+    if name.is_empty() || name != update.file_name || !is_valid_update_filename(name) {
         return Err(net(
             "the installer has an unexpected name, so it was not used",
         ));
@@ -263,7 +351,12 @@ mod tests {
         serde_json::json!({
             "tag_name": tag, "draft": false, "prerelease": false, "body": "Fixes things.",
             "html_url": format!("https://github.com/{REPO}/releases/tag/{tag}"),
-            "assets": [{"name": "NOMNOM_0.2.0_x64-setup.exe", "browser_download_url": url, "size": 1234}]
+            "assets": [
+                {"name": "NOMNOM_0.2.0_x64-setup.exe", "browser_download_url": url, "size": 1234},
+                {"name": "nomnom-0.2.0-1-x86_64.pkg.tar.zst", "browser_download_url": format!("https://github.com/{REPO}/releases/download/{tag}/nomnom-0.2.0-1-x86_64.pkg.tar.zst"), "size": 2345},
+                {"name": "NOMNOM_0.2.0_amd64.deb", "browser_download_url": format!("https://github.com/{REPO}/releases/download/{tag}/NOMNOM_0.2.0_amd64.deb"), "size": 3456},
+                {"name": "NOMNOM_0.2.0_amd64.AppImage", "browser_download_url": format!("https://github.com/{REPO}/releases/download/{tag}/NOMNOM_0.2.0_amd64.AppImage"), "size": 4567}
+            ]
         })
         .to_string()
     }
@@ -273,13 +366,54 @@ mod tests {
     #[test]
     fn newer_release_is_offered_with_its_checksum() {
         let sum = "a".repeat(64);
-        let r = evaluate("0.1.0", &release("v0.2.0", GOOD), |_| Some(sum.clone())).unwrap();
+        let r = evaluate_for_target(
+            "0.1.0",
+            &release("v0.2.0", GOOD),
+            TargetKind::WindowsSetup,
+            |_| Some(sum.clone()),
+        )
+        .unwrap();
         let Check::Available(a) = r else {
             panic!("expected an update")
         };
         assert_eq!(a.version, "0.2.0");
         assert_eq!(a.sha256, sum);
         assert_eq!(a.size, 1234);
+    }
+
+    #[test]
+    fn linux_targets_pick_arch_debian_and_appimage_packages() {
+        let sum = "b".repeat(64);
+        let rel = release("v0.2.0", GOOD);
+        let Check::Available(arch) =
+            evaluate_for_target("0.1.0", &rel, TargetKind::ArchPackage, |_| {
+                Some(sum.clone())
+            })
+            .unwrap()
+        else {
+            panic!("expected Arch package")
+        };
+        assert_eq!(arch.file_name, "nomnom-0.2.0-1-x86_64.pkg.tar.zst");
+
+        let Check::Available(deb) =
+            evaluate_for_target("0.1.0", &rel, TargetKind::DebianPackage, |_| {
+                Some(sum.clone())
+            })
+            .unwrap()
+        else {
+            panic!("expected Debian package")
+        };
+        assert_eq!(deb.file_name, "NOMNOM_0.2.0_amd64.deb");
+
+        let Check::Available(appimg) =
+            evaluate_for_target("0.1.0", &rel, TargetKind::LinuxAppImage, |_| {
+                Some(sum.clone())
+            })
+            .unwrap()
+        else {
+            panic!("expected AppImage")
+        };
+        assert_eq!(appimg.file_name, "NOMNOM_0.2.0_amd64.AppImage");
     }
 
     #[test]
@@ -298,11 +432,20 @@ mod tests {
     #[test]
     fn installer_from_somewhere_else_is_refused() {
         let bad = "https://example.com/NOMNOM_0.2.0_x64-setup.exe";
-        assert!(evaluate("0.1.0", &release("v0.2.0", bad), |_| Some("a".repeat(64))).is_err());
+        assert!(evaluate_for_target(
+            "0.1.0",
+            &release("v0.2.0", bad),
+            TargetKind::WindowsSetup,
+            |_| Some("a".repeat(64))
+        )
+        .is_err());
         let sneaky = "https://github.com/Liveira/NomNom/releases/download/../../evil/x-setup.exe";
-        assert!(evaluate("0.1.0", &release("v0.2.0", sneaky), |_| Some(
-            "a".repeat(64)
-        ))
+        assert!(evaluate_for_target(
+            "0.1.0",
+            &release("v0.2.0", sneaky),
+            TargetKind::WindowsSetup,
+            |_| Some("a".repeat(64))
+        )
         .is_err());
     }
 
@@ -331,14 +474,18 @@ mod tests {
             version: "0.2.0".into(),
             notes: String::new(),
             page: String::new(),
-            file_name: "..\\evil.exe".into(),
+            file_name: "../evil.exe".into(),
             url: GOOD.into(),
             size: 0,
             sha256: "a".repeat(64),
         };
         assert!(rt.block_on(download(&a, dir.path(), &|_, _| {})).is_err());
-        a.file_name = "ok-setup.exe".into();
-        a.url = "https://example.com/ok-setup.exe".into();
+        a.file_name = if cfg!(windows) {
+            "ok-setup.exe".into()
+        } else {
+            "ok.AppImage".into()
+        };
+        a.url = "https://example.com/ok".into();
         assert!(rt.block_on(download(&a, dir.path(), &|_, _| {})).is_err());
     }
 }

@@ -1,4 +1,4 @@
-use crate::ToolError;
+use crate::{Tool, ToolError};
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -8,7 +8,40 @@ pub type InstallProgress = dyn Fn(u64, Option<u64>) + Send + Sync;
 
 const YTDLP_BASE: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download";
 const FFMPEG_BASE: &str = "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download";
-const FFMPEG_ARCHIVE: &str = "ffmpeg-master-latest-win64-gpl.zip";
+
+fn ytdlp_release_asset() -> &'static str {
+    #[cfg(windows)]
+    {
+        "yt-dlp.exe"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    {
+        "yt-dlp_linux_aarch64"
+    }
+    #[cfg(all(target_os = "linux", not(target_arch = "aarch64")))]
+    {
+        "yt-dlp_linux"
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        "yt-dlp"
+    }
+}
+
+fn ffmpeg_release_archive() -> &'static str {
+    #[cfg(windows)]
+    {
+        "ffmpeg-master-latest-win64-gpl.zip"
+    }
+    #[cfg(all(not(windows), target_arch = "aarch64"))]
+    {
+        "ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+    }
+    #[cfg(all(not(windows), not(target_arch = "aarch64")))]
+    {
+        "ffmpeg-master-latest-linux64-gpl.tar.xz"
+    }
+}
 
 fn io(e: impl std::fmt::Display) -> ToolError {
     ToolError::Io(e.to_string())
@@ -16,6 +49,15 @@ fn io(e: impl std::fmt::Display) -> ToolError {
 
 fn net(e: impl std::fmt::Display) -> ToolError {
     ToolError::Network(e.to_string())
+}
+
+fn mark_executable(_path: &Path) -> Result<(), ToolError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(_path, std::fs::Permissions::from_mode(0o755)).map_err(io)?;
+    }
+    Ok(())
 }
 
 /// Finds the hash for `file_name` in a `sha256sum`-style listing ("<hex>  <name>" or "<hex> *<name>").
@@ -94,17 +136,20 @@ pub(crate) async fn download_to(
 pub(crate) async fn install_ytdlp(dir: &Path, progress: &InstallProgress) -> Result<(), ToolError> {
     std::fs::create_dir_all(dir).map_err(io)?;
     let client = client()?;
+    let asset = ytdlp_release_asset();
+    let local_name = Tool::YtDlp.exe_name();
     let sums = fetch_text(&client, &format!("{YTDLP_BASE}/SHA2-256SUMS")).await?;
-    let expected = parse_checksum(&sums, "yt-dlp.exe")
-        .ok_or_else(|| ToolError::Network("the release has no checksum for yt-dlp.exe".into()))?;
+    let expected = parse_checksum(&sums, asset)
+        .ok_or_else(|| ToolError::Network(format!("the release has no checksum for {asset}")))?;
 
-    let tmp = dir.join("yt-dlp.exe.part");
-    download_to(&client, &format!("{YTDLP_BASE}/yt-dlp.exe"), &tmp, progress).await?;
+    let tmp = dir.join(format!("{local_name}.part"));
+    download_to(&client, &format!("{YTDLP_BASE}/{asset}"), &tmp, progress).await?;
     if !verify_sha256(&tmp, &expected)? {
         let _ = std::fs::remove_file(&tmp);
         return Err(ToolError::ChecksumMismatch);
     }
-    std::fs::rename(&tmp, dir.join("yt-dlp.exe")).map_err(io)
+    mark_executable(&tmp)?;
+    std::fs::rename(&tmp, dir.join(local_name)).map_err(io)
 }
 
 pub(crate) async fn install_ffmpeg(
@@ -113,30 +158,32 @@ pub(crate) async fn install_ffmpeg(
 ) -> Result<(), ToolError> {
     std::fs::create_dir_all(dir).map_err(io)?;
     let client = client()?;
+    let archive_name = ffmpeg_release_archive();
     let sums = fetch_text(&client, &format!("{FFMPEG_BASE}/checksums.sha256")).await?;
-    let expected = parse_checksum(&sums, FFMPEG_ARCHIVE).ok_or_else(|| {
+    let expected = parse_checksum(&sums, archive_name).ok_or_else(|| {
         ToolError::Network("the release has no checksum for the ffmpeg archive".into())
     })?;
 
-    let zip_path = dir.join("ffmpeg-download.zip.part");
+    let archive_path = dir.join(format!("{archive_name}.part"));
     download_to(
         &client,
-        &format!("{FFMPEG_BASE}/{FFMPEG_ARCHIVE}"),
-        &zip_path,
+        &format!("{FFMPEG_BASE}/{archive_name}"),
+        &archive_path,
         progress,
     )
     .await?;
     let result = (|| {
-        if !verify_sha256(&zip_path, &expected)? {
+        if !verify_sha256(&archive_path, &expected)? {
             return Err(ToolError::ChecksumMismatch);
         }
-        extract_binaries(&zip_path, dir)
+        extract_binaries(&archive_path, dir)
     })();
-    let _ = std::fs::remove_file(&zip_path);
+    let _ = std::fs::remove_file(&archive_path);
     result
 }
 
-/// Pulls only `bin/ffmpeg.exe` and `bin/ffprobe.exe` out of the archive.
+/// Pulls only `bin/ffmpeg.exe` and `bin/ffprobe.exe` out of the Windows zip archive.
+#[cfg(windows)]
 fn extract_binaries(zip_path: &Path, dir: &Path) -> Result<(), ToolError> {
     let mut archive =
         zip::ZipArchive::new(std::fs::File::open(zip_path).map_err(io)?).map_err(io)?;
@@ -161,6 +208,81 @@ fn extract_binaries(zip_path: &Path, dir: &Path) -> Result<(), ToolError> {
     Ok(())
 }
 
+/// Extracts `bin/ffmpeg` and `bin/ffprobe` from the Linux `.tar.xz` static archive using `tar`.
+#[cfg(not(windows))]
+fn extract_binaries(tar_path: &Path, dir: &Path) -> Result<(), ToolError> {
+    let scratch = dir.join(format!(".ffmpeg-extract-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).map_err(io)?;
+
+    let unpack = (|| -> Result<(), ToolError> {
+        let status = std::process::Command::new("tar")
+            .arg("-xJf")
+            .arg(tar_path)
+            .arg("-C")
+            .arg(&scratch)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map_err(|e| {
+                ToolError::Io(format!(
+                    "couldn't run tar to unpack FFmpeg (install tar and xz, or install ffmpeg with your package manager): {e}"
+                ))
+            })?;
+        if !status.success() {
+            return Err(ToolError::Io(
+                "tar couldn't unpack the FFmpeg archive (make sure xz is installed, or install ffmpeg with pacman/apt)."
+                    .into(),
+            ));
+        }
+
+        for name in ["ffmpeg", "ffprobe"] {
+            let found =
+                find_extracted_bin(&scratch, name).ok_or(ToolError::MissingInArchive(name))?;
+            let tmp = dir.join(format!("{name}.part"));
+            std::fs::copy(&found, &tmp).map_err(io)?;
+            mark_executable(&tmp)?;
+            std::fs::rename(&tmp, dir.join(name)).map_err(io)?;
+        }
+        Ok(())
+    })();
+
+    let _ = std::fs::remove_dir_all(&scratch);
+    unpack
+}
+
+#[cfg(not(windows))]
+fn find_extracted_bin(root: &Path, wanted: &str) -> Option<std::path::PathBuf> {
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(cur) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&cur) else {
+            continue;
+        };
+        for entry in rd.flatten() {
+            let p = entry.path();
+            let Ok(md) = std::fs::symlink_metadata(&p) else {
+                continue;
+            };
+            if md.file_type().is_symlink() {
+                continue;
+            }
+            if md.is_dir() {
+                stack.push(p);
+            } else if md.is_file()
+                && p.file_name().and_then(|n| n.to_str()) == Some(wanted)
+                && p.parent()
+                    .and_then(|par| par.file_name())
+                    .and_then(|n| n.to_str())
+                    == Some("bin")
+            {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -169,8 +291,8 @@ mod tests {
     fn parses_both_listing_styles() {
         let h = "a".repeat(64);
         let g = "B".repeat(64);
-        let text = format!("{h}  yt-dlp.exe\n{g} *other.zip\nnot a hash line\n");
-        assert_eq!(parse_checksum(&text, "yt-dlp.exe"), Some(h));
+        let text = format!("{h}  yt-dlp_linux\n{g} *other.zip\nnot a hash line\n");
+        assert_eq!(parse_checksum(&text, "yt-dlp_linux"), Some(h));
         assert_eq!(parse_checksum(&text, "other.zip"), Some("b".repeat(64)));
         assert_eq!(parse_checksum(&text, "missing.zip"), None);
     }

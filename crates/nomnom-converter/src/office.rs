@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
+#[cfg(windows)]
 pub fn find_soffice() -> Option<PathBuf> {
     for var in ["ProgramFiles", "ProgramFiles(x86)"] {
         if let Some(base) = std::env::var_os(var) {
@@ -20,6 +21,33 @@ pub fn find_soffice() -> Option<PathBuf> {
     std::env::split_paths(&path)
         .map(|d| d.join("soffice.exe"))
         .find(|p| p.is_file())
+}
+
+#[cfg(not(windows))]
+pub fn find_soffice() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path) {
+            for bin in ["soffice", "libreoffice"] {
+                let candidate = dir.join(bin);
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+    for fixed in [
+        "/usr/bin/soffice",
+        "/usr/bin/libreoffice",
+        "/usr/lib/libreoffice/program/soffice",
+        "/snap/bin/libreoffice",
+        "/var/lib/flatpak/exports/bin/org.libreoffice.LibreOffice",
+    ] {
+        let p = PathBuf::from(fixed);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    None
 }
 
 /// Converts `src` to PDF at `tmp_out`. Works in a scratch folder next to `tmp_out`, with its own
@@ -49,10 +77,12 @@ async fn run(
     cancel: &CancellationToken,
 ) -> Result<(), ConvertError> {
     let profile = scratch.join("profile");
-    let profile_url = format!(
-        "-env:UserInstallation=file:///{}",
-        profile.to_string_lossy().replace('\\', "/")
-    );
+    let clean_profile = profile.to_string_lossy().replace('\\', "/");
+    let profile_url = if clean_profile.starts_with('/') {
+        format!("-env:UserInstallation=file://{clean_profile}")
+    } else {
+        format!("-env:UserInstallation=file:///{clean_profile}")
+    };
     let args: Vec<OsString> = vec![
         "--headless".into(),
         "--norestore".into(),

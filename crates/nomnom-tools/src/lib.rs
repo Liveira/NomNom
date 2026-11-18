@@ -32,17 +32,39 @@ pub enum Tool {
 
 impl Tool {
     pub fn exe_name(self) -> &'static str {
+        #[cfg(windows)]
         match self {
             Tool::YtDlp => "yt-dlp.exe",
             Tool::Ffmpeg => "ffmpeg.exe",
             Tool::Ffprobe => "ffprobe.exe",
         }
+        #[cfg(not(windows))]
+        match self {
+            Tool::YtDlp => "yt-dlp",
+            Tool::Ffmpeg => "ffmpeg",
+            Tool::Ffprobe => "ffprobe",
+        }
     }
+
     fn version_args(self) -> &'static [&'static str] {
         match self {
             Tool::YtDlp => &["--version"],
             _ => &["-version"],
         }
+    }
+}
+
+fn is_usable_binary(p: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        p.metadata()
+            .map(|m| m.is_file() && (m.permissions().mode() & 0o111 != 0))
+            .unwrap_or(false)
+    }
+    #[cfg(not(unix))]
+    {
+        p.is_file()
     }
 }
 
@@ -72,13 +94,13 @@ impl Tools {
     /// Managed copy first, then anything on PATH.
     pub fn locate(&self, tool: Tool) -> Option<PathBuf> {
         let managed = self.managed_path(tool);
-        if managed.is_file() {
+        if is_usable_binary(&managed) {
             return Some(managed);
         }
         let path_var = std::env::var_os("PATH")?;
         std::env::split_paths(&path_var)
             .map(|d| d.join(tool.exe_name()))
-            .find(|p| p.is_file())
+            .find(|p| is_usable_binary(p))
     }
 
     pub async fn status(&self, tool: Tool) -> ToolStatus {
@@ -101,15 +123,16 @@ impl Tools {
         install::install_ytdlp(&self.dir, progress).await
     }
 
-    /// Downloads ffmpeg and ffprobe. The archive is large (about 150 MB).
+    /// Downloads ffmpeg and ffprobe. The archive is large (about 120–150 MB).
     pub async fn install_ffmpeg(&self, progress: &InstallProgress) -> Result<(), ToolError> {
         install::install_ffmpeg(&self.dir, progress).await
     }
 
-    /// Updates the managed yt-dlp in place. Never touches a copy found on PATH.
+    /// Updates the managed yt-dlp in place. Never touches a copy found on PATH (such as one
+    /// managed by `pacman` or `apt`).
     pub async fn update_ytdlp(&self) -> Result<String, ToolError> {
         let path = self.managed_path(Tool::YtDlp);
-        if !path.is_file() {
+        if !is_usable_binary(&path) {
             return Err(ToolError::Io(
                 "NOMNOM's own copy of yt-dlp isn't installed.".into(),
             ));
@@ -153,10 +176,13 @@ mod tests {
                 .filter(|p| p.starts_with(dir.path())),
             None
         );
-        std::fs::write(dir.path().join("yt-dlp.exe"), b"x").unwrap();
-        assert_eq!(
-            tools.locate(Tool::YtDlp),
-            Some(dir.path().join("yt-dlp.exe"))
-        );
+        let bin = dir.path().join(Tool::YtDlp.exe_name());
+        std::fs::write(&bin, b"x").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        assert_eq!(tools.locate(Tool::YtDlp), Some(bin));
     }
 }

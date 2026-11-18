@@ -158,14 +158,19 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let dest = dir.path().join("out");
         std::fs::create_dir_all(&dest).unwrap();
-        std::fs::write(dest.join("Clip.mp4"), "original").unwrap();
+        let existing_name = if cfg!(windows) {
+            "Clip.mp4"
+        } else {
+            "clip.MP4"
+        };
+        std::fs::write(dest.join(existing_name), "original").unwrap();
 
         let staged = dir.path().join("staged.bin");
         std::fs::write(&staged, "new").unwrap();
         let p = finalize(&staged, &dest, "clip.MP4").unwrap();
         assert_eq!(p.file_name().unwrap(), "clip (2).MP4");
         assert_eq!(
-            std::fs::read_to_string(dest.join("Clip.mp4")).unwrap(),
+            std::fs::read_to_string(dest.join(existing_name)).unwrap(),
             "original"
         );
 

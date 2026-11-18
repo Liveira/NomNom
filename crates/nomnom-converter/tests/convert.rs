@@ -52,8 +52,8 @@ async fn convert(r: Request) -> Vec<nomnom_converter::Outcome> {
 }
 
 fn ffmpeg_backends() -> Option<Backends> {
-    let local = std::env::var_os("LOCALAPPDATA")?;
-    let tools = Tools::new(PathBuf::from(local).join("NOMNOM").join("tools"));
+    let paths = nomnom_core::paths::Paths::resolve().ok()?;
+    let tools = Tools::new(paths.tools_dir());
     let b = Backends::detect(&tools);
     if b.has(nomnom_converter::Backend::Ffmpeg) {
         Some(b)
