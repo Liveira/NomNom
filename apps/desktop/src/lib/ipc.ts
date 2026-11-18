@@ -36,6 +36,7 @@ export interface Settings {
     keep_scheduled: number;
   };
   updates: { auto_check: boolean; last_checked: number };
+  activity: { enabled: boolean; idle_timeout_secs: number; track_nomnom: boolean };
 }
 
 export interface SettingsPatch {
@@ -67,6 +68,9 @@ export interface SettingsPatch {
   storageDepth?: number;
   storageBigMb?: number;
   autoUpdateCheck?: boolean;
+  activityEnabled?: boolean;
+  activityIdleSecs?: number;
+  activityTrackNomnom?: boolean;
 }
 
 export interface ModuleManifest {
@@ -775,4 +779,122 @@ export function onStorageSnapshots(handler: (root: string) => void): Promise<Unl
 }
 export function onStorageSchedule(handler: () => void): Promise<UnlistenFn> {
   return listen<string>('storage://schedule', () => handler());
+}
+
+// ---- Playtime: active foreground app & game time tracking --------------------------------------------
+export type ActRange = 'today' | 'week' | 'month' | 'year' | 'all';
+export type ActCategory = 'creative' | 'game' | 'browser' | 'social' | 'work' | 'media' | 'general';
+
+export interface ActLiveFocus {
+  app_id: string;
+  name: string;
+  category: string;
+  session_secs: number;
+  started_at: number;
+  is_afk: boolean;
+}
+
+export interface ActAppRow {
+  id: string;
+  name: string;
+  custom_name: string | null;
+  category: string;
+  exe_path: string | null;
+  icon_url: string | null;
+  hidden: boolean;
+  range_secs: number;
+  today_secs: number;
+  week_secs: number;
+  month_secs: number;
+  year_secs: number;
+  total_secs: number;
+  first_seen: number;
+  last_seen: number;
+  share: number;
+}
+
+export interface ActTimelinePoint {
+  key: string;
+  label: string;
+  secs: number;
+  by_category: Record<string, number>;
+}
+
+export interface ActHeatmapDay {
+  day: string;
+  secs: number;
+}
+
+export interface ActCategoryTotal {
+  category: string;
+  secs: number;
+  apps: number;
+}
+
+export interface ActSessionEntry {
+  id: number;
+  app_id: string;
+  app_name: string;
+  category: string;
+  icon_url: string | null;
+  started_at: number;
+  ended_at: number;
+  active_secs: number;
+}
+
+export interface ActOverview {
+  enabled: boolean;
+  idle_timeout_secs: number;
+  track_nomnom: boolean;
+  range: ActRange;
+  live: ActLiveFocus | null;
+  range_secs: number;
+  today_secs: number;
+  week_secs: number;
+  month_secs: number;
+  year_secs: number;
+  all_time_secs: number;
+  daily_avg_secs: number;
+  sessions_count: number;
+  peak_hour: number | null;
+  apps: ActAppRow[];
+  timeline: ActTimelinePoint[];
+  clock_hours: number[];
+  heatmap: ActHeatmapDay[];
+  categories: ActCategoryTotal[];
+  recent_sessions: ActSessionEntry[];
+}
+
+export interface ActAppDetail {
+  app: ActAppRow;
+  longest_session_secs: number;
+  sessions_count: number;
+  active_days: number;
+  peak_hour: number | null;
+  daily_30d: ActTimelinePoint[];
+  monthly_12m: ActTimelinePoint[];
+  clock_hours: number[];
+  recent_sessions: ActSessionEntry[];
+}
+
+export const actIpc = {
+  live: () => invoke<ActLiveFocus | null>('act_live'),
+  overview: (range: ActRange, includeHidden = false) =>
+    invoke<ActOverview>('act_overview', { range, includeHidden }),
+  appDetail: (appId: string) => invoke<ActAppDetail>('act_app_detail', { appId }),
+  updateApp: (
+    appId: string,
+    patch: { customName?: string; category?: string; hidden?: boolean },
+  ) =>
+    invoke<void>('act_update_app', {
+      appId,
+      customName: patch.customName,
+      category: patch.category,
+      hidden: patch.hidden,
+    }),
+  deleteApp: (appId: string) => invoke<void>('act_delete_app', { appId }),
+};
+
+export function onActivityUpdated(handler: () => void): Promise<UnlistenFn> {
+  return listen<null>('activity://updated', () => handler());
 }

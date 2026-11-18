@@ -1,61 +1,84 @@
-/* NomNom: a warm, soft dark theme by default. Cream and peach in light mode. */
+/* NomNom Midnight Mochi Studio: artistic, cozy & tactile dark theme by default. */
 :root {
   color-scheme: dark;
-  --bg: #16131a;
-  --surface-1: #1e1a24;
-  --surface-2: #28232f;
-  --surface-3: #342d3c;
-  --border: rgba(255, 228, 240, 0.08);
-  --border-strong: rgba(255, 228, 240, 0.15);
-  --text: #f6eff3;
-  --text-2: #bdb1bb;
-  --text-3: #a094a0;
-  --accent: #ffb070;
-  --accent-hover: #ffc291;
-  /* Accent used as text colour (links); it needs more contrast than a button fill. */
-  --accent-text: #ffb070;
-  --on-accent: #2b1608;
-  /* Keyboard focus ring: must stand out from the page (3:1) in both themes. */
-  --focus: #ffb070;
-  --blush: #ff9fbd;
-  --ok: #8be0b4;
-  --danger: #ff808c;
-  --info: #8fb4ff;
+  --bg: #110d18;
+  --surface-1: #1a1424;
+  --surface-2: #241c32;
+  --surface-3: #312744;
+  --border: rgba(244, 220, 255, 0.09);
+  --border-strong: rgba(244, 220, 255, 0.18);
+  --border-glow: rgba(255, 169, 112, 0.36);
+  --text: #faf3fc;
+  --text-2: #cfc2dc;
+  --text-3: #ad9ebd;
+  --accent: #ffa970;
+  --accent-hover: #ffc093;
+  /* Accent used as text colour (links); checked for >= 4.5:1 WCAG AA contrast. */
+  --accent-text: #ffb380;
+  --on-accent: #220f05;
+  /* Keyboard focus ring: stands out >= 3:1 in both themes. */
+  --focus: #ffb380;
+  --blush: #ff8fb8;
+  --lavender: #c0a3ff;
+  --ok: #7be8bc;
+  --danger: #ff8296;
+  --info: #8ec5ff;
 
-  --radius-s: 8px;
-  --radius-m: 14px;
-  --radius-l: 20px;
+  --glow-peach: rgba(255, 169, 112, 0.16);
+  --glow-blush: rgba(255, 143, 184, 0.14);
+  --glow-lavender: rgba(192, 163, 255, 0.15);
+  --glow-mint: rgba(123, 232, 188, 0.14);
+  --shadow-card: 0 10px 28px rgba(5, 2, 12, 0.42), inset 0 1px 0 rgba(255, 240, 252, 0.07);
+  --shadow-soft: 0 4px 14px rgba(5, 2, 12, 0.28), inset 0 1px 0 rgba(255, 240, 252, 0.05);
+  --shadow-pop: 0 18px 46px rgba(4, 2, 10, 0.62), inset 0 1px 0 rgba(255, 240, 252, 0.1);
 
-  --font-ui: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
-  --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --radius-xs: 8px;
+  --radius-s: 12px;
+  --radius-m: 18px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
 
-  --dur-1: 90ms;
-  --dur-2: 160ms;
-  --dur-3: 220ms;
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --font-ui: 'Nunito', 'Quicksand', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
+  --font-display: 'Fredoka', 'Nunito', 'Quicksand', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+
+  --dur-1: 100ms;
+  --dur-2: 180ms;
+  --dur-3: 260ms;
+  --ease-out: cubic-bezier(0.2, 0.85, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: #fff7f0;
+  --bg: #fff6f0;
   --surface-1: #fffdfb;
-  --surface-2: #fbeee3;
-  --surface-3: #f4e0d0;
-  --border: rgba(80, 40, 20, 0.1);
-  --border-strong: rgba(80, 40, 20, 0.18);
-  --text: #2b2128;
-  --text-2: #62535c;
-  --text-3: #75646e;
-  --accent: #f09a55;
-  --accent-hover: #e88b42;
-  --accent-text: #a8490f;
-  --on-accent: #2b1608;
-  --focus: #a8490f;
-  --blush: #e8708f;
-  --ok: #137a50;
-  --danger: #c93a47;
-  --info: #2f62c9;
+  --surface-2: #fbece2;
+  --surface-3: #f3dfd0;
+  --border: rgba(88, 42, 24, 0.1);
+  --border-strong: rgba(88, 42, 24, 0.2);
+  --border-glow: rgba(232, 125, 58, 0.35);
+  --text: #281d26;
+  --text-2: #5d4d59;
+  --text-3: #705e6b;
+  --accent: #ef9650;
+  --accent-hover: #e5853b;
+  --accent-text: #a4460c;
+  --on-accent: #220f05;
+  --focus: #a4460c;
+  --blush: #e2648b;
+  --lavender: #7c52d9;
+  --ok: #11784e;
+  --danger: #c63646;
+  --info: #295ec4;
+
+  --glow-peach: rgba(239, 150, 80, 0.16);
+  --glow-blush: rgba(226, 100, 139, 0.14);
+  --glow-lavender: rgba(124, 82, 217, 0.12);
+  --glow-mint: rgba(17, 120, 78, 0.12);
+  --shadow-card: 0 8px 24px rgba(72, 34, 20, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-soft: 0 3px 10px rgba(72, 34, 20, 0.06);
+  --shadow-pop: 0 16px 40px rgba(72, 34, 20, 0.18);
 }
 
 @media (prefers-reduced-motion: reduce) {

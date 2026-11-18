@@ -6,7 +6,6 @@
   let View = $state<Component | null>(null);
   let loadError = $state<string | null>(null);
 
-  // Load the active module's view lazily whenever the selection changes.
   $effect(() => {
     const item = app.nav.find((n) => n.id === app.current);
     if (!item) return;
@@ -44,12 +43,24 @@
 </div>
 
 <style>
-  .shell { display: flex; height: 100%; }
-  main { flex: 1; min-width: 0; overflow: auto; }
-  .view { padding: 28px 32px; animation: enter var(--dur-3) var(--ease-out); }
+  .shell {
+    display: flex;
+    height: 100%;
+    gap: 4px;
+  }
+  main {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+  }
+  .view {
+    padding: 22px 28px 34px;
+    max-width: 1280px;
+    animation: enter var(--dur-3) var(--ease-out);
+  }
   .error { color: var(--danger); }
   @keyframes enter {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(7px); }
     to { opacity: 1; transform: none; }
   }
 </style>

@@ -13,15 +13,12 @@
 
   let el = $state<HTMLDivElement | null>(null);
   let active = $state(-1);
-  /** Measured, so a long menu is never cut off at the bottom of a small window. */
   let measured = $state(0);
 
-  // Keep the menu inside the window.
   const left = $derived(Math.max(4, Math.min(x, window.innerWidth - 240)));
   const top = $derived(Math.max(4, Math.min(y, window.innerHeight - (measured || items.length * 34 + 16) - 4)));
 
   $effect(() => {
-    // Give focus back to what had it (the list, for a keyboard user) once the menu is gone.
     const previous = document.activeElement as HTMLElement | null;
     el?.focus();
     const away = (e: MouseEvent) => {
@@ -68,9 +65,13 @@
 </div>
 
 <style>
-  .menu { position: fixed; z-index: 60; min-width: 220px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 4px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); outline: none; display: grid; max-height: calc(100vh - 8px); overflow-y: auto; }
-  button { display: flex; justify-content: space-between; gap: 24px; border: 0; background: none; color: inherit; text-align: left; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
-  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-3); }
+  .menu {
+    position: fixed; z-index: 60; min-width: 224px; background: var(--surface-2);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-m); padding: 6px;
+    box-shadow: var(--shadow-pop); outline: none; display: grid; max-height: calc(100vh - 8px); overflow-y: auto;
+  }
+  button { display: flex; justify-content: space-between; gap: 24px; border: 0; background: none; color: inherit; text-align: left; padding: 7px 11px; border-radius: var(--radius-xs); cursor: pointer; }
+  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-3); color: var(--accent-text); }
   button:disabled { color: var(--text-3); cursor: default; }
   .hint { color: var(--text-3); font-size: 12px; }
   .sep { height: 1px; background: var(--border); margin: 4px 2px; }

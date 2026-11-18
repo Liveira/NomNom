@@ -3,6 +3,7 @@
   import type { Theme } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
   import DownloaderSettings from './DownloaderSettings.svelte';
+  import ActivitySettings from './ActivitySettings.svelte';
   import BrowserSettings from './BrowserSettings.svelte';
   import OrganizerSettings from './OrganizerSettings.svelte';
   import Shortcuts from './Shortcuts.svelte';
@@ -51,6 +52,8 @@
 <DownloaderSettings />
 
 <OrganizerSettings />
+
+<ActivitySettings />
 
 <BrowserSettings />
 

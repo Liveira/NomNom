@@ -66,10 +66,13 @@ mod imp {
 
     fn real_package_allowed() -> bool {
         #[cfg(debug_assertions)]
-        if test_key("NOMNOM_TEST_CLASSES_ROOT").is_some() {
-            return false;
+        {
+            test_key("NOMNOM_TEST_CLASSES_ROOT").is_none()
         }
-        true
+        #[cfg(not(debug_assertions))]
+        {
+            true
+        }
     }
 
     fn owned_file(state: &AppState) -> PathBuf {

@@ -49,10 +49,32 @@
 </div>
 
 <style>
-  .scrim { position: fixed; inset: 0; background: rgba(10, 6, 14, 0.55); display: grid; place-items: center; z-index: 50; animation: fade var(--dur-2) var(--ease-out); }
-  .box { width: min(560px, calc(100vw - 48px)); max-height: calc(100vh - 80px); display: grid; grid-template-rows: auto 1fr auto; gap: 12px; background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius-m); padding: 18px 20px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); }
-  h2 { font-size: 17px; }
+  .scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 6, 15, 0.72);
+    backdrop-filter: blur(6px);
+    display: grid;
+    place-items: center;
+    z-index: 50;
+    animation: fade var(--dur-2) var(--ease-out);
+  }
+  .box {
+    width: min(600px, calc(100vw - 48px));
+    max-height: calc(100vh - 72px);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 14px;
+    background: linear-gradient(165deg, var(--surface-2) 0%, var(--surface-1) 100%);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-l);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-pop);
+    animation: pop var(--dur-2) var(--ease-spring);
+  }
+  h2 { font-size: 18px; }
   .content { overflow: auto; min-height: 0; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
   @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
 </style>

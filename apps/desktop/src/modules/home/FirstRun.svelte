@@ -16,7 +16,6 @@
     try {
       if (firefox) await browserIpc.connect();
     } catch (e) {
-      // Firefox not being found shouldn't stop the rest of the setup.
       error = `Firefox wasn't connected: ${e}`;
     }
     try {
@@ -31,7 +30,6 @@
   async function skip() {
     busy = true;
     try {
-      // Nothing is added to Windows; the choices stay available in Settings.
       await app.update({ shellMenu: false, autostart: false, firstRunDone: true });
     } finally {
       busy = false;
@@ -60,7 +58,7 @@
   <div class="row">
     <div>
       <div class="label">{isLinux ? 'Start NomNom on login' : 'Start NomNom with Windows'}</div>
-      <div class="hint">Runs in the tray, without a window.</div>
+      <div class="hint">Runs in the tray, without a window, and tracks active Playtime hours quietly.</div>
     </div>
     <Switch checked={startup} label={isLinux ? 'Start NomNom on login' : 'Start NomNom with Windows'} onchange={(v) => (startup = v)} />
   </div>
@@ -73,18 +71,24 @@
 </section>
 
 <style>
-  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 16px 18px; max-width: 640px; margin-bottom: 14px; }
-  h3 { margin-bottom: 4px; }
-  .intro { margin: 0 0 8px; color: var(--text-2); }
-  .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 8px 0; }
+  .card {
+    background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-l);
+    padding: 18px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-card);
+  }
+  h3 { margin-bottom: 4px; font-size: 16px; }
+  .intro { margin: 0 0 10px; color: var(--text-2); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 9px 0; }
   .row + .row { border-top: 1px solid var(--border); }
-  .label { font-weight: 500; }
+  .label { font-weight: 600; }
   .hint { color: var(--text-3); font-size: 12.5px; margin-top: 2px; }
   .error { color: var(--danger); margin: 8px 0 0; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
-  button { padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  button { padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
   button:hover:not(:disabled) { background: var(--surface-3); }
   button:disabled { opacity: 0.5; cursor: default; }
-  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
-  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
 </style>

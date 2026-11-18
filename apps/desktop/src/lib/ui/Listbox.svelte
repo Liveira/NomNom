@@ -41,7 +41,7 @@
         e.preventDefault();
         show();
       }
-      return; // Enter and Escape belong to the page when the list is closed.
+      return;
     }
     switch (e.key) {
       case 'ArrowDown':
@@ -69,7 +69,6 @@
       default:
         return;
     }
-    // Keys used by the open list must not also confirm or close the whole popup.
     e.preventDefault();
     e.stopPropagation();
   }
@@ -96,9 +95,7 @@
   {#if open}
     <ul id={`lb-${uid}`} role="listbox" aria-label={label}>
       {#each options as opt, i (opt.value)}
-        <!-- Keyboard use goes through the combobox trigger (ARIA listbox pattern); options are not tab stops. -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- mousedown keeps focus on the trigger so the blur handler doesn't close the list first -->
         <li
           role="option"
           aria-selected={opt.value === value}
@@ -118,21 +115,21 @@
   .wrap { position: relative; }
   .trigger {
     width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    padding: 8px 10px; border-radius: var(--radius-s); border: 1px solid var(--border-strong);
-    background: var(--surface-2); cursor: pointer; text-align: left;
-    transition: background var(--dur-1);
+    padding: 8px 12px; border-radius: var(--radius-s); border: 1px solid var(--border-strong);
+    background: var(--surface-2); box-shadow: var(--shadow-soft); cursor: pointer; text-align: left;
+    transition: background var(--dur-1), border-color var(--dur-1);
   }
-  .trigger:hover:not(:disabled) { background: var(--surface-3); }
-  .trigger:disabled { opacity: 0.6; cursor: default; }
+  .trigger:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-glow); }
+  .trigger:disabled { opacity: 0.55; cursor: default; }
   .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   ul {
-    position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px;
-    list-style: none; max-height: 168px; overflow: auto; background: var(--surface-2);
+    position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 5px); margin: 0; padding: 5px;
+    list-style: none; max-height: 176px; overflow: auto; background: var(--surface-2);
     border: 1px solid var(--border-strong); border-radius: var(--radius-s);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); animation: pop var(--dur-1) var(--ease-out);
+    box-shadow: var(--shadow-pop); animation: pop var(--dur-1) var(--ease-out);
   }
-  li { padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+  li { padding: 7px 10px; border-radius: var(--radius-xs); cursor: pointer; }
   li.active { background: var(--surface-3); }
-  li[aria-selected='true'] { color: var(--accent-text); }
-  @keyframes pop { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+  li[aria-selected='true'] { color: var(--accent-text); font-weight: 600; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 </style>
