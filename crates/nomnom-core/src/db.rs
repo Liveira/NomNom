@@ -85,6 +85,15 @@ const MIGRATIONS: &[&str] = &[
         label TEXT NOT NULL DEFAULT '',
         completed INTEGER NOT NULL DEFAULT 0);
      CREATE INDEX focus_blocks_time ON focus_blocks(started_at DESC);",
+    // v8: Downloads that wait for a chosen time before they start.
+    "CREATE TABLE scheduled_downloads(
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        title TEXT,
+        choice TEXT NOT NULL,
+        run_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL);
+     CREATE INDEX scheduled_downloads_time ON scheduled_downloads(run_at);",
 ];
 
 pub struct Db {

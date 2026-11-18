@@ -96,6 +96,150 @@ pub fn subfolder_for(d: &Downloads, choice: &Choice) -> Option<String> {
     })
 }
 
+/// Tells the download manager which subtitle languages to add, from Settings.
+pub fn apply_subtitles(state: &AppState) {
+    let d = state.settings.get().downloads;
+    let langs = d
+        .subtitles
+        .then(|| nomnom_downloads::clean_langs(&d.subtitle_langs))
+        .flatten();
+    state.downloads.set_subtitles(langs);
+}
+
+#[derive(Serialize)]
+pub struct Scheduled {
+    pub id: String,
+    pub url: String,
+    pub title: Option<String>,
+    pub run_at: i64,
+}
+
+fn unix_now() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
+/// Keeps a download for later: it starts by itself at `run_at` (Unix seconds) if NomNom is running.
+#[tauri::command]
+pub fn dl_schedule(
+    state: State<'_, AppState>,
+    url: String,
+    choice: Choice,
+    title: Option<String>,
+    run_at: i64,
+) -> CmdResult<Scheduled> {
+    let url = validate_url(&url).map_err(|e| e.to_string())?.to_string();
+    choice.validate()?;
+    let now = unix_now();
+    if run_at < now - 60 {
+        return Err("That time has already passed.".into());
+    }
+    if run_at > now + 60 * 60 * 24 * 60 {
+        return Err("Pick a time within the next 60 days.".into());
+    }
+    let count: i64 = state
+        .db
+        .with(|c| c.query_row("SELECT count(*) FROM scheduled_downloads", [], |r| r.get(0)))
+        .unwrap_or(0);
+    if count >= 50 {
+        return Err("There are already 50 downloads waiting. Remove some first.".into());
+    }
+    let id = uuid::Uuid::new_v4().to_string();
+    let json = serde_json::to_string(&choice).map_err(|e| e.to_string())?;
+    state
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO scheduled_downloads(id, url, title, choice, run_at, created_at) VALUES (?1,?2,?3,?4,?5,?6)",
+                rusqlite::params![id, url, title, json, run_at, now],
+            )
+        })
+        .map_err(|e| format!("It couldn't be saved: {e}"))?;
+    Ok(Scheduled {
+        id,
+        url,
+        title,
+        run_at,
+    })
+}
+
+#[tauri::command]
+pub fn dl_scheduled(state: State<'_, AppState>) -> Vec<Scheduled> {
+    state
+        .db
+        .with(|c| {
+            let mut st = c.prepare(
+                "SELECT id, url, title, run_at FROM scheduled_downloads ORDER BY run_at",
+            )?;
+            let rows = st.query_map([], |r| {
+                Ok(Scheduled {
+                    id: r.get(0)?,
+                    url: r.get(1)?,
+                    title: r.get(2)?,
+                    run_at: r.get(3)?,
+                })
+            })?;
+            rows.collect::<Result<Vec<_>, _>>()
+        })
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+pub fn dl_unschedule(state: State<'_, AppState>, id: String) {
+    let _ = state.db.with(|c| {
+        c.execute(
+            "DELETE FROM scheduled_downloads WHERE id = ?1",
+            rusqlite::params![id],
+        )
+    });
+}
+
+/// Starts the downloads whose time has come. Checks every 15 seconds; it does nothing while the list is empty.
+pub fn spawn_scheduler(app: AppHandle) {
+    use tauri::Manager;
+    tauri::async_runtime::spawn(async move {
+        let mut tick = tokio::time::interval(Duration::from_secs(15));
+        loop {
+            tick.tick().await;
+            let state = app.state::<AppState>();
+            let due: Vec<(String, String, Option<String>, String)> = state
+                .db
+                .with(|c| {
+                    let mut st = c.prepare("SELECT id, url, title, choice FROM scheduled_downloads WHERE run_at <= ?1 ORDER BY run_at")?;
+                    let rows = st.query_map(rusqlite::params![unix_now()], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))?;
+                    rows.collect::<Result<Vec<_>, _>>()
+                })
+                .unwrap_or_default();
+            for (id, url, title, choice_json) in due {
+                let _ = state.db.with(|c| {
+                    c.execute(
+                        "DELETE FROM scheduled_downloads WHERE id = ?1",
+                        rusqlite::params![id],
+                    )
+                });
+                let started = serde_json::from_str::<Choice>(&choice_json)
+                    .map_err(|e| e.to_string())
+                    .and_then(|choice| {
+                        enqueue_with_defaults(&state, url.clone(), choice, title.clone(), false)
+                    });
+                if let Err(e) = started {
+                    use tauri_plugin_notification::NotificationExt;
+                    let lang = crate::i18n::lang_of(&state.settings.get());
+                    let _ = app
+                        .notification()
+                        .builder()
+                        .title(crate::i18n::tr(lang, "Scheduled download couldn't start"))
+                        .body(e)
+                        .show();
+                }
+                let _ = app.emit("downloads://scheduled", ());
+            }
+        }
+    });
+}
+
 #[tauri::command]
 pub fn dl_default_choice(state: State<'_, AppState>) -> Choice {
     default_choice(&state.settings.get().downloads)

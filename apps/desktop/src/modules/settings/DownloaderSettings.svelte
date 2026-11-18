@@ -139,6 +139,28 @@
   </div>
   <div class="row">
     <div>
+      <div class="label">Add subtitles to videos</div>
+      <div class="hint">Puts the subtitles inside the video file, in the languages below. Needs FFmpeg, and only works when the site has subtitles.</div>
+    </div>
+    <Switch checked={dl?.subtitles ?? false} label="Add subtitles to videos" onchange={(v) => save({ subtitles: v })} />
+  </div>
+  {#if dl?.subtitles}
+    <div class="row">
+      <div>
+        <div class="label">Subtitle languages</div>
+        <div class="hint">Language codes separated by commas, like en, pt, es.</div>
+      </div>
+      <input
+        class="langs"
+        aria-label="Subtitle languages"
+        maxlength="60"
+        value={dl?.subtitle_langs ?? 'en'}
+        onchange={(e) => save({ subtitleLangs: e.currentTarget.value })}
+      />
+    </div>
+  {/if}
+  <div class="row">
+    <div>
       <div class="label">Use Firefox cookies for sites that need a sign-in</div>
       <div class="hint">NomNom reads your Firefox cookies only while downloading, and only on this computer. Off by default.</div>
     </div>
@@ -169,6 +191,7 @@
 </section>
 
 <style>
+  .langs { width: 150px; padding: 6px 10px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); user-select: text; }
   .group { max-width: 640px; margin-bottom: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 16px 18px; }
   h3 { margin-bottom: 8px; }
   h3.sub { margin-top: 22px; margin-bottom: 12px; }

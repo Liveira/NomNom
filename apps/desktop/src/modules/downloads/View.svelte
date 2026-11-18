@@ -3,6 +3,7 @@
   import CatNap from '../../lib/ui/CatNap.svelte';
   import {
     ipc,
+    scheduleIpc,
     type Analysis,
     type Choice,
     type Container,
@@ -13,7 +14,9 @@
   import { AUDIO_FORMATS, VIDEO_FORMATS, formatNote } from '../../lib/formats';
   import { downloads } from './store.svelte';
   import JobItem from './JobItem.svelte';
+  import Scheduled from './Scheduled.svelte';
   import ToolBanner from './ToolBanner.svelte';
+  import { parseLocal, suggestLocal } from './when';
 
   let url = $state('');
   let phase = $state<'idle' | 'loading' | 'error'>('idle');
@@ -108,6 +111,28 @@
       notice = { text: String(e) };
     }
     void downloads.refresh();
+  }
+
+  let later = $state(false);
+  let laterAt = $state(suggestLocal());
+  let scheduled = $state<{ reload: () => void } | null>(null);
+
+  async function scheduleIt() {
+    if (!analysis) return;
+    const at = parseLocal(laterAt);
+    if (at == null) {
+      notice = { text: 'Pick a date and time.' };
+      return;
+    }
+    try {
+      await scheduleIpc.add(url.trim(), choice, analysis.info.title, at);
+      notice = { text: 'Scheduled. It starts by itself at that time.' };
+      later = false;
+      reset();
+      scheduled?.reload();
+    } catch (e) {
+      notice = { text: String(e) };
+    }
   }
 
   async function startAll() {
@@ -257,12 +282,23 @@
           <button class="primary" onclick={() => startDownload()} disabled={needsYtdlp}>
             <Icon name="download" size={16} /> Download
           </button>
+          <button onclick={() => (later = !later)} aria-expanded={later} disabled={needsYtdlp}>
+            <Icon name="clock" size={16} /> Download later
+          </button>
           <button onclick={reset}>Clear</button>
         </div>
+        {#if later}
+          <div class="row later">
+            <label>Start at <input type="datetime-local" bind:value={laterAt} aria-label="Start at" /></label>
+            <button class="primary" onclick={scheduleIt}>Schedule</button>
+          </div>
+        {/if}
       {/if}
     </div>
   </section>
 {/if}
+
+<Scheduled bind:this={scheduled} />
 
 <h2>Queue</h2>
 {#if downloads.active.length === 0}
@@ -291,6 +327,9 @@
 {/if}
 
 <style>
+  .later { align-items: center; gap: 10px; margin-top: 10px; }
+  .later label { display: inline-flex; align-items: center; gap: 8px; color: var(--text-2); }
+  .later input { padding: 6px 10px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); }
   h1 { margin-bottom: 18px; }
   h2 { margin: 28px 0 10px; font-size: 16px; }
   .input { display: flex; gap: 8px; max-width: 760px; }

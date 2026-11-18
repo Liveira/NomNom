@@ -12,7 +12,7 @@ pub mod url_check;
 
 pub use backend::{MediaBackend, YtDlpBackend};
 pub use error::DlError;
-pub use format::{Choice, Container, Kind};
+pub use format::{clean_langs, Choice, Container, Kind};
 pub use manager::{
     DirectRequest, DownloadManager, EnqueueOutcome, EnqueueRequest, JobEvent, JobRow,
 };

@@ -28,6 +28,8 @@ export interface Settings {
     default_video: Container;
     default_audio: Container;
     sort_into_folders: boolean;
+    subtitles: boolean;
+    subtitle_langs: string;
   };
   storage: {
     snapshot_depth: number;
@@ -71,6 +73,8 @@ export interface SettingsPatch {
   storageDepth?: number;
   storageBigMb?: number;
   autoUpdateCheck?: boolean;
+  subtitles?: boolean;
+  subtitleLangs?: string;
   activityEnabled?: boolean;
   activityIdleSecs?: number;
   activityTrackNomnom?: boolean;
@@ -963,3 +967,20 @@ export const pdfIpc = {
   merge: (paths: string[]) => invoke<string>('pdf_merge', { paths }),
   split: (path: string, mode: 'each' | 'pages', pages: string) => invoke<string[]>('pdf_split', { path, mode, pages }),
 };
+
+// ---- Downloader: schedule -----------------------------------------------------------------------
+export interface Scheduled {
+  id: string;
+  url: string;
+  title: string | null;
+  run_at: number;
+}
+export const scheduleIpc = {
+  add: (url: string, choice: Choice, title: string | undefined, runAt: number) =>
+    invoke<Scheduled>('dl_schedule', { url, choice, title, runAt }),
+  list: () => invoke<Scheduled[]>('dl_scheduled'),
+  cancel: (id: string) => invoke<void>('dl_unschedule', { id }),
+};
+export function onScheduledChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('downloads://scheduled', () => handler());
+}

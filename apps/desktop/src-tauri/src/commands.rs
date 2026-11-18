@@ -52,6 +52,8 @@ pub struct SettingsPatch {
     storage_depth: Option<u8>,
     storage_big_mb: Option<u32>,
     auto_update_check: Option<bool>,
+    subtitles: Option<bool>,
+    subtitle_langs: Option<String>,
     activity_enabled: Option<bool>,
     activity_idle_secs: Option<u32>,
     activity_track_nomnom: Option<bool>,
@@ -199,6 +201,12 @@ pub fn update_settings(
             if let Some(v) = patch.storage_depth {
                 s.storage.snapshot_depth = v.clamp(1, 12);
             }
+            if let Some(v) = patch.subtitles {
+                s.downloads.subtitles = v;
+            }
+            if let Some(v) = &patch.subtitle_langs {
+                s.downloads.subtitle_langs = v.chars().take(60).collect();
+            }
             if let Some(v) = patch.auto_update_check {
                 s.updates.auto_check = v;
             }
@@ -245,6 +253,9 @@ pub fn update_settings(
     }
     if patch.language.is_some() {
         crate::tray::relabel(&app);
+    }
+    if patch.subtitles.is_some() || patch.subtitle_langs.is_some() {
+        crate::modules::downloads::apply_subtitles(&state);
     }
     if patch.quick_keep_ready.is_some() {
         crate::quick::apply_keep_ready(&app);

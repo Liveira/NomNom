@@ -102,6 +102,8 @@ pub struct ArgsContext<'a> {
     pub ffmpeg: Option<&'a Path>,
     pub staging: &'a Path,
     pub firefox_cookies: bool,
+    /// Comma-separated language codes to add as subtitles inside video files, like "en,pt".
+    pub subtitles: Option<&'a str>,
 }
 
 fn os(s: &str) -> OsString {
@@ -143,6 +145,24 @@ pub fn common_args(firefox_cookies: bool) -> Vec<OsString> {
     a
 }
 
+/// Language codes like "en, pt-BR" as yt-dlp wants them ("en,pt-BR"), or `None` if nothing usable is left.
+/// Only letters, digits and "-" are kept, so what is typed can never become another option.
+pub fn clean_langs(text: &str) -> Option<String> {
+    let list: Vec<String> = text
+        .split([',', ' ', ';'])
+        .map(|l| {
+            l.chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .collect::<String>()
+                .trim_start_matches('-')
+                .to_string()
+        })
+        .filter(|l| !l.is_empty() && l.len() <= 12)
+        .take(8)
+        .collect();
+    (!list.is_empty()).then(|| list.join(","))
+}
+
 pub fn build_download_args(choice: &Choice, ctx: &ArgsContext<'_>, url: &str) -> Vec<OsString> {
     let mut a = common_args(ctx.firefox_cookies);
     for s in [
@@ -168,6 +188,22 @@ pub fn build_download_args(choice: &Choice, ctx: &ArgsContext<'_>, url: &str) ->
     a.push(os(&format!("home:{}", ctx.staging.display())));
     a.push(os("-o"));
     a.push(os("%(title).150B.%(ext)s"));
+
+    // Subtitles go inside the video file, so nothing is left behind next to it. This needs FFmpeg.
+    if let (Some(langs), Kind::Video, Some(_)) = (ctx.subtitles, choice.kind, ctx.ffmpeg) {
+        if let Some(langs) = clean_langs(langs) {
+            a.extend(
+                [
+                    "--write-subs",
+                    "--write-auto-subs",
+                    "--embed-subs",
+                    "--sub-langs",
+                ]
+                .map(os),
+            );
+            a.push(os(&langs));
+        }
+    }
 
     match choice.kind {
         Kind::Video => {
@@ -239,12 +275,61 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
+    #[test]
+    fn subtitle_languages_are_cleaned() {
+        assert_eq!(clean_langs("en, pt-BR;es").as_deref(), Some("en,pt-BR,es"));
+        assert_eq!(clean_langs("  ").as_deref(), None);
+        // Nothing typed here can turn into a second option.
+        assert_eq!(
+            clean_langs("en --exec calc").as_deref(),
+            Some("en,exec,calc")
+        );
+        assert_eq!(clean_langs("--x").as_deref(), Some("x"));
+        assert_eq!(
+            clean_langs("a,b,c,d,e,f,g,h,i,j").as_deref(),
+            Some("a,b,c,d,e,f,g,h")
+        );
+    }
+
+    #[test]
+    fn subtitles_are_added_only_to_video_when_ffmpeg_is_there() {
+        let staging = PathBuf::from("C:\\stage");
+        let make = |ff: Option<&Path>, choice: Choice| {
+            let ctx = ArgsContext {
+                ffmpeg: ff,
+                staging: &staging,
+                firefox_cookies: false,
+                subtitles: Some("en,pt"),
+            };
+            build_download_args(&choice, &ctx, "https://example.com/v")
+                .into_iter()
+                .map(|s| s.to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        };
+        let with = make(Some(Path::new("C:\\ff\\ffmpeg.exe")), Choice::BEST_VIDEO);
+        assert!(with.contains(&"--embed-subs".to_string()));
+        let i = with.iter().position(|a| a == "--sub-langs").unwrap();
+        assert_eq!(with[i + 1], "en,pt");
+        let none = make(None, Choice::BEST_VIDEO);
+        assert!(!none.contains(&"--embed-subs".to_string()));
+        let audio = make(
+            Some(Path::new("C:\\ff\\ffmpeg.exe")),
+            Choice {
+                kind: Kind::Audio,
+                container: Container::Original,
+                height: None,
+            },
+        );
+        assert!(!audio.contains(&"--write-subs".to_string()));
+    }
+
     fn args(choice: Choice) -> Vec<String> {
         let staging = PathBuf::from("C:\\stage");
         let ctx = ArgsContext {
             ffmpeg: Some(Path::new("C:\\ff\\ffmpeg.exe")),
             staging: &staging,
             firefox_cookies: false,
+            subtitles: None,
         };
         build_download_args(&choice, &ctx, "https://example.com/v")
             .into_iter()
@@ -332,6 +417,7 @@ mod tests {
             ffmpeg: None,
             staging: &staging,
             firefox_cookies: false,
+            subtitles: None,
         };
         let a = build_download_args(
             &Choice::BEST_VIDEO,
@@ -366,6 +452,7 @@ mod tests {
             ffmpeg: None,
             staging: &staging,
             firefox_cookies: true,
+            subtitles: None,
         };
         let a: Vec<String> = build_download_args(&Choice::BEST_VIDEO, &ctx, "https://x.test/")
             .into_iter()

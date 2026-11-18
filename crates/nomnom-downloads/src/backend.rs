@@ -18,6 +18,7 @@ pub struct DownloadJob {
     pub choice: Choice,
     pub staging: PathBuf,
     pub firefox_cookies: bool,
+    pub subtitles: Option<String>,
 }
 
 pub type ProgressFn<'a> = &'a (dyn Fn(Progress) + Send + Sync);
@@ -104,6 +105,7 @@ impl MediaBackend for YtDlpBackend {
             ffmpeg: ffmpeg.as_deref(),
             staging: &job.staging,
             firefox_cookies: job.firefox_cookies,
+            subtitles: job.subtitles.as_deref(),
         };
         let args = build_download_args(&job.choice, &ctx, &job.url);
 

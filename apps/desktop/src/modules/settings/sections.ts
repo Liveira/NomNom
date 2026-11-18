@@ -10,7 +10,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { id: 'appearance', name: 'Appearance', icon: 'palette', blurb: 'Themes, colours and how much things move.', words: ['theme', 'dark', 'light', 'colour', 'color', 'animation', 'motion', 'aurora', 'synthwave', 'sakura', 'ocean', 'forest', 'mochi', 'cream', 'background', 'reduce'] },
   { id: 'general', name: 'General', icon: 'sliders', blurb: 'How NomNom behaves when you close it.', words: ['tray', 'close', 'quit', 'background', 'exit'] },
-  { id: 'downloads', name: 'Downloads', icon: 'download', blurb: 'Format, folder and tools for the downloader.', words: ['video', 'audio', 'format', 'quality', 'folder', 'yt-dlp', 'ffmpeg', 'cookies', 'duplicate', 'notify', 'save'] },
+  { id: 'downloads', name: 'Downloads', icon: 'download', blurb: 'Format, folder and tools for the downloader.', words: ['video', 'audio', 'format', 'quality', 'folder', 'yt-dlp', 'ffmpeg', 'cookies', 'duplicate', 'notify', 'save', 'subtitles', 'captions', 'schedule'] },
   { id: 'organizer', name: 'File Organizer', icon: 'organizer', blurb: 'Where sorted files go, and automatic sorting.', words: ['sort', 'folder', 'destination', 'automatic', 'conflict', 'downloads', 'move'] },
   { id: 'playtime', name: 'Playtime', icon: 'playtime', blurb: 'Active app and game hours.', words: ['tracking', 'hours', 'games', 'idle', 'afk', 'stats', 'apps'] },
   { id: 'browser', name: 'Browser', icon: 'globe', blurb: 'The Firefox extension and links from the web.', words: ['firefox', 'extension', 'link', 'add-on', 'web'] },

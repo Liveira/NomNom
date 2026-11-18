@@ -88,6 +88,8 @@ struct Inner {
     db: Arc<Db>,
     running: Mutex<HashMap<String, TaskId>>,
     events: broadcast::Sender<JobEvent>,
+    /// Subtitle languages to add to new video downloads (set from Settings).
+    subtitles: Mutex<Option<String>>,
 }
 
 #[derive(Clone)]
@@ -160,6 +162,7 @@ impl DownloadManager {
                 db,
                 running: Mutex::new(HashMap::new()),
                 events,
+                subtitles: Mutex::new(None),
             }),
         }
     }
@@ -175,8 +178,14 @@ impl DownloadManager {
                 db: inner.db.clone(),
                 running: Mutex::new(HashMap::new()),
                 events: inner.events.clone(),
+                subtitles: Mutex::new(inner.subtitles.lock().unwrap().clone()),
             }),
         }
+    }
+
+    /// Languages (like "en,pt") to add as subtitles inside video files; `None` turns it off.
+    pub fn set_subtitles(&self, langs: Option<String>) {
+        *self.inner.subtitles.lock().unwrap() = langs;
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<JobEvent> {
@@ -534,6 +543,7 @@ impl DownloadManager {
                         choice: spec.choice,
                         staging: staging.clone(),
                         firefox_cookies: spec.cookies,
+                        subtitles: this2.inner.subtitles.lock().unwrap().clone(),
                     };
 
                     let outcome = match this2.inner.backend.download(&job, &on_progress).await {

@@ -103,6 +103,11 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Ferramentas de Arquivo",
         "Herramientas de Archivo",
     ),
+    (
+        "Scheduled download couldn't start",
+        "O download agendado não pôde começar",
+        "La descarga programada no pudo empezar",
+    ),
 ];
 
 /// Translates `text`, or returns it unchanged.

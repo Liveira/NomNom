@@ -214,6 +214,9 @@ pub fn run() {
             pdftools::pdf_info,
             pdftools::pdf_merge,
             pdftools::pdf_split,
+            downloads::dl_schedule,
+            downloads::dl_scheduled,
+            downloads::dl_unschedule,
             focus::focus_start,
             focus::focus_stop,
             focus::focus_status,
@@ -264,6 +267,8 @@ pub fn run() {
             activity::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
+            downloads::spawn_scheduler(app.handle().clone());
+            downloads::apply_subtitles(&app.state::<AppState>());
             if let Some(action) = filetools::parse_shell_args(&args) {
                 filetools::handle_shell_action(app.handle(), action);
             } else if wants_quick(&args) {

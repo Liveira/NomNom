@@ -96,6 +96,10 @@ pub struct Downloads {
     pub default_audio: String,
     /// Put finished downloads in a Videos or Audio folder inside the save folder.
     pub sort_into_folders: bool,
+    /// Add subtitles inside video files (needs FFmpeg).
+    pub subtitles: bool,
+    /// Language codes for the subtitles, like "en, pt".
+    pub subtitle_langs: String,
 }
 impl Default for Downloads {
     fn default() -> Self {
@@ -109,6 +113,8 @@ impl Default for Downloads {
             default_video: "original".into(),
             default_audio: "original".into(),
             sort_into_folders: true,
+            subtitles: false,
+            subtitle_langs: "en".into(),
         }
     }
 }
