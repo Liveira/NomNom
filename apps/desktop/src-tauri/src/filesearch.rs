@@ -3,11 +3,13 @@
 //! indexed can be found; on Windows that is the user's folders and the Start menu by default.
 
 use nomnom_core::filesearch::{self as rules, Hit};
+#[cfg(windows)]
 use std::time::Duration;
 
 type CmdResult<T> = Result<T, String>;
 
 const LIMIT: u32 = 30;
+#[cfg(windows)]
 const TIMEOUT: Duration = Duration::from_secs(5);
 
 /// A PowerShell that stays open for a little while after a search, so the next one answers at once
