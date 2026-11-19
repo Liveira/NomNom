@@ -5,6 +5,7 @@
 //! desktop shell chrome are ignored. Window titles and URLs are never stored on disk.
 
 pub mod classify;
+pub mod goals;
 pub mod icons;
 pub mod probe;
 pub mod tracker;

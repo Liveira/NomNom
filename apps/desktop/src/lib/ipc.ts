@@ -40,7 +40,7 @@ export interface Settings {
   };
   updates: { auto_check: boolean; last_checked: number };
   monitor: { tray_tooltip: boolean };
-  activity: { enabled: boolean; idle_timeout_secs: number; track_nomnom: boolean };
+  activity: { goal_reminder_hour: number; weekly_report: boolean; enabled: boolean; idle_timeout_secs: number; track_nomnom: boolean };
 }
 
 export interface SettingsPatch {
@@ -81,6 +81,8 @@ export interface SettingsPatch {
   activityIdleSecs?: number;
   activityTrackNomnom?: boolean;
   sidebarTools?: string[];
+  goalReminderHour?: number;
+  weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
   prettyNotifications?: boolean;
 }
@@ -294,6 +296,39 @@ export const browserIpc = {
 };
 export function onBrowserOpen(handler: (url: string) => void): Promise<UnlistenFn> {
   return listen<string>('browser://open', (e) => handler(e.payload));
+}
+
+export interface PlayGoal {
+  id: string;
+  scope: string;
+  kind: 'limit' | 'target';
+  period: 'day' | 'week';
+  minutes: number;
+  enabled: boolean;
+}
+export interface GoalView {
+  goal: PlayGoal;
+  name: string;
+  icon_url: string | null;
+  progress: { used_secs: number; goal_secs: number; percent: number; state: 'under' | 'near' | 'over' | 'behind' | 'met' };
+}
+export interface WeekReport {
+  week_start: string;
+  total_secs: number;
+  previous_total_secs: number;
+  days: number[];
+  top_apps: { name: string; secs: number }[];
+  goals: { scope: string; name: string; kind: 'limit' | 'target'; period: 'day' | 'week'; minutes: number; kept: number; out_of: number }[];
+}
+export const goalsIpc = {
+  list: () => invoke<GoalView[]>('goals_list'),
+  save: (goal: PlayGoal) => invoke<PlayGoal>('goals_save', { goal }),
+  remove: (id: string) => invoke<void>('goals_delete', { id }),
+  report: (weekStart?: string) => invoke<WeekReport | null>('goals_report', { weekStart: weekStart ?? null }),
+  thisWeek: () => invoke<WeekReport>('goals_this_week'),
+};
+export function onGoalsChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('activity://goals', () => handler());
 }
 
 export interface ToastCard {

@@ -275,6 +275,10 @@ pub struct Activity {
     pub idle_timeout_secs: u32,
     /// Whether to include NomNom's own window in tracked statistics.
     pub track_nomnom: bool,
+    /// The hour (0..=23) of the "you are still short of your goal" reminder; 24 turns it off.
+    pub goal_reminder_hour: u8,
+    /// Make a report of each week that ends, and say so.
+    pub weekly_report: bool,
 }
 impl Default for Activity {
     fn default() -> Self {
@@ -282,6 +286,8 @@ impl Default for Activity {
             enabled: true,
             idle_timeout_secs: 300,
             track_nomnom: false,
+            goal_reminder_hour: 20,
+            weekly_report: true,
         }
     }
 }

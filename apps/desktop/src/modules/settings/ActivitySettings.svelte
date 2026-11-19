@@ -13,6 +13,14 @@
     { secs: 1800, label: '30 minutes' },
   ];
 
+  const reminderChoices = [
+    { hour: 24, label: 'Never' },
+    { hour: 18, label: 'At 6 pm' },
+    { hour: 20, label: 'At 8 pm' },
+    { hour: 21, label: 'At 9 pm' },
+    { hour: 22, label: 'At 10 pm' },
+  ];
+
   async function save(patch: Parameters<typeof app.update>[0]) {
     error = '';
     try {
@@ -54,6 +62,27 @@
       <div class="hint">Off by default, so the stats show your other apps.</div>
     </div>
     <Switch checked={s?.track_nomnom ?? false} label="Count time in NomNom itself" onchange={(v) => save({ activityTrackNomnom: v })} />
+  </div>
+  <div class="row">
+    <div>
+      <div class="label">Remind me about a goal I have not reached</div>
+      <div class="hint">A target you are still short of, once a day, at this hour.</div>
+    </div>
+    <select
+      aria-label="Remind me about a goal I have not reached"
+      value={s?.goal_reminder_hour ?? 20}
+      onchange={(e) => save({ goalReminderHour: Number(e.currentTarget.value) })}
+    >
+      {#each reminderChoices as c (c.hour)}<option value={c.hour}>{c.label}</option>{/each}
+    </select>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="label">Make a report each week</div>
+      <div class="hint">On Monday, with the hours of the week that ended and how your goals went.</div>
+    </div>
+    <Switch checked={s?.weekly_report ?? true} label="Make a report each week" onchange={(v) => save({ weeklyReport: v })} />
   </div>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 </section>

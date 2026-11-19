@@ -61,6 +61,8 @@ pub struct SettingsPatch {
     sidebar_tools: Option<Vec<String>>,
     renderer: Option<String>,
     pretty_notifications: Option<bool>,
+    goal_reminder_hour: Option<u8>,
+    weekly_report: Option<bool>,
 }
 
 #[tauri::command]
@@ -252,6 +254,12 @@ pub fn update_settings(
             }
             if let Some(v) = &patch.renderer {
                 s.general.renderer = v.clone();
+            }
+            if let Some(v) = patch.goal_reminder_hour {
+                s.activity.goal_reminder_hour = v.min(24);
+            }
+            if let Some(v) = patch.weekly_report {
+                s.activity.weekly_report = v;
             }
             if let Some(v) = patch.pretty_notifications {
                 s.general.pretty_notifications = v;

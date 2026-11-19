@@ -111,6 +111,17 @@ const MIGRATIONS: &[&str] = &[
         version TEXT,
         message TEXT);
      CREATE INDEX backup_runs_plan ON backup_runs(plan_id, id DESC);",
+    // v10: Playtime goals, the alerts already shown for them, and the weekly reports.
+    "CREATE TABLE activity_goals(
+        id TEXT PRIMARY KEY,
+        scope TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        period TEXT NOT NULL,
+        minutes INTEGER NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL);
+     CREATE TABLE activity_goal_alerts(key TEXT PRIMARY KEY, at INTEGER NOT NULL) WITHOUT ROWID;
+     CREATE TABLE activity_reports(week_start TEXT PRIMARY KEY, json TEXT NOT NULL, created_at INTEGER NOT NULL) WITHOUT ROWID;",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

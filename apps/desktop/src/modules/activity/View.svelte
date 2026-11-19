@@ -14,6 +14,7 @@
   import AppBadge from './AppBadge.svelte';
   import AppDetailModal from './AppDetailModal.svelte';
   import FocusCard from './FocusCard.svelte';
+  import Goals from './Goals.svelte';
   import {
     CATEGORIES,
     categoryInfo,
@@ -110,6 +111,8 @@
 </header>
 
 <FocusCard />
+
+<Goals />
 
 <div class="toolbar">
   <div class="range-tabs" role="tablist" aria-label="Time period">

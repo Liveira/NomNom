@@ -135,6 +135,106 @@ pub fn tr(lang: Lang, text: &str) -> String {
     text.to_string()
 }
 
+/// "1 h 20 min" for a number of minutes.
+pub fn hm(minutes: u64) -> String {
+    match (minutes / 60, minutes % 60) {
+        (0, m) => format!("{m} min"),
+        (h, 0) => format!("{h} h"),
+        (h, m) => format!("{h} h {m} min"),
+    }
+}
+
+/// The text of a Playtime goal alert.
+pub fn goal_text(
+    lang: Lang,
+    alert: nomnom_activity::goals::Alert,
+    name: &str,
+    used_mins: u32,
+    goal_mins: u32,
+    period: nomnom_activity::goals::Period,
+) -> (String, String) {
+    use nomnom_activity::goals::{Alert, Period};
+    let when = match (lang, period) {
+        (Lang::En, Period::Day) => "today",
+        (Lang::En, Period::Week) => "this week",
+        (Lang::Pt, Period::Day) => "hoje",
+        (Lang::Pt, Period::Week) => "nesta semana",
+        (Lang::Es, Period::Day) => "hoy",
+        (Lang::Es, Period::Week) => "esta semana",
+    };
+    let (u, g) = (hm(u64::from(used_mins)), hm(u64::from(goal_mins)));
+    let missing = hm(u64::from(goal_mins.saturating_sub(used_mins)));
+    match (lang, alert) {
+        (Lang::En, Alert::LimitNear) => (
+            "Almost at your limit".into(),
+            format!("{name}: {u} of {g} {when}."),
+        ),
+        (Lang::En, Alert::LimitOver) => (
+            "Limit reached".into(),
+            format!("{name}: {u} {when}, over your {g} limit."),
+        ),
+        (Lang::En, Alert::TargetMet) => (
+            "Goal reached".into(),
+            format!("{name}: {u} of {g} {when}. Well done!"),
+        ),
+        (Lang::En, Alert::TargetBehind) => (
+            "A little short of your goal".into(),
+            format!("{name}: {u} of {g} {when}. {missing} to go."),
+        ),
+        (Lang::Pt, Alert::LimitNear) => (
+            "Quase no seu limite".into(),
+            format!("{name}: {u} de {g} {when}."),
+        ),
+        (Lang::Pt, Alert::LimitOver) => (
+            "Limite atingido".into(),
+            format!("{name}: {u} {when}, acima do limite de {g}."),
+        ),
+        (Lang::Pt, Alert::TargetMet) => (
+            "Meta batida".into(),
+            format!("{name}: {u} de {g} {when}. Muito bem!"),
+        ),
+        (Lang::Pt, Alert::TargetBehind) => (
+            "Falta pouco para a meta".into(),
+            format!("{name}: {u} de {g} {when}. Faltam {missing}."),
+        ),
+        (Lang::Es, Alert::LimitNear) => (
+            "Casi en tu límite".into(),
+            format!("{name}: {u} de {g} {when}."),
+        ),
+        (Lang::Es, Alert::LimitOver) => (
+            "Límite alcanzado".into(),
+            format!("{name}: {u} {when}, por encima del límite de {g}."),
+        ),
+        (Lang::Es, Alert::TargetMet) => (
+            "Meta cumplida".into(),
+            format!("{name}: {u} de {g} {when}. ¡Bien hecho!"),
+        ),
+        (Lang::Es, Alert::TargetBehind) => (
+            "Te falta poco para la meta".into(),
+            format!("{name}: {u} de {g} {when}. Faltan {missing}."),
+        ),
+    }
+}
+
+/// The notice that the weekly report is ready.
+pub fn report_text(lang: Lang, active_mins: u64) -> (String, String) {
+    let h = hm(active_mins);
+    match lang {
+        Lang::En => (
+            "Your weekly report is ready".into(),
+            format!("You were active for {h} last week. See how it went."),
+        ),
+        Lang::Pt => (
+            "Seu relatório semanal está pronto".into(),
+            format!("Você ficou ativo por {h} na semana passada. Veja como foi."),
+        ),
+        Lang::Es => (
+            "Tu informe semanal está listo".into(),
+            format!("Estuviste activo {h} la semana pasada. Mira cómo fue."),
+        ),
+    }
+}
+
 /// "N downloads are done." and similar sentences that carry numbers.
 pub fn n_done(lang: Lang, n: usize) -> String {
     match lang {

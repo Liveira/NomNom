@@ -1,9 +1,9 @@
 use crate::modules::downloads;
 use crate::{
-    activity, backup, browser, commands, events, filetools, focus, integrations, memory, modules,
-    monitor, notifier, organizer, pdftools, pipe_server, quick, shortcuts, state::AppState,
-    storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast, tray, updater,
-    windows,
+    activity, backup, browser, commands, events, filetools, focus, goals, integrations, memory,
+    modules, monitor, notifier, organizer, pdftools, pipe_server, quick, shortcuts,
+    state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast,
+    tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -149,6 +149,11 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            goals::goals_list,
+            goals::goals_save,
+            goals::goals_delete,
+            goals::goals_report,
+            goals::goals_this_week,
             toast::toast_take,
             toast::toast_layout,
             toast::toast_open,
@@ -280,6 +285,7 @@ pub fn run() {
             organizer::apply_auto(app.handle());
             storage_history::spawn(app.handle().clone());
             activity::spawn(app.handle().clone());
+            goals::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
             memory::spawn(app.handle().clone());
