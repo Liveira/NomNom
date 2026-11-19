@@ -393,6 +393,28 @@ export const trIpc = {
   popupUse: (action: 'copy' | 'replace') => invoke<void>('tr_popup_use', { action }),
 };
 
+export interface Subscription {
+  id: string;
+  url: string;
+  title: string;
+  kind: 'video' | 'audio';
+  every_hours: number;
+  enabled: boolean;
+  last_checked: number | null;
+  started: number;
+}
+export const subIpc = {
+  list: () => invoke<Subscription[]>('sub_list'),
+  add: (url: string, kind: 'video' | 'audio', everyHours: number, backfill: number) =>
+    invoke<Subscription>('sub_add', { url, kind, everyHours, backfill }),
+  remove: (id: string) => invoke<void>('sub_remove', { id }),
+  toggle: (id: string, enabled: boolean) => invoke<void>('sub_toggle', { id, enabled }),
+  checkNow: (id: string) => invoke<number>('sub_check_now', { id }),
+};
+export function onSubscriptionsChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('subscriptions://changed', () => handler());
+}
+
 export interface ToastCard {
   kind: 'info' | 'success' | 'warning' | 'error';
   title: string;

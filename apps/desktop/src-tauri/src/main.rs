@@ -30,6 +30,7 @@ mod storage_cleanup;
 mod storage_history;
 mod storage_ops;
 mod storage_tools;
+mod subscriptions;
 mod toast;
 mod translate;
 mod tray;

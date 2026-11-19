@@ -132,6 +132,21 @@ const MIGRATIONS: &[&str] = &[
         created_at INTEGER NOT NULL,
         last_at INTEGER NOT NULL);
      CREATE INDEX clipboard_items_last ON clipboard_items(pinned DESC, last_at DESC);",
+    // v12: channels and playlists the Downloader follows, and the videos already dealt with.
+    "CREATE TABLE subscriptions(
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        every_hours INTEGER NOT NULL DEFAULT 6,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        last_checked INTEGER,
+        started INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL);
+     CREATE TABLE subscription_seen(
+        sub_id TEXT NOT NULL,
+        video_id TEXT NOT NULL,
+        PRIMARY KEY(sub_id, video_id)) WITHOUT ROWID;",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

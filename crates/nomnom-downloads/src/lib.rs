@@ -8,6 +8,7 @@ pub mod files;
 pub mod format;
 pub mod manager;
 pub mod progress;
+pub mod subscriptions;
 pub mod url_check;
 
 pub use backend::{MediaBackend, YtDlpBackend};

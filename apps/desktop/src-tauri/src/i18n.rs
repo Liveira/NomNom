@@ -312,6 +312,36 @@ pub fn goal_text(
     }
 }
 
+/// The notice that new videos of a followed channel were started.
+pub fn new_videos_text(lang: Lang, name: &str, n: usize) -> (String, String) {
+    match lang {
+        Lang::En => (
+            format!("New from {name}"),
+            if n == 1 {
+                "1 new video is downloading.".into()
+            } else {
+                format!("{n} new videos are downloading.")
+            },
+        ),
+        Lang::Pt => (
+            format!("Novidade de {name}"),
+            if n == 1 {
+                "1 vídeo novo está sendo baixado.".into()
+            } else {
+                format!("{n} vídeos novos estão sendo baixados.")
+            },
+        ),
+        Lang::Es => (
+            format!("Novedad de {name}"),
+            if n == 1 {
+                "1 vídeo nuevo se está descargando.".into()
+            } else {
+                format!("{n} vídeos nuevos se están descargando.")
+            },
+        ),
+    }
+}
+
 /// The notice that the weekly report is ready.
 pub fn report_text(lang: Lang, active_mins: u64) -> (String, String) {
     let h = hm(active_mins);

@@ -15,6 +15,7 @@
   import { downloads } from './store.svelte';
   import JobItem from './JobItem.svelte';
   import Scheduled from './Scheduled.svelte';
+  import Subscriptions from './Subscriptions.svelte';
   import ToolBanner from './ToolBanner.svelte';
   import { parseLocal, suggestLocal } from './when';
 
@@ -299,6 +300,7 @@
 {/if}
 
 <Scheduled bind:this={scheduled} />
+<Subscriptions />
 
 <h2>Queue</h2>
 {#if downloads.active.length === 0}
