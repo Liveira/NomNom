@@ -351,6 +351,7 @@ export const clipIpc = {
   use: (id: number, paste: boolean) => invoke<void>('cb_use', { id, paste }),
   ready: () => invoke<void>('cb_ready'),
   close: () => invoke<void>('cb_close'),
+  open: () => invoke<void>('cb_open'),
 };
 export function onClipboardChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('clipboard://changed', () => handler());

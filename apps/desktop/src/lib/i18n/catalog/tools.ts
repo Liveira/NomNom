@@ -70,4 +70,5 @@ export const TOOLS: Entry[] = [
   ['{} h ago', 'há {} h', 'hace {} h'],
   ['yesterday', 'ontem', 'ayer'],
   ['{} days ago', 'há {} dias', 'hace {} días'],
+  ['Try it now', 'Experimentar agora', 'Probar ahora'],
 ];

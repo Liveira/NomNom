@@ -57,6 +57,7 @@
       <div class="label">Open it from anywhere</div>
       <div class="hint">Press <kbd>{accel}</kbd> to open the history next to what you are doing, choose an item, and it is pasted. You can change the keys in Settings, under Shortcuts.</div>
     </div>
+    <button class="plain" disabled={!enabled} onclick={() => void clipIpc.open()}>Try it now</button>
   </div>
 </section>
 

@@ -327,6 +327,12 @@ pub fn cb_ready(app: AppHandle) {
     }
 }
 
+/// The same as the shortcut: opens the history (or closes it).
+#[tauri::command]
+pub fn cb_open(app: AppHandle) {
+    open_popup(&app);
+}
+
 #[tauri::command]
 pub fn cb_close(app: AppHandle) {
     close_popup(&app);

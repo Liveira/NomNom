@@ -157,6 +157,7 @@ pub fn run() {
             clipboard::cb_use,
             clipboard::cb_ready,
             clipboard::cb_close,
+            clipboard::cb_open,
             rename::rn_inspect,
             rename::rn_preview,
             rename::rn_apply,
