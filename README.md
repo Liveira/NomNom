@@ -38,8 +38,12 @@ It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, o
 | 🗂️ | **File Organizer** | Sorts a folder (Downloads by default) into Videos, Audio, Images and Documents. You see a full preview first, system and software folders are refused, nothing is ever overwritten, and **every run can be undone**. Has an automatic mode for new downloads. |
 | 🔄 | **File Tools** | Convert images, audio, video, text, Markdown, CSV / JSON / YAML / TOML, and Office documents (with LibreOffice) to PDF. Join PDFs or pull pages out. Your originals are only read, never changed. |
 | 💽 | **Disk Analyzer** | See where your space went: tree, treemap, sunburst, charts by type, age, size and owner, biggest items, advanced search, **duplicate finder**, batch rename, saved scans, scheduled snapshots and reports (CSV, XLSX, PDF, HTML, JSON). Includes a **quick cleanup** for caches and temporary files. |
-| 🎮 | **Playtime** | Counts only the app or game you actually have in focus. Idle time and background processes are not counted. Daily rhythm, categories, a six-month activity map and a **Focus mode** timer. |
+| 🎮 | **Playtime** | Counts only the app or game you actually have in focus. Idle time and background processes are not counted. Daily rhythm, categories, a six-month activity map, a **Focus mode** timer, and **goals**: a limit for a game or a target for an app, with alerts and a weekly report. |
 | 🛟 | **Backup** | Copies chosen folders to a drive you pick, by hand or on a schedule. Dated versions, unchanged files take no extra space, old versions are pruned, and you can restore a file, a folder or a whole version. |
+| 🈯 | **Translator** | Select text anywhere and press a shortcut: it is replaced by its translation, or shown in a small window next to the pointer. Uses your own DeepL key (the free one is enough). Can also **read text from the screen** (offline) and translate it. |
+| 📋 | **Clipboard history** | Off until you turn it on. Text only, searchable, with pins and a number of days to keep. Copies a password manager marks as private are left out. |
+| 📱 | **Phone transfer** | A QR code opens a page on your Wi-Fi: send photos and files from the phone to the computer, or download what you offer from the computer. No cloud, off by itself when idle. |
+| 🚀 | **Startup apps** | See what opens with your computer and how much each one slowed it down (from Windows' own record). Turn programs off and on without uninstalling them. |
 | 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live. It only looks, it never touches anything. |
 | 🖱️ | **File manager menu** | Right-click files to convert them, or a folder to analyze its space. Works in Windows 11 Explorer, KDE Dolphin, GNOME Files and Cinnamon Nemo. |
 | 🌐 | **Browser extension** | Download buttons on YouTube, X, Instagram, Reddit and over the video player on TikTok, Vimeo, Twitch and more. |
@@ -126,10 +130,11 @@ The extension adds a download button on the page and sends the link to the deskt
 ## 🔒 Privacy and safety
 
 - **No account. No telemetry. No ads.** The only network traffic is the downloads you ask for, the tools you ask NomNom to fetch, and the optional daily update check against this repository's releases.
+- **Text you translate goes to DeepL, and only then.** Translating selected text sends just that text to DeepL with your own key. The key is stored locked to your Windows account. Everything else stays on your computer.
 - **Playtime stays on your computer.** It records which app was in focus and for how long. Window titles and URLs are never saved.
 - **Your files are handled carefully.** The organizer and converters never overwrite a file, always show what they are about to do, and keep an undo journal. Deleting goes through a plan and a confirmation, and the Trash or Recycle Bin is the default.
 - **Updates are verified.** Downloads are checked against the published `SHA256SUMS.txt` and must come from this repository's releases.
-- **Small footprint.** In the background NomNom uses about 6 MB and no web view at all. With the window open, add the web view's roughly 80 MB.
+- **Small footprint.** In the background NomNom uses about 6 MB and no web view at all. With the window open it gives unused memory back to the system, so Task Manager shows roughly 40 to 60 MB.
 
 <details>
 <summary><b>Where NomNom keeps its data</b></summary>

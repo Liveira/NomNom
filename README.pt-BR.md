@@ -38,8 +38,12 @@ Funciona no **Windows 11**, no **Arch Linux** e no **Debian / Ubuntu**. É gratu
 | 🗂️ | **Organizador de arquivos** | Separa uma pasta (Downloads, por padrão) em Vídeos, Áudio, Imagens e Documentos. Você vê uma prévia completa antes, pastas do sistema e de programas são recusadas, nada é sobrescrito, e **toda execução pode ser desfeita**. Tem modo automático para downloads novos. |
 | 🔄 | **Ferramentas de arquivo** | Converte imagens, áudio, vídeo, texto, Markdown, CSV / JSON / YAML / TOML e documentos do Office (com LibreOffice) para PDF. Junta PDFs ou extrai páginas. Os originais só são lidos, nunca alterados. |
 | 💽 | **Analisador de disco** | Mostra para onde foi o espaço: árvore, treemap, sunburst, gráficos por tipo, idade, tamanho e dono, maiores itens, busca avançada, **localizador de duplicados**, renomear em lote, scans salvos, históricos agendados e relatórios (CSV, XLSX, PDF, HTML, JSON). Inclui uma **limpeza rápida** de caches e arquivos temporários. |
-| 🎮 | **Playtime** | Conta só o app ou jogo que está em foco de verdade. Tempo parado e processos em segundo plano não entram. Ritmo diário, categorias, mapa de atividade de seis meses e um **modo Foco** com cronômetro. |
+| 🎮 | **Playtime** | Conta só o app ou jogo que está em foco de verdade. Tempo parado e processos em segundo plano não entram. Ritmo diário, categorias, mapa de atividade de seis meses um **modo Foco** com cronômetro e **metas**: um limite para um jogo ou uma meta de uso para um app, com avisos e um relatório semanal. |
 | 🛟 | **Backup** | Copia as pastas escolhidas para um disco que você indicar, na hora ou agendado. Versões com data, arquivos iguais não ocupam espaço extra, versões antigas são removidas e você restaura um arquivo, uma pasta ou uma versão inteira. |
+| 🈯 | **Tradutor** | Selecione um texto em qualquer lugar e aperte um atalho: ele é trocado pela tradução, ou aparece numa janela pequena ao lado do mouse. Usa a sua própria chave do DeepL (a gratuita basta). Também **lê texto da tela** (offline) e traduz. |
+| 📋 | **Histórico da área de transferência** | Desligado até você ligar. Só texto, com busca, itens fixados e um número de dias para guardar. Cópias que um gerenciador de senhas marca como privadas ficam de fora. |
+| 📱 | **Transferência com o celular** | Um QR code abre uma página no seu Wi-Fi: envie fotos e arquivos do celular para o computador, ou baixe o que você oferecer do computador. Sem nuvem, e desliga sozinho quando ninguém usa. |
+| 🚀 | **Apps de inicialização** | Veja o que abre com o computador e quanto cada um atrasou (pelo registro do próprio Windows). Desligue e ligue programas sem desinstalar. |
 | 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo. Só observa, nunca mexe em nada. |
 | 🖱️ | **Menu do gerenciador de arquivos** | Clique com o botão direito em arquivos para convertê-los, ou em uma pasta para analisar o espaço. Funciona no Explorer do Windows 11, KDE Dolphin, GNOME Files e Cinnamon Nemo. |
 | 🌐 | **Extensão do navegador** | Botões de download no YouTube, X, Instagram, Reddit e sobre o player no TikTok, Vimeo, Twitch e outros. |
@@ -126,10 +130,11 @@ A extensão adiciona um botão de download na página e envia o link para o app.
 ## 🔒 Privacidade e segurança
 
 - **Sem conta. Sem telemetria. Sem anúncios.** O único tráfego de rede são os downloads que você pede, as ferramentas que você pede para o NomNom buscar e a verificação diária (opcional) de atualização nas releases deste repositório.
+- **O texto que você traduz vai para o DeepL, e só nesse caso.** Traduzir um texto selecionado envia apenas esse texto ao DeepL com a sua própria chave. A chave fica guardada protegida pela sua conta do Windows. Todo o resto fica no seu computador.
 - **O Playtime fica no seu computador.** Ele registra qual app estava em foco e por quanto tempo. Títulos de janela e URLs nunca são salvos.
 - **Seus arquivos são tratados com cuidado.** O organizador e os conversores nunca sobrescrevem um arquivo, sempre mostram o que vão fazer e mantêm um diário para desfazer. Apagar passa por um plano e uma confirmação, e a Lixeira é o padrão.
 - **Atualizações são verificadas.** Os downloads são conferidos com o `SHA256SUMS.txt` publicado e precisam vir das releases deste repositório.
-- **Leve.** Em segundo plano o NomNom usa cerca de 6 MB e nenhuma web view. Com a janela aberta, some aí uns 80 MB da web view.
+- **Leve.** Em segundo plano o NomNom usa cerca de 6 MB e nenhuma web view. Com a janela aberta, ele devolve a memória sem uso ao sistema, e o Gerenciador de Tarefas mostra uns 40 a 60 MB.
 
 <details>
 <summary><b>Onde o NomNom guarda os dados</b></summary>
