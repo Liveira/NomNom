@@ -19,6 +19,7 @@ use tauri_plugin_notification::NotificationExt;
 
 pub const LABEL: &str = "quick";
 const WIDTH: f64 = 480.0;
+#[cfg_attr(target_os = "linux", allow(dead_code))]
 const HEIGHT: f64 = 360.0;
 /// Linux: the popup is an ordinary solid window that is exactly the size of its card. A see-through
 /// window redraws only in pieces on Wayland (parts of the card go missing while a list opens or
