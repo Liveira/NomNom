@@ -14,7 +14,15 @@ pub const OPEN: &str = "open_app";
 pub const CLIPBOARD: &str = "clipboard";
 pub const TRANSLATE_REPLACE: &str = "translate_replace";
 pub const TRANSLATE_POPUP: &str = "translate_popup";
-pub const IDS: [&str; 5] = [QUICK, OPEN, CLIPBOARD, TRANSLATE_REPLACE, TRANSLATE_POPUP];
+pub const CAPTURE: &str = "capture_text";
+pub const IDS: [&str; 6] = [
+    QUICK,
+    OPEN,
+    CLIPBOARD,
+    TRANSLATE_REPLACE,
+    TRANSLATE_POPUP,
+    CAPTURE,
+];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
 /// can never be hijacked system-wide.
@@ -34,6 +42,7 @@ fn action(app: &AppHandle, id: &str) {
         CLIPBOARD => crate::clipboard::open_popup(app),
         TRANSLATE_REPLACE => crate::translate::replace_selection(app),
         TRANSLATE_POPUP => crate::translate::popup_selection(app),
+        CAPTURE => crate::ocr::capture(app),
         _ => {}
     }
 }
@@ -57,6 +66,7 @@ fn configured(app: &AppHandle, id: &str) -> String {
         OPEN => s.open_app,
         TRANSLATE_REPLACE => s.translate_replace,
         TRANSLATE_POPUP => s.translate_popup,
+        CAPTURE => s.capture_text,
         _ => s.clipboard,
     }
 }
@@ -67,6 +77,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
     match id {
         CLIPBOARD => s.clipboard.enabled,
         TRANSLATE_REPLACE | TRANSLATE_POPUP => s.text.enabled,
+        CAPTURE => s.text.ocr,
         _ => true,
     }
 }
@@ -161,6 +172,7 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             OPEN => s.shortcuts.open_app = accel.to_string(),
             TRANSLATE_REPLACE => s.shortcuts.translate_replace = accel.to_string(),
             TRANSLATE_POPUP => s.shortcuts.translate_popup = accel.to_string(),
+            CAPTURE => s.shortcuts.capture_text = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

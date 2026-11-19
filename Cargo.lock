@@ -2698,6 +2698,7 @@ dependencies = [
  "nomnom-tools",
  "nomnom-win",
  "notify",
+ "png",
  "qrcode",
  "reqwest 0.12.28",
  "rusqlite",

@@ -11,6 +11,7 @@
     clipboard: 'Open the clipboard history',
     translate_replace: 'Replace the selected text with its translation',
     translate_popup: 'Show the translation of the selected text',
+    capture_text: 'Read text from the screen',
   };
 
   let items = $state<ShortcutInfo[]>([]);

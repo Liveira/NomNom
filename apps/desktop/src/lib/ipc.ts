@@ -8,9 +8,9 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; keep_ready: boolean };
   clipboard: { enabled: boolean; keep_days: number };
-  text: { enabled: boolean; target: string };
+  text: { enabled: boolean; target: string; ocr: boolean; ocr_translate: boolean };
   phone: { save_dir: string | null; idle_minutes: number };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
@@ -88,6 +88,8 @@ export interface SettingsPatch {
   clipboardKeepDays?: number;
   textEnabled?: boolean;
   textTarget?: string;
+  textOcr?: boolean;
+  textOcrTranslate?: boolean;
   phoneDir?: string;
   phoneIdleMinutes?: number;
   goalReminderHour?: number;
@@ -220,7 +222,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text';
   accelerator: string;
   error: string | null;
 }
@@ -475,6 +477,14 @@ export interface StartupOverview {
 export const startupIpc = {
   list: () => invoke<StartupOverview>('su_list'),
   set: (id: string, enabled: boolean) => invoke<void>('su_set', { id, enabled }),
+};
+
+export const ocrIpc = {
+  start: () => invoke<void>('ocr_start'),
+  image: () => invoke<string | null>('ocr_image'),
+  ready: () => invoke<void>('ocr_ready'),
+  cancel: () => invoke<void>('ocr_cancel'),
+  run: (x: number, y: number, w: number, h: number) => invoke<void>('ocr_run', { x, y, w, h }),
 };
 
 export interface ToastCard {

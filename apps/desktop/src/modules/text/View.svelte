@@ -2,7 +2,7 @@
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { isLinux } from '../../lib/platform';
-  import { trIpc, type KeyStatus, type TrLanguage, type Translated } from '../../lib/ipc';
+  import { ocrIpc, trIpc, type KeyStatus, type TrLanguage, type Translated } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
   import { usageLine } from './logic';
 
@@ -10,6 +10,9 @@
   const target = $derived(app.settings?.text.target ?? 'auto');
   const replaceKeys = $derived(app.settings?.shortcuts.translate_replace ?? 'Ctrl+Alt+R');
   const popupKeys = $derived(app.settings?.shortcuts.translate_popup ?? 'Ctrl+Alt+Y');
+  const ocr = $derived(app.settings?.text.ocr ?? false);
+  const ocrTranslate = $derived(app.settings?.text.ocr_translate ?? false);
+  const captureKeys = $derived(app.settings?.shortcuts.capture_text ?? 'Ctrl+Alt+O');
 
   let status = $state<KeyStatus | null>(null);
   let languages = $state<TrLanguage[]>([]);
@@ -124,6 +127,30 @@
     </div>
   </div>
   <p class="hint">You can change both in Settings, under Shortcuts.{isLinux ? ' Reading a selection on Linux needs wl-clipboard (Wayland) or xclip (X11) installed.' : ''}</p>
+</section>
+
+<section class="card">
+  <h2>Read text from the screen</h2>
+  <div class="row">
+    <div>
+      <div class="label">Copy the text from any part of the screen</div>
+      <div class="hint">Press <kbd>{captureKeys}</kbd>, drag a rectangle over text in a picture, a video or a program, and it is copied. It works offline{isLinux ? ', with tesseract (and grim and slurp on Wayland, or maim on X11) installed' : ', with the text recognition that comes with Windows'}. The picture of your screen is never saved.</div>
+    </div>
+    <Switch checked={ocr} label="Copy the text from any part of the screen" onchange={(v) => app.update({ textOcr: v })} />
+  </div>
+  {#if ocr}
+    <div class="row">
+      <div class="hint">Try it now, without the shortcut.</div>
+      <button class="plain" onclick={() => void ocrIpc.start()}>Read text from the screen</button>
+    </div>
+  {/if}
+  <div class="row">
+    <div>
+      <div class="label">Translate it as well</div>
+      <div class="hint">Copies the translation instead (needs your DeepL key).</div>
+    </div>
+    <Switch checked={ocrTranslate} label="Translate the text that was read" onchange={(v) => app.update({ textOcrTranslate: v })} />
+  </div>
 </section>
 
 <section class="card">

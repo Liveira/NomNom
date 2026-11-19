@@ -6,6 +6,7 @@ import { i18n } from '../lib/i18n/index.svelte';
 import { ipc } from '../lib/ipc';
 import { isLinux } from '../lib/platform';
 import ClipboardPanel from './ClipboardPanel.svelte';
+import OcrPanel from './OcrPanel.svelte';
 import Toast from './Toast.svelte';
 import TranslatePanel from './TranslatePanel.svelte';
 
@@ -24,6 +25,6 @@ ipc
   })
   .catch(() => {});
 
-const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel, translate: TranslatePanel };
+const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel, translate: TranslatePanel, ocr: OcrPanel };
 mount(views[kind] ?? Toast, { target: document.getElementById('app')! });
 i18n.start('auto');

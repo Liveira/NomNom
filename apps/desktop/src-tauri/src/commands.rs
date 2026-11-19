@@ -67,6 +67,8 @@ pub struct SettingsPatch {
     clipboard_keep_days: Option<u32>,
     text_enabled: Option<bool>,
     text_target: Option<String>,
+    text_ocr: Option<bool>,
+    text_ocr_translate: Option<bool>,
     phone_dir: Option<String>,
     phone_idle_minutes: Option<u32>,
 }
@@ -279,6 +281,12 @@ pub fn update_settings(
             if let Some(v) = patch.phone_idle_minutes {
                 s.phone.idle_minutes = v.clamp(1, 240);
             }
+            if let Some(v) = patch.text_ocr {
+                s.text.ocr = v;
+            }
+            if let Some(v) = patch.text_ocr_translate {
+                s.text.ocr_translate = v;
+            }
             if let Some(v) = patch.text_enabled {
                 s.text.enabled = v;
             }
@@ -326,7 +334,8 @@ pub fn update_settings(
     if patch.language.is_some() {
         crate::tray::relabel(&app);
     }
-    if patch.clipboard_enabled.is_some() || patch.text_enabled.is_some() {
+    if patch.clipboard_enabled.is_some() || patch.text_enabled.is_some() || patch.text_ocr.is_some()
+    {
         crate::shortcuts::sync(&app);
     }
     if patch.subtitles.is_some() || patch.subtitle_langs.is_some() {
@@ -375,6 +384,7 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::CLIPBOARD, s.clipboard),
         (crate::shortcuts::TRANSLATE_REPLACE, s.translate_replace),
         (crate::shortcuts::TRANSLATE_POPUP, s.translate_popup),
+        (crate::shortcuts::CAPTURE, s.capture_text),
     ]
     .into_iter()
     .map(|(id, accelerator)| ShortcutInfo {

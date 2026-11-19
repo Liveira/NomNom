@@ -127,6 +127,15 @@ fn target_of(state: &AppState) -> &'static str {
     rules::target_for(&s.text.target, ui)
 }
 
+/// Translates text that was read from the screen, when the translator is ready (it has a key).
+/// `None` means "leave it as it was read".
+pub async fn translate_for_ocr(app: &AppHandle, text: &str) -> Option<String> {
+    let state = app.state::<AppState>();
+    let key = load_key(&state)?;
+    let target = target_of(&state);
+    call_deepl(&key, text, target).await.ok().map(|t| t.text)
+}
+
 // ---- reading the selection ---------------------------------------------------------------------------------
 
 /// What was selected, and what the clipboard held before.

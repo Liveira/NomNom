@@ -18,6 +18,7 @@ mod memory;
 mod modules;
 mod monitor;
 mod notifier;
+mod ocr;
 mod organizer;
 mod pdftools;
 mod phone;

@@ -224,6 +224,51 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Ninguém usou por um tempo, então o NomNom desligou.",
         "Nadie lo usó durante un rato, así que NomNom lo apagó.",
     ),
+    (
+        "Couldn't read the screen",
+        "Não foi possível ler a tela",
+        "No se pudo leer la pantalla",
+    ),
+    (
+        "Windows didn't let NomNom take a picture of the screen.",
+        "O Windows não deixou o NomNom tirar uma foto da tela.",
+        "Windows no dejó que NomNom tomara una imagen de la pantalla.",
+    ),
+    (
+        "No text found",
+        "Nenhum texto encontrado",
+        "No se encontró texto",
+    ),
+    (
+        "NomNom didn't find any text in that part of the screen.",
+        "O NomNom não achou texto nessa parte da tela.",
+        "NomNom no encontró texto en esa parte de la pantalla.",
+    ),
+    (
+        "To read text from the screen, install tesseract.",
+        "Para ler texto da tela, instale o tesseract.",
+        "Para leer texto de la pantalla, instala tesseract.",
+    ),
+    (
+        "To read text from the screen on Wayland, install grim and slurp.",
+        "Para ler texto da tela no Wayland, instale grim e slurp.",
+        "Para leer texto de la pantalla en Wayland, instala grim y slurp.",
+    ),
+    (
+        "To read text from the screen on X11, install maim.",
+        "Para ler texto da tela no X11, instale o maim.",
+        "Para leer texto de la pantalla en X11, instala maim.",
+    ),
+    (
+        "Nothing was selected.",
+        "Nada foi selecionado.",
+        "No se seleccionó nada.",
+    ),
+    (
+        "Windows has no text recognition for your language yet. Add one in Settings, Time & language, Language & region.",
+        "O Windows ainda não tem reconhecimento de texto para o seu idioma. Adicione um em Configurações, Hora e idioma, Idioma e região.",
+        "Windows aún no tiene reconocimiento de texto para tu idioma. Añade uno en Configuración, Hora e idioma, Idioma y región.",
+    ),
 ];
 
 /// Translates `text`, or returns it unchanged.
@@ -350,6 +395,25 @@ pub fn new_videos_text(lang: Lang, name: &str, n: usize) -> (String, String) {
             },
         ),
     }
+}
+
+/// The notice that text was read from the screen.
+pub fn ocr_text(lang: Lang, text: &str, translated: bool) -> (String, String) {
+    let one_line: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let preview: String = if one_line.chars().count() > 90 {
+        format!("{}…", one_line.chars().take(90).collect::<String>())
+    } else {
+        one_line
+    };
+    let title = match (lang, translated) {
+        (Lang::En, false) => "Text copied",
+        (Lang::En, true) => "Translated text copied",
+        (Lang::Pt, false) => "Texto copiado",
+        (Lang::Pt, true) => "Texto traduzido copiado",
+        (Lang::Es, false) => "Texto copiado",
+        (Lang::Es, true) => "Texto traducido copiado",
+    };
+    (title.to_string(), preview)
 }
 
 /// The notice that files arrived from the phone.

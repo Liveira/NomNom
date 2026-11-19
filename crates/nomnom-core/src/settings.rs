@@ -159,6 +159,8 @@ pub struct Shortcuts {
     pub translate_replace: String,
     /// Shows the translation of the selected text next to the pointer.
     pub translate_popup: String,
+    /// Reads the text in a rectangle of the screen (when that is switched on).
+    pub capture_text: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -170,6 +172,7 @@ impl Default for Shortcuts {
             clipboard: "Ctrl+Alt+V".into(),
             translate_replace: "Ctrl+Alt+R".into(),
             translate_popup: "Ctrl+Alt+Y".into(),
+            capture_text: "Ctrl+Alt+O".into(),
             keep_ready: false,
         }
     }
@@ -325,12 +328,18 @@ pub struct Text {
     pub enabled: bool,
     /// A DeepL language code such as "PT-BR", or "auto" for the language NomNom is shown in.
     pub target: String,
+    /// Read text from the screen with a shortcut.
+    pub ocr: bool,
+    /// Translate the text that was read, instead of copying it as it is.
+    pub ocr_translate: bool,
 }
 impl Default for Text {
     fn default() -> Self {
         Text {
             enabled: false,
             target: "auto".into(),
+            ocr: false,
+            ocr_translate: false,
         }
     }
 }
