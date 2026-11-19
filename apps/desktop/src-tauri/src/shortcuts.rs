@@ -21,9 +21,10 @@ pub const PIN_TOP: &str = "pin_top";
 pub const PICK_COLOR: &str = "pick_color";
 pub const PASTE_PLAIN: &str = "paste_plain";
 pub const CLEAN_LINK: &str = "clean_link";
+pub const SCREENSHOT: &str = "screenshot";
 /// Shortcuts that only do something on Windows.
-pub const WINDOWS_ONLY: [&str; 3] = [PIN_TOP, PICK_COLOR, PASTE_PLAIN];
-pub const IDS: [&str; 12] = [
+pub const WINDOWS_ONLY: [&str; 4] = [PIN_TOP, PICK_COLOR, PASTE_PLAIN, SCREENSHOT];
+pub const IDS: [&str; 13] = [
     QUICK,
     OPEN,
     CLIPBOARD,
@@ -36,6 +37,7 @@ pub const IDS: [&str; 12] = [
     PICK_COLOR,
     PASTE_PLAIN,
     CLEAN_LINK,
+    SCREENSHOT,
 ];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
@@ -63,6 +65,7 @@ fn action(app: &AppHandle, id: &str) {
         PICK_COLOR => crate::colorpick::start(app),
         PASTE_PLAIN => crate::mini::paste_plain(app),
         CLEAN_LINK => crate::mini::clean_clipboard(app),
+        SCREENSHOT => crate::shots::start(app),
         _ => {}
     }
 }
@@ -93,6 +96,7 @@ fn configured(app: &AppHandle, id: &str) -> String {
         PICK_COLOR => s.pick_color,
         PASTE_PLAIN => s.paste_plain,
         CLEAN_LINK => s.clean_link,
+        SCREENSHOT => s.screenshot,
         _ => s.clipboard,
     }
 }
@@ -115,6 +119,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
         LAUNCHER => s.shortcuts.launcher_on,
         NOTES => tool_on(&s, "notes"),
         PIN_TOP | PICK_COLOR | PASTE_PLAIN => cfg!(windows) && tool_on(&s, "mini"),
+        SCREENSHOT => cfg!(windows) && tool_on(&s, "shots"),
         CLEAN_LINK => tool_on(&s, "mini"),
         _ => true,
     }
@@ -220,6 +225,7 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             PICK_COLOR => s.shortcuts.pick_color = accel.to_string(),
             PASTE_PLAIN => s.shortcuts.paste_plain = accel.to_string(),
             CLEAN_LINK => s.shortcuts.clean_link = accel.to_string(),
+            SCREENSHOT => s.shortcuts.screenshot = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

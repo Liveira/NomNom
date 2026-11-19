@@ -18,6 +18,7 @@
     pick_color: 'Pick a colour from the screen',
     paste_plain: 'Paste as plain text',
     clean_link: 'Clean the link on the clipboard',
+    screenshot: 'Take a screenshot to mark up',
   };
 
   let items = $state<ShortcutInfo[]>([]);

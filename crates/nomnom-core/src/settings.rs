@@ -175,6 +175,8 @@ pub struct Shortcuts {
     pub paste_plain: String,
     /// Takes the tracking off the link on the clipboard.
     pub clean_link: String,
+    /// Takes a picture of part of the screen and opens it to mark up.
+    pub screenshot: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -194,6 +196,7 @@ impl Default for Shortcuts {
             pick_color: "Ctrl+Alt+C".into(),
             paste_plain: "Ctrl+Alt+Shift+V".into(),
             clean_link: "Ctrl+Alt+L".into(),
+            screenshot: "Ctrl+Alt+S".into(),
             keep_ready: false,
         }
     }

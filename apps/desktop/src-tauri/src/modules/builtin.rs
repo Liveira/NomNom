@@ -340,6 +340,30 @@ impl Module for SnippetsModule {
     }
 }
 
+static SHOTS: ModuleManifest = ModuleManifest {
+    id: "shots",
+    name: "Screenshots",
+    nav: Some(NavEntry {
+        order: 56,
+        icon: "image",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ShotsModule;
+#[async_trait]
+impl Module for ShotsModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &SHOTS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

@@ -142,6 +142,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-mint)',
   },
   {
+    id: 'shots',
+    icon: 'image',
+    title: 'Screenshots',
+    desc: 'Take a picture of part of the screen and mark it up with arrows, boxes, numbers, text and blocked-out parts. Then copy or save it.',
+    tint: 'var(--glow-lavender)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

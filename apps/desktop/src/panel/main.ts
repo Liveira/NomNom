@@ -9,6 +9,8 @@ import ClipboardPanel from './ClipboardPanel.svelte';
 import LauncherPanel from './LauncherPanel.svelte';
 import OcrPanel from './OcrPanel.svelte';
 import PickerPanel from './PickerPanel.svelte';
+import ShotEditor from './ShotEditor.svelte';
+import ShotPanel from './ShotPanel.svelte';
 import Toast from './Toast.svelte';
 import TranslatePanel from './TranslatePanel.svelte';
 
@@ -27,6 +29,6 @@ ipc
   })
   .catch(() => {});
 
-const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel, translate: TranslatePanel, ocr: OcrPanel, launcher: LauncherPanel, picker: PickerPanel };
+const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel, translate: TranslatePanel, ocr: OcrPanel, launcher: LauncherPanel, picker: PickerPanel, shot: ShotPanel, shotedit: ShotEditor };
 mount(views[kind] ?? Toast, { target: document.getElementById('app')! });
 i18n.start('auto');

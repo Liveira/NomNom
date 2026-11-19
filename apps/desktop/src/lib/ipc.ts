@@ -8,7 +8,7 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; notes: string; pin_top: string; pick_color: string; paste_plain: string; clean_link: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; notes: string; pin_top: string; pick_color: string; paste_plain: string; clean_link: string; screenshot: string; keep_ready: boolean };
   actions: CustomAction[];
   clipboard: { enabled: boolean; keep_days: number };
   mini: { clean_links_auto: boolean };
@@ -227,7 +227,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher' | 'notes' | 'pin_top' | 'pick_color' | 'paste_plain' | 'clean_link';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher' | 'notes' | 'pin_top' | 'pick_color' | 'paste_plain' | 'clean_link' | 'screenshot';
   accelerator: string;
   error: string | null;
 }
@@ -670,6 +670,19 @@ export interface FileHit {
 }
 export const fileIpc = {
   search: (query: string) => invoke<FileHit[]>('fs_search', { query }),
+};
+
+export const shotIpc = {
+  image: () => invoke<string | null>('sh_image'),
+  ready: () => invoke<void>('sh_ready'),
+  cancel: () => invoke<void>('sh_cancel'),
+  pick: (x: number, y: number, w: number, h: number) => invoke<void>('sh_pick', { x, y, w, h }),
+  editImage: () => invoke<string | null>('sh_edit_image'),
+  editorReady: () => invoke<void>('sh_editor_ready'),
+  close: () => invoke<void>('sh_close'),
+  copy: (png: string) => invoke<void>('sh_copy', { png }),
+  save: (path: string, png: string) => invoke<void>('sh_save', { path, png }),
+  start: () => invoke<void>('sh_start'),
 };
 
 export const miniIpc = {

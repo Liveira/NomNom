@@ -407,6 +407,7 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::PICK_COLOR, s.pick_color),
         (crate::shortcuts::PASTE_PLAIN, s.paste_plain),
         (crate::shortcuts::CLEAN_LINK, s.clean_link),
+        (crate::shortcuts::SCREENSHOT, s.screenshot),
     ]
     .into_iter()
     // Pinning, the picker and plain paste are not there on other systems.

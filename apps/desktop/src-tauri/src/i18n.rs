@@ -260,6 +260,11 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Para leer texto de la pantalla en X11, instala maim.",
     ),
     ("Reminder", "Lembrete", "Recordatorio"),
+    (
+        "Screenshots with notes work on Windows only.",
+        "Capturas com anotações funcionam só no Windows.",
+        "Las capturas con notas funcionan solo en Windows.",
+    ),
     ("Pinned on top", "Fixada no topo", "Fijada encima"),
     ("Not on top any more", "Não está mais no topo", "Ya no está encima"),
     ("There is no window to pin.", "Não há janela para fixar.", "No hay ventana que fijar."),
