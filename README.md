@@ -44,7 +44,7 @@ It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, o
 | 📋 | **Clipboard history** | Off until you turn it on. Text only, searchable, with pins and a number of days to keep. Copies a password manager marks as private are left out. |
 | 📱 | **Phone transfer** | A QR code opens a page on your Wi-Fi: send photos and files from the phone to the computer, or download what you offer from the computer. No cloud, off by itself when idle. |
 | 🚀 | **Startup apps** | See what opens with your computer and how much each one slowed it down (from Windows' own record). Turn programs off and on without uninstalling them. |
-| 🔎 | **Search and launcher** | `Ctrl+K` inside NomNom, or `Alt+Space` from anywhere: find a tool, a program, a folder or a recent file, run one of your own actions, or type a sum and get the answer. |
+| 🔎 | **Search and launcher** | `Ctrl+K` inside NomNom, or `Alt+Space` from anywhere: find a tool, a program, a folder, a recent file or any file by name (through the system's own index, so NomNom keeps no list of its own), run one of your own actions, or type a sum and get the answer. |
 | 🚀 | **My actions** | Programs, folders, links and commands of your own, with a global shortcut and values they ask for (a web search that asks what to look for). Commands run with an argument list, never through a shell. |
 | 🔔 | **Reminders** | "in 20 minutes stretch", "tomorrow at 9 call mom", "every day at 18:30 drink water", in English, Portuguese or Spanish. A card appears even when the window is closed. |
 | ✏️ | **Notes** | Short notes kept on this computer, with pins and search. A shortcut opens a blank one; "note buy milk" in the search saves one. |
