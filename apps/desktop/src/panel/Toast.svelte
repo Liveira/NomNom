@@ -53,7 +53,10 @@
   }
 
   onMount(() => {
-    void take();
+    // A window that was made for nothing (its cards went elsewhere) goes away again.
+    void take().then(() => {
+      if (cards.length === 0) setTimeout(() => cards.length === 0 && void toastIpc.close(), 1500);
+    });
     const woke = listen('toast://wake', () => void take());
     // Each card leaves by itself, unless the pointer is on the stack.
     const timer = setInterval(() => {

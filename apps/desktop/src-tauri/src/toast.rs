@@ -46,6 +46,8 @@ impl Toast {
 
 /// Cards waiting for the window to be ready, or for a free place on screen.
 static PENDING: Mutex<Vec<Toast>> = Mutex::new(Vec::new());
+/// The window is being made right now (a second card in the same moment must not make another).
+static MAKING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Is the themed card available here, and wanted?
 fn pretty(app: &AppHandle) -> bool {
@@ -77,6 +79,10 @@ pub fn show(app: &AppHandle, toast: Toast) {
             let _ = win.emit("toast://wake", ());
             return;
         }
+        // The page takes everything that is waiting once it has loaded.
+        if MAKING.swap(true, std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
         let built =
             WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App("panel.html?kind=toast".into()))
                 .title("NomNom")
@@ -90,7 +96,9 @@ pub fn show(app: &AppHandle, toast: Toast) {
                 .focusable(false)
                 .focused(false)
                 .visible(false);
-        if let Err(e) = crate::windows::shared_webview_args(built).build() {
+        let result = crate::windows::shared_webview_args(built).build();
+        MAKING.store(false, std::sync::atomic::Ordering::SeqCst);
+        if let Err(e) = result {
             tracing::warn!("couldn't make the notification window: {e}");
             // No card could be made: fall back to the system's notification.
             for t in PENDING.lock().unwrap().drain(..) {
