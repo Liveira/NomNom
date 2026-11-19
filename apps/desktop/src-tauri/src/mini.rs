@@ -68,6 +68,7 @@ pub fn clean_clipboard(app: &AppHandle) {
 }
 
 /// Pastes what is on the clipboard with no formatting: only its text.
+#[cfg(windows)]
 pub fn paste_plain(app: &AppHandle) {
     let text = match app.clipboard().read_text() {
         Ok(t) if !t.is_empty() => t,
@@ -77,13 +78,16 @@ pub fn paste_plain(app: &AppHandle) {
     if app.clipboard().write_text(text).is_err() {
         return;
     }
-    #[cfg(windows)]
     std::thread::spawn(|| {
         // Ctrl+Alt+Shift+V is still held: wait for it to be let go, or the paste reads as that.
         nomnom_win::clipboard::wait_modifiers_released(1500);
         nomnom_win::clipboard::press_paste();
     });
 }
+
+/// Plain paste is a Windows tool; its shortcut is never taken elsewhere.
+#[cfg(not(windows))]
+pub fn paste_plain(_app: &AppHandle) {}
 
 /// Windows: takes the tracking off links as they are copied, when that is switched on.
 #[cfg(windows)]

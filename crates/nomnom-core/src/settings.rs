@@ -190,7 +190,7 @@ impl Default for Shortcuts {
             launcher: "Alt+Space".into(),
             launcher_on: true,
             notes: "Ctrl+Alt+M".into(),
-            pin_top: "Ctrl+Alt+T".into(),
+            pin_top: "Ctrl+Alt+P".into(),
             pick_color: "Ctrl+Alt+C".into(),
             paste_plain: "Ctrl+Alt+Shift+V".into(),
             clean_link: "Ctrl+Alt+L".into(),
