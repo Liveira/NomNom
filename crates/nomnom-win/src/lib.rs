@@ -13,6 +13,8 @@ pub mod memory;
 #[cfg(windows)]
 pub mod native_host;
 #[cfg(windows)]
+pub mod power;
+#[cfg(windows)]
 pub mod screen;
 #[cfg(windows)]
 pub mod secret;

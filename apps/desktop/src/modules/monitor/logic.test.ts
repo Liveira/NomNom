@@ -41,3 +41,19 @@ describe('monitor helpers', () => {
     expect(percentOf(500, 200)).toBe(100);
   });
 });
+
+import { batteryLine, useText } from './logic';
+
+describe('hardware words', () => {
+  it('says what the battery is doing', () => {
+    expect(batteryLine({ plugged: true, charging: true, minutes_left: null })).toBe('Charging');
+    expect(batteryLine({ plugged: true, charging: false, minutes_left: null })).toBe('Plugged in');
+    expect(batteryLine({ plugged: false, charging: false, minutes_left: 200 })).toBe('On battery: 3 h 20 min left');
+    expect(batteryLine({ plugged: false, charging: false, minutes_left: 25 })).toBe('On battery: 25 min left');
+    expect(batteryLine({ plugged: false, charging: false, minutes_left: null })).toBe('On battery');
+  });
+  it('turns hours of use into days when it is a while', () => {
+    expect(useText(30)).toBe('30 hours of use');
+    expect(useText(1200)).toBe('50 days of use');
+  });
+});

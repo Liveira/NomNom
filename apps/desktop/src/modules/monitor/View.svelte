@@ -6,6 +6,7 @@
   import { formatBytes } from '../../lib/format';
   import { monitorIpc, type MonSnapshot } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
+  import Hardware from './Hardware.svelte';
   import { load, percentOf, pushSample, rateText, sparkPoints, uptimeText } from './logic';
 
   let snap = $state<MonSnapshot | null>(null);
@@ -146,6 +147,7 @@
       <p class="sub note">Programs that run as several processes, like a browser, are added together. NomNom only shows them; it never closes anything.</p>
     </div>
   </section>
+  <Hardware />
 {:else}
   <p class="sub">Reading your computer…</p>
 {/if}

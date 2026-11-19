@@ -73,6 +73,7 @@ pub struct SettingsPatch {
     phone_idle_minutes: Option<u32>,
     launcher_on: Option<bool>,
     clean_links_auto: Option<bool>,
+    disk_alerts: Option<bool>,
 }
 
 #[tauri::command]
@@ -282,6 +283,9 @@ pub fn update_settings(
             }
             if let Some(v) = patch.phone_idle_minutes {
                 s.phone.idle_minutes = v.clamp(1, 240);
+            }
+            if let Some(v) = patch.disk_alerts {
+                s.monitor.disk_alerts = v;
             }
             if let Some(v) = patch.clean_links_auto {
                 s.mini.clean_links_auto = v;

@@ -43,3 +43,19 @@ export function load(percent: number): 'calm' | 'busy' | 'high' {
 export function percentOf(used: number, total: number): number {
   return total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0;
 }
+
+/** "On battery: 3 h 20 min left", "Charging", "Plugged in". */
+export function batteryLine(b: { plugged: boolean; charging: boolean; minutes_left: number | null }): string {
+  if (b.charging) return 'Charging';
+  if (b.plugged) return 'Plugged in';
+  if (b.minutes_left == null) return 'On battery';
+  const h = Math.floor(b.minutes_left / 60);
+  const m = b.minutes_left % 60;
+  return h > 0 ? `On battery: ${h} h ${m} min left` : `On battery: ${m} min left`;
+}
+
+/** A disk's hours of use as days: "52 days of use". */
+export function useText(hours: number): string {
+  const days = Math.round(hours / 24);
+  return days >= 2 ? `${days} days of use` : `${hours} hours of use`;
+}

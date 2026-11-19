@@ -16,6 +16,7 @@ mod focus;
 mod folder_rules;
 mod goals;
 mod graphics;
+mod hardware;
 mod i18n;
 mod integrations;
 mod launcher;

@@ -44,7 +44,7 @@ export interface Settings {
     keep_scheduled: number;
   };
   updates: { auto_check: boolean; last_checked: number };
-  monitor: { tray_tooltip: boolean };
+  monitor: { tray_tooltip: boolean; disk_alerts: boolean };
   activity: { goal_reminder_hour: number; weekly_report: boolean; enabled: boolean; idle_timeout_secs: number; track_nomnom: boolean };
 }
 
@@ -96,6 +96,7 @@ export interface SettingsPatch {
   phoneIdleMinutes?: number;
   launcherOn?: boolean;
   cleanLinksAuto?: boolean;
+  diskAlerts?: boolean;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -1502,6 +1503,40 @@ export interface MonSnapshot {
   by_cpu: MonProc[];
   by_memory: MonProc[];
 }
+export interface HwGpu {
+  name: string;
+  load: number | null;
+  temp_c: number | null;
+  mem_used_mb: number | null;
+  mem_total_mb: number | null;
+  fan_percent: number | null;
+  power_w: number | null;
+}
+export interface HwBattery {
+  percent: number;
+  plugged: boolean;
+  charging: boolean;
+  minutes_left: number | null;
+}
+export interface HwDisk {
+  name: string;
+  media: string;
+  health: string;
+  status: string;
+  size: number;
+  temp_c: number | null;
+  wear: number | null;
+  hours: number | null;
+  read_errors: number | null;
+  write_errors: number | null;
+  verdict: 'good' | 'watch' | 'bad';
+  why: string[];
+}
+export const hwIpc = {
+  status: () => invoke<{ gpus: HwGpu[]; battery: HwBattery | null }>('hw_status'),
+  disks: () => invoke<HwDisk[]>('hw_disks'),
+};
+
 export const monitorIpc = {
   snapshot: () => invoke<MonSnapshot>('mon_snapshot'),
 };

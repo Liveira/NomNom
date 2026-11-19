@@ -392,11 +392,21 @@ pub struct Mini {
 }
 
 /// The system monitor.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Monitor {
     /// Show processor and memory in the tray tooltip (read every few seconds while on).
     pub tray_tooltip: bool,
+    /// Once a day, look at the health of the disks and say so when one needs attention (Windows).
+    pub disk_alerts: bool,
+}
+impl Default for Monitor {
+    fn default() -> Self {
+        Monitor {
+            tray_tooltip: false,
+            disk_alerts: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
