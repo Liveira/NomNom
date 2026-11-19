@@ -12,6 +12,7 @@
   import { categoryInfo, formatHours } from '../activity/logic';
   import { downloads } from '../downloads/store.svelte';
   import FirstRun from './FirstRun.svelte';
+  import Glance from './Glance.svelte';
 
   let play = $state<ActOverview | null>(null);
 
@@ -151,6 +152,8 @@
     {/if}
   </div>
 </section>
+
+<Glance />
 
 <h2 class="grid-title">Your toolkit</h2>
 <section class="tool-grid">

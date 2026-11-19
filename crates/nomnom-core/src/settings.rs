@@ -449,6 +449,20 @@ impl Default for Settings {
     }
 }
 
+impl Settings {
+    /// These settings with everything from `imported`, except what belongs to this computer: how
+    /// NomNom starts and sits in the system, and its update state. Used when settings are loaded
+    /// from a file made on another computer.
+    pub fn with_imported(&self, imported: Settings) -> Settings {
+        let mut out = imported;
+        out.version = self.version;
+        out.system = self.system.clone();
+        out.updates = self.updates.clone();
+        out.appearance.linux_tuned = self.appearance.linux_tuned;
+        out
+    }
+}
+
 pub struct SettingsStore {
     path: PathBuf,
     current: RwLock<Settings>,

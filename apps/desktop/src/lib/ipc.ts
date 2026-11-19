@@ -594,6 +594,11 @@ export function onNoticesChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('notifications://changed', () => handler());
 }
 
+export const settingsFileIpc = {
+  save: (path: string) => invoke<void>('settings_export', { path }),
+  load: (path: string) => invoke<Settings>('settings_import', { path }),
+};
+
 export const miniIpc = {
   pick: () => invoke<void>('mini_pick'),
   cleanNow: () => invoke<void>('mini_clean_now'),

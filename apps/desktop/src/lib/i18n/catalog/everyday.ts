@@ -130,3 +130,27 @@ export const CLIP_SMART: Entry[] = [
   ['Cleaned link copied.', 'Link limpo copiado.', 'Enlace limpio copiado.'],
   ['Readable JSON copied.', 'JSON legível copiado.', 'JSON legible copiado.'],
 ];
+
+/** The Home page widgets. */
+export const GLANCE: Entry[] = [
+  ['At a glance', 'De relance', 'De un vistazo'],
+  ['Memory', 'Memória', 'Memoria'],
+  ['Disk', 'Disco', 'Disco'],
+  ['Reading…', 'Lendo…', 'Leyendo…'],
+  ['{} free', '{} livres', '{} libres'],
+  ['Next reminder', 'Próximo lembrete', 'Próximo recordatorio'],
+  ['Latest note', 'Última nota', 'Última nota'],
+  ['Pinned', 'Fixada', 'Fijada'],
+  ['Nothing waiting. Say "in 20 minutes stretch".', 'Nada esperando. Diga "em 20 minutos alongar".', 'Nada esperando. Di "en 20 minutos estirar".'],
+  ['No notes yet.', 'Nenhuma nota ainda.', 'Aún no hay notas.'],
+];
+
+/** Saving and loading settings. */
+export const SETTINGS_FILE: Entry[] = [
+  ['Your settings', 'Suas configurações', 'Tus ajustes'],
+  ['Save them to a file to keep a copy or move to another computer. How NomNom starts on each computer is not carried over.', 'Salve num arquivo para guardar uma cópia ou levar para outro computador. A forma como o NomNom inicia em cada computador não é levada junto.', 'Guárdalos en un archivo para tener una copia o llevarlos a otro equipo. La forma en que NomNom arranca en cada equipo no se lleva.'],
+  ['Save to a file…', 'Salvar num arquivo…', 'Guardar en un archivo…'],
+  ['Load from a file…', 'Carregar de um arquivo…', 'Cargar desde un archivo…'],
+  ['Saved.', 'Salvo.', 'Guardado.'],
+  ['Loaded. Some changes show after you restart NomNom.', 'Carregado. Algumas mudanças aparecem depois de reiniciar o NomNom.', 'Cargado. Algunos cambios aparecen al reiniciar NomNom.'],
+];

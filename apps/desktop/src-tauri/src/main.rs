@@ -32,6 +32,7 @@ mod pipe_server;
 mod quick;
 mod reminders;
 mod rename;
+mod settings_io;
 mod shortcuts;
 mod startup;
 mod state;
