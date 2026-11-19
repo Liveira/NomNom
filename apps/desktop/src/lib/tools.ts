@@ -79,6 +79,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-peach)',
   },
   {
+    id: 'actions',
+    icon: 'rocket',
+    title: 'My actions',
+    desc: 'Programs, folders, links and commands of your own, with shortcuts and a search box (Ctrl+K, or Alt+Space anywhere).',
+    tint: 'var(--glow-blush)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

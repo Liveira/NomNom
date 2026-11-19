@@ -1,4 +1,5 @@
 import type { Entry } from '../engine';
+import { ACTIONS } from './actions';
 import { BACKUP } from './backup';
 import { FEATURES } from './features';
 import { FILETOOLS } from './filetools';
@@ -13,4 +14,4 @@ import { STORAGE2 } from './storage2';
 import { TOOLS } from './tools';
 
 /** Every translated string, [English, Português, Español]. Add new text to the file of its area. */
-export const CATALOG: Entry[] = [...SHELL, ...SETTINGS, ...PLAYTIME, ...FILETOOLS, ...STORAGE, ...STORAGE2, ...MISC, ...MESSAGES, ...FEATURES, ...BACKUP, ...MONITOR, ...TOOLS];
+export const CATALOG: Entry[] = [...SHELL, ...SETTINGS, ...PLAYTIME, ...FILETOOLS, ...STORAGE, ...STORAGE2, ...MISC, ...MESSAGES, ...FEATURES, ...BACKUP, ...MONITOR, ...TOOLS, ...ACTIONS];

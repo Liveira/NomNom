@@ -104,8 +104,25 @@ where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
+    spawn_in(program, args, piped_output, None)
+}
+
+/// Like [`spawn`], starting in `cwd` when given.
+pub fn spawn_in<I, S>(
+    program: &std::path::Path,
+    args: I,
+    piped_output: bool,
+    cwd: Option<&std::path::Path>,
+) -> Result<ManagedChild>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
     let mut cmd = Command::new(program);
     cmd.args(args).stdin(Stdio::null()).kill_on_drop(true);
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
     if piped_output {
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     } else {

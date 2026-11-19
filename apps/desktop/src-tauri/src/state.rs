@@ -26,6 +26,9 @@ pub struct AppState {
     pub quick_shown: Mutex<Option<Instant>>,
     pub shortcuts_registered: Mutex<HashMap<&'static str, tauri_plugin_global_shortcut::Shortcut>>,
     pub shortcut_errors: Mutex<HashMap<&'static str, String>>,
+    /// Shortcuts of the person's own actions, by action id, and why one isn't active.
+    pub custom_shortcuts: Mutex<HashMap<String, tauri_plugin_global_shortcut::Shortcut>>,
+    pub custom_errors: Mutex<HashMap<String, String>>,
     pub rate_limiter: crate::browser::RateLimiter,
     pub journal: nomnom_organizer::journal::Journal,
     pub organizer: crate::organizer::OrganizerState,

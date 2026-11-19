@@ -124,6 +124,30 @@ impl Module for StartupModule {
     }
 }
 
+static ACTIONS: ModuleManifest = ModuleManifest {
+    id: "actions",
+    name: "My actions",
+    nav: Some(NavEntry {
+        order: 47,
+        icon: "rocket",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ActionsModule;
+#[async_trait]
+impl Module for ActionsModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &ACTIONS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

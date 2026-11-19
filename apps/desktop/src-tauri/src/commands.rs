@@ -71,6 +71,7 @@ pub struct SettingsPatch {
     text_ocr_translate: Option<bool>,
     phone_dir: Option<String>,
     phone_idle_minutes: Option<u32>,
+    launcher_on: Option<bool>,
 }
 
 #[tauri::command]
@@ -281,6 +282,9 @@ pub fn update_settings(
             if let Some(v) = patch.phone_idle_minutes {
                 s.phone.idle_minutes = v.clamp(1, 240);
             }
+            if let Some(v) = patch.launcher_on {
+                s.shortcuts.launcher_on = v;
+            }
             if let Some(v) = patch.text_ocr {
                 s.text.ocr = v;
             }
@@ -334,7 +338,10 @@ pub fn update_settings(
     if patch.language.is_some() {
         crate::tray::relabel(&app);
     }
-    if patch.clipboard_enabled.is_some() || patch.text_enabled.is_some() || patch.text_ocr.is_some()
+    if patch.clipboard_enabled.is_some()
+        || patch.text_enabled.is_some()
+        || patch.text_ocr.is_some()
+        || patch.launcher_on.is_some()
     {
         crate::shortcuts::sync(&app);
     }
@@ -385,6 +392,7 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::TRANSLATE_REPLACE, s.translate_replace),
         (crate::shortcuts::TRANSLATE_POPUP, s.translate_popup),
         (crate::shortcuts::CAPTURE, s.capture_text),
+        (crate::shortcuts::LAUNCHER, s.launcher),
     ]
     .into_iter()
     .map(|(id, accelerator)| ShortcutInfo {

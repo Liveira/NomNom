@@ -2,6 +2,7 @@
   import type { Component } from 'svelte';
   import Backdrop from '../lib/fx/Backdrop.svelte';
   import Sidebar from './Sidebar.svelte';
+  import Palette from './Palette.svelte';
   import TitleBar from './TitleBar.svelte';
   import { app } from './state.svelte';
 
@@ -30,8 +31,16 @@
       stale = true;
     };
   });
+
+  function keys(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      app.paletteOpen = !app.paletteOpen;
+    }
+  }
 </script>
 
+<svelte:window onkeydown={keys} />
 <Backdrop theme={app.palette} motion={app.motion} />
 <TitleBar />
 <div class="shell">
@@ -48,6 +57,9 @@
     {/key}
   </main>
 </div>
+{#if app.paletteOpen}
+  <Palette onclose={() => (app.paletteOpen = false)} />
+{/if}
 
 <style>
   .shell {

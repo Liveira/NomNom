@@ -1,6 +1,7 @@
 // Release builds are GUI-only: no console window.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod actions;
 mod activity;
 mod app;
 mod backup;
@@ -14,6 +15,7 @@ mod goals;
 mod graphics;
 mod i18n;
 mod integrations;
+mod launcher;
 mod memory;
 mod modules;
 mod monitor;

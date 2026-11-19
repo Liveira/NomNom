@@ -8,7 +8,8 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; keep_ready: boolean };
+  actions: CustomAction[];
   clipboard: { enabled: boolean; keep_days: number };
   text: { enabled: boolean; target: string; ocr: boolean; ocr_translate: boolean };
   phone: { save_dir: string | null; idle_minutes: number };
@@ -92,6 +93,7 @@ export interface SettingsPatch {
   textOcrTranslate?: boolean;
   phoneDir?: string;
   phoneIdleMinutes?: number;
+  launcherOn?: boolean;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -222,7 +224,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher';
   accelerator: string;
   error: string | null;
 }
@@ -477,6 +479,57 @@ export interface StartupOverview {
 export const startupIpc = {
   list: () => invoke<StartupOverview>('su_list'),
   set: (id: string, enabled: boolean) => invoke<void>('su_set', { id, enabled }),
+};
+
+export type ActionKind = 'app' | 'folder' | 'link' | 'command';
+export interface ActionParam {
+  name: string;
+  label: string;
+  default: string;
+  kind: 'text' | 'file' | 'folder';
+}
+export interface CustomAction {
+  id: string;
+  name: string;
+  kind: ActionKind;
+  target: string;
+  args: string;
+  params: ActionParam[];
+  shortcut: string | null;
+  in_palette: boolean;
+  cwd: string | null;
+}
+export interface ActionView extends CustomAction {
+  shortcut_error: string | null;
+}
+export interface ActionResult {
+  ok: boolean;
+  code: number | null;
+  output: string;
+  truncated: boolean;
+  timed_out: boolean;
+  message: string;
+}
+export const actionsIpc = {
+  list: () => invoke<ActionView[]>('ca_list'),
+  save: (action: CustomAction) => invoke<ActionView[]>('ca_save', { action }),
+  remove: (id: string) => invoke<ActionView[]>('ca_delete', { id }),
+  run: (id: string, values: Record<string, string>) => invoke<ActionResult>('ca_run', { id, values }),
+};
+
+export type LauncherKind = 'app' | 'folder' | 'recent';
+export interface LauncherEntry {
+  name: string;
+  path: string;
+  kind: LauncherKind;
+}
+export const launcherIpc = {
+  entries: () => invoke<LauncherEntry[]>('lc_entries'),
+  open: (path: string) => invoke<void>('lc_open', { path }),
+  openPath: (path: string, reveal: boolean) => invoke<void>('lc_open_path', { path, reveal }),
+  go: (page: string) => invoke<void>('lc_go', { page }),
+  close: () => invoke<void>('lc_close'),
+  ready: () => invoke<void>('lc_ready'),
 };
 
 export const ocrIpc = {

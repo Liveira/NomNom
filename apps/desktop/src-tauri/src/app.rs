@@ -1,9 +1,10 @@
 use crate::modules::downloads;
 use crate::{
-    activity, backup, browser, clipboard, commands, events, filetools, focus, goals, integrations,
-    memory, modules, monitor, notifier, ocr, organizer, pdftools, phone, pipe_server, quick,
-    rename, shortcuts, startup, state::AppState, storage, storage_cleanup, storage_history,
-    storage_ops, storage_tools, subscriptions, toast, translate, tray, updater, windows,
+    actions, activity, backup, browser, clipboard, commands, events, filetools, focus, goals,
+    integrations, launcher, memory, modules, monitor, notifier, ocr, organizer, pdftools, phone,
+    pipe_server, quick, rename, shortcuts, startup, state::AppState, storage, storage_cleanup,
+    storage_history, storage_ops, storage_tools, subscriptions, toast, translate, tray, updater,
+    windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -100,6 +101,8 @@ pub fn run() {
         quick_shown: Default::default(),
         shortcuts_registered: Default::default(),
         shortcut_errors: Default::default(),
+        custom_shortcuts: Default::default(),
+        custom_errors: Default::default(),
         phone: Default::default(),
         rate_limiter: crate::browser::RateLimiter::new(),
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
@@ -184,6 +187,16 @@ pub fn run() {
             clipboard::cb_use,
             clipboard::cb_ready,
             clipboard::cb_close,
+            actions::ca_list,
+            actions::ca_save,
+            actions::ca_delete,
+            actions::ca_run,
+            launcher::lc_entries,
+            launcher::lc_open,
+            launcher::lc_open_path,
+            launcher::lc_go,
+            launcher::lc_close,
+            launcher::lc_ready,
             clipboard::cb_open,
             rename::rn_inspect,
             rename::rn_preview,
@@ -319,6 +332,7 @@ pub fn run() {
             events::spawn_forwarder(app.handle().clone());
             notifier::spawn(app.handle().clone());
             shortcuts::register_all(app.handle());
+            shortcuts::sync_custom(app.handle());
             browser::write_integration(&app.state::<AppState>());
             pipe_server::spawn(app.handle().clone());
             quick::apply_keep_ready(app.handle());

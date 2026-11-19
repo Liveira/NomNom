@@ -161,6 +161,10 @@ pub struct Shortcuts {
     pub translate_popup: String,
     /// Reads the text in a rectangle of the screen (when that is switched on).
     pub capture_text: String,
+    /// Opens the launcher: a search box for programs, files, folders and your own actions.
+    pub launcher: String,
+    /// Whether the launcher shortcut is taken at all.
+    pub launcher_on: bool,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -173,6 +177,8 @@ impl Default for Shortcuts {
             translate_replace: "Ctrl+Alt+R".into(),
             translate_popup: "Ctrl+Alt+Y".into(),
             capture_text: "Ctrl+Alt+O".into(),
+            launcher: "Alt+Space".into(),
+            launcher_on: true,
             keep_ready: false,
         }
     }
@@ -388,6 +394,8 @@ pub struct Settings {
     pub clipboard: Clipboard,
     pub text: Text,
     pub phone: Phone,
+    /// Things the person added: programs, folders, links and commands with shortcuts.
+    pub actions: Vec<crate::actions::Action>,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -410,6 +418,7 @@ impl Default for Settings {
             clipboard: Clipboard::default(),
             text: Text::default(),
             phone: Phone::default(),
+            actions: Vec::new(),
             extra: Map::new(),
         }
     }

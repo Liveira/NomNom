@@ -8,6 +8,8 @@ import { discoverModules } from './discover';
 class AppState {
   nav = $state<NavItem[]>([]);
   settings = $state<Settings | null>(null);
+  /** The command palette (Ctrl+K) is open. */
+  paletteOpen = $state(false);
   current = $state('home');
   tasks = $state<Record<string, TaskInfo>>({});
   /** A newer NomNom found by the last update check. */

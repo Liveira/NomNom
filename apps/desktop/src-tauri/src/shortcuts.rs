@@ -15,13 +15,15 @@ pub const CLIPBOARD: &str = "clipboard";
 pub const TRANSLATE_REPLACE: &str = "translate_replace";
 pub const TRANSLATE_POPUP: &str = "translate_popup";
 pub const CAPTURE: &str = "capture_text";
-pub const IDS: [&str; 6] = [
+pub const LAUNCHER: &str = "launcher";
+pub const IDS: [&str; 7] = [
     QUICK,
     OPEN,
     CLIPBOARD,
     TRANSLATE_REPLACE,
     TRANSLATE_POPUP,
     CAPTURE,
+    LAUNCHER,
 ];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
@@ -43,6 +45,7 @@ fn action(app: &AppHandle, id: &str) {
         TRANSLATE_REPLACE => crate::translate::replace_selection(app),
         TRANSLATE_POPUP => crate::translate::popup_selection(app),
         CAPTURE => crate::ocr::capture(app),
+        LAUNCHER => crate::launcher::toggle(app),
         _ => {}
     }
 }
@@ -67,6 +70,7 @@ fn configured(app: &AppHandle, id: &str) -> String {
         TRANSLATE_REPLACE => s.translate_replace,
         TRANSLATE_POPUP => s.translate_popup,
         CAPTURE => s.capture_text,
+        LAUNCHER => s.launcher,
         _ => s.clipboard,
     }
 }
@@ -78,6 +82,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
         CLIPBOARD => s.clipboard.enabled,
         TRANSLATE_REPLACE | TRANSLATE_POPUP => s.text.enabled,
         CAPTURE => s.text.ocr,
+        LAUNCHER => s.shortcuts.launcher_on,
         _ => true,
     }
 }
@@ -132,6 +137,9 @@ pub fn change(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
     {
         return Err("That's already used by another NomNom shortcut.".into());
     }
+    if custom_uses(app, &new, None) {
+        return Err("One of your own actions already uses that.".into());
+    }
 
     let state = app.state::<AppState>();
     let old = state.shortcuts_registered.lock().unwrap().remove(id);
@@ -173,10 +181,72 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             TRANSLATE_REPLACE => s.shortcuts.translate_replace = accel.to_string(),
             TRANSLATE_POPUP => s.shortcuts.translate_popup = accel.to_string(),
             CAPTURE => s.shortcuts.capture_text = accel.to_string(),
+            LAUNCHER => s.shortcuts.launcher = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())
         .map_err(|e| e.to_string())
+}
+
+/// Does one of the person's own actions (other than `except`) already use these keys?
+pub fn custom_uses(app: &AppHandle, keys: &Shortcut, except: Option<&str>) -> bool {
+    app.state::<AppState>()
+        .settings
+        .get()
+        .actions
+        .iter()
+        .filter(|a| Some(a.id.as_str()) != except)
+        .filter_map(|a| a.shortcut.as_deref())
+        .any(|k| parse_accelerator(k).is_ok_and(|p| p == *keys))
+}
+
+/// Does this accelerator belong to one of NomNom's own shortcuts?
+pub fn builtin_uses(app: &AppHandle, keys: &Shortcut) -> bool {
+    IDS.into_iter()
+        .any(|id| parse_accelerator(&configured(app, id)).is_ok_and(|o| o == *keys))
+}
+
+/// Takes the keys of every action that has a shortcut and lets go of the rest. Run after the list
+/// changes and at start. A key another app owns is kept as a note beside the action.
+pub fn sync_custom(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let actions = state.settings.get().actions;
+    let old: Vec<_> = state.custom_shortcuts.lock().unwrap().drain().collect();
+    for (_, s) in old {
+        let _ = app.global_shortcut().unregister(s);
+    }
+    state.custom_errors.lock().unwrap().clear();
+    for a in actions {
+        let Some(accel) = a.shortcut.clone().filter(|k| !k.trim().is_empty()) else {
+            continue;
+        };
+        let id = a.id.clone();
+        let result = parse_accelerator(&accel).and_then(|sc| {
+            if builtin_uses(app, &sc) {
+                return Err("That's already used by a NomNom shortcut.".to_string());
+            }
+            let run_id = id.clone();
+            app.global_shortcut()
+                .on_shortcut(sc, move |app, _s, event| {
+                    if event.state() == ShortcutState::Pressed {
+                        crate::actions::run_in_background(app, &run_id);
+                    }
+                })
+                .map_err(|_| {
+                    format!("{accel} is used by another app. Pick a different shortcut.")
+                })?;
+            Ok(sc)
+        });
+        match result {
+            Ok(sc) => {
+                state.custom_shortcuts.lock().unwrap().insert(id, sc);
+            }
+            Err(e) => {
+                tracing::warn!(%id, "action shortcut not registered: {e}");
+                state.custom_errors.lock().unwrap().insert(id, e);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

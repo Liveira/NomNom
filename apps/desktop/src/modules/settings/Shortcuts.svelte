@@ -12,6 +12,7 @@
     translate_replace: 'Replace the selected text with its translation',
     translate_popup: 'Show the translation of the selected text',
     capture_text: 'Read text from the screen',
+    launcher: 'Open the launcher (search programs, files and your actions)',
   };
 
   let items = $state<ShortcutInfo[]>([]);
@@ -85,6 +86,17 @@
       </button>
     </div>
   {/each}
+  <div class="row">
+    <div>
+      <div class="label">Use the launcher shortcut</div>
+      <div class="hint">Turn it off if another app, such as PowerToys, already uses these keys.</div>
+    </div>
+    <Switch
+      checked={app.settings?.shortcuts.launcher_on ?? true}
+      label="Use the launcher shortcut"
+      onchange={(v) => app.update({ launcherOn: v })}
+    />
+  </div>
   <div class="row">
     <div>
       <div class="label">Keep quick download ready</div>
