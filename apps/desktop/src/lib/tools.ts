@@ -72,6 +72,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-lavender)',
   },
   {
+    id: 'startup',
+    icon: 'power',
+    title: 'Startup apps',
+    desc: 'See what opens with your computer and how much each one slowed it down. Turn off what you do not need.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

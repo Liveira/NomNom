@@ -10,6 +10,7 @@ pub mod phone;
 pub mod process;
 pub mod rename;
 pub mod settings;
+pub mod startup;
 pub mod tasks;
 pub mod translate;
 

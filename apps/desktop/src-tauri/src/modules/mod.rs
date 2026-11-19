@@ -20,6 +20,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ClipboardModule),
         Arc::new(builtin::TextModule),
         Arc::new(builtin::PhoneModule),
+        Arc::new(builtin::StartupModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

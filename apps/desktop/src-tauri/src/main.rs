@@ -25,6 +25,7 @@ mod pipe_server;
 mod quick;
 mod rename;
 mod shortcuts;
+mod startup;
 mod state;
 mod storage;
 mod storage_cleanup;

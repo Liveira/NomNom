@@ -2,7 +2,7 @@ use crate::modules::downloads;
 use crate::{
     activity, backup, browser, clipboard, commands, events, filetools, focus, goals, integrations,
     memory, modules, monitor, notifier, organizer, pdftools, phone, pipe_server, quick, rename,
-    shortcuts, state::AppState, storage, storage_cleanup, storage_history, storage_ops,
+    shortcuts, startup, state::AppState, storage, storage_cleanup, storage_history, storage_ops,
     storage_tools, subscriptions, toast, translate, tray, updater, windows,
 };
 use nomnom_core::{
@@ -150,6 +150,8 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            startup::su_list,
+            startup::su_set,
             phone::ph_status,
             phone::ph_start,
             phone::ph_stop,

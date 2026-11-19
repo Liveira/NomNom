@@ -100,6 +100,30 @@ impl Module for PhoneModule {
     }
 }
 
+static STARTUP: ModuleManifest = ModuleManifest {
+    id: "startup",
+    name: "Startup apps",
+    nav: Some(NavEntry {
+        order: 46,
+        icon: "power",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct StartupModule;
+#[async_trait]
+impl Module for StartupModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &STARTUP
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

@@ -20,3 +20,5 @@ pub mod shell_menu;
 pub mod sparse;
 #[cfg(windows)]
 pub mod sparse_manifest;
+#[cfg(windows)]
+pub mod startup;

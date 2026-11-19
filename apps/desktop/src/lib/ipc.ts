@@ -449,6 +449,34 @@ export function onPhoneChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('phone://changed', () => handler());
 }
 
+export interface StartupEffect {
+  times: number;
+  total_ms: number;
+  worst_ms: number;
+  last_ms: number;
+  last_when: string;
+}
+export interface StartupItem {
+  id: string;
+  name: string;
+  command: string;
+  program: string | null;
+  enabled: boolean;
+  can_change: boolean;
+  from: string;
+  icon_url: string | null;
+  effect: StartupEffect | null;
+}
+export interface StartupOverview {
+  items: StartupItem[];
+  last_boot_ms: number | null;
+  has_record: boolean;
+}
+export const startupIpc = {
+  list: () => invoke<StartupOverview>('su_list'),
+  set: (id: string, enabled: boolean) => invoke<void>('su_set', { id, enabled }),
+};
+
 export interface ToastCard {
   kind: 'info' | 'success' | 'warning' | 'error';
   title: string;

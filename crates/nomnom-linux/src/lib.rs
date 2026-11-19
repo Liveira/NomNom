@@ -5,3 +5,4 @@
 pub mod autostart;
 pub mod native_host;
 pub mod shell_menu;
+pub mod startup;
