@@ -22,3 +22,30 @@ describe('how long to keep', () => {
     expect(new Set(KEEP_CHOICES.map((c) => c.days)).size).toBe(KEEP_CHOICES.length);
   });
 });
+
+import { smartOf } from './logic';
+
+describe('smartOf', () => {
+  it('knows a whole link', () => {
+    expect(smartOf('https://example.com/a?b=1', 25)).toEqual({ kind: 'link', url: 'https://example.com/a?b=1' });
+    expect(smartOf('see https://example.com', 23)).toBeNull();
+  });
+  it('shows a colour written as code', () => {
+    expect(smartOf('#ffa970', 7)).toEqual({ kind: 'colour', hex: '#ffa970' });
+    expect(smartOf('rgb(255, 169, 112)', 18)).toEqual({ kind: 'colour', hex: '#ffa970' });
+    expect(smartOf('123456', 6)).toBeNull();
+  });
+  it('answers a sum but not a bare number', () => {
+    expect(smartOf('2+3*4', 5)).toEqual({ kind: 'calc', answer: '14' });
+    expect(smartOf('42', 2)).toBeNull();
+  });
+  it('spots JSON, short or long', () => {
+    expect(smartOf('{"a":1}', 7)).toEqual({ kind: 'json' });
+    expect(smartOf('{"a": [1, 2', 11)).toBeNull();
+    expect(smartOf('{"a":' + '1'.repeat(200), 400)).toEqual({ kind: 'json' });
+  });
+  it('leaves ordinary text alone', () => {
+    expect(smartOf('hello there', 11)).toBeNull();
+    expect(smartOf('', 0)).toBeNull();
+  });
+});

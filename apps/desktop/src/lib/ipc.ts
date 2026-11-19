@@ -361,6 +361,8 @@ export const clipIpc = {
   remove: (id: number) => invoke<void>('cb_delete', { id }),
   clear: (keepPinned: boolean) => invoke<void>('cb_clear', { keepPinned }),
   use: (id: number, paste: boolean) => invoke<void>('cb_use', { id, paste }),
+  text: (id: number) => invoke<string>('cb_text', { id }),
+  cleanLink: (text: string) => invoke<string | null>('links_clean', { text }),
   ready: () => invoke<void>('cb_ready'),
   close: () => invoke<void>('cb_close'),
   open: () => invoke<void>('cb_open'),
@@ -574,6 +576,23 @@ export const launcherIpc = {
   close: () => invoke<void>('lc_close'),
   ready: () => invoke<void>('lc_ready'),
 };
+
+export interface NoticeItem {
+  id: number;
+  at: number;
+  kind: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  body: string;
+  action: string | null;
+}
+export const noticeIpc = {
+  list: () => invoke<NoticeItem[]>('nf_list'),
+  clear: () => invoke<void>('nf_clear'),
+  remove: (id: number) => invoke<void>('nf_delete', { id }),
+};
+export function onNoticesChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('notifications://changed', () => handler());
+}
 
 export const miniIpc = {
   pick: () => invoke<void>('mini_pick'),

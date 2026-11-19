@@ -268,6 +268,30 @@ impl Module for MiniModule {
     }
 }
 
+static INBOX: ModuleManifest = ModuleManifest {
+    id: "inbox",
+    name: "Notifications",
+    nav: Some(NavEntry {
+        order: 53,
+        icon: "bell",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct InboxModule;
+#[async_trait]
+impl Module for InboxModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &INBOX
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

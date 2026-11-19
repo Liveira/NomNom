@@ -27,6 +27,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ClocksModule),
         Arc::new(builtin::ToolboxModule),
         Arc::new(builtin::MiniModule),
+        Arc::new(builtin::InboxModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

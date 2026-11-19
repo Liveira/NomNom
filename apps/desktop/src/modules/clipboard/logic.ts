@@ -1,3 +1,6 @@
+import { calc, showNumber } from '../../lib/palette';
+import { parseColor, toHex } from '../toolbox/logic';
+
 /** "just now", "5 min ago", "yesterday", "3 days ago", or the date for older ones. */
 export function ago(unixSecs: number, now: number = Math.floor(Date.now() / 1000)): string {
   const s = Math.max(0, now - unixSecs);
@@ -19,3 +22,33 @@ export const KEEP_CHOICES: { days: number; label: string }[] = [
   { days: 365, label: '1 year' },
   { days: 0, label: 'For ever' },
 ];
+
+export type Smart =
+  | { kind: 'link'; url: string }
+  | { kind: 'colour'; hex: string }
+  | { kind: 'calc'; answer: string }
+  | { kind: 'json' }
+  | null;
+
+/**
+ * What an entry looks like, so the list can offer the one thing that fits: a link can be downloaded,
+ * a colour is shown, a sum is answered, a JSON text is made readable. Only whole, short texts count.
+ */
+export function smartOf(preview: string, chars: number): Smart {
+  const t = preview.trim();
+  if (!t || chars > 220) return chars > 220 && /^\s*[[{]/.test(preview) ? { kind: 'json' } : null;
+  if (/^https?:\/\/\S+$/i.test(t)) return { kind: 'link', url: t };
+  const rgb = parseColor(t);
+  if (rgb && /^(#|rgb\(|hsl\()/i.test(t)) return { kind: 'colour', hex: toHex(rgb) };
+  const sum = calc(t);
+  if (sum !== null) return { kind: 'calc', answer: showNumber(sum) };
+  if (/^[[{]/.test(t)) {
+    try {
+      JSON.parse(t);
+      return { kind: 'json' };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}

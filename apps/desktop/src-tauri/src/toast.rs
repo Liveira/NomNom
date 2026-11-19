@@ -61,6 +61,7 @@ fn pretty(app: &AppHandle) -> bool {
 
 /// Shows a notification: the themed card where possible, the system's own otherwise.
 pub fn show(app: &AppHandle, toast: Toast) {
+    crate::notifications::record(app, &toast);
     if !pretty(app) {
         let _ = app
             .notification()

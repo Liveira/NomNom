@@ -238,6 +238,27 @@ pub fn cb_clear(app: AppHandle, state: State<'_, AppState>, keep_pinned: bool) -
     Ok(())
 }
 
+/// The whole text of one entry (the list only carries a preview).
+#[tauri::command]
+pub fn cb_text(state: State<'_, AppState>, id: i64) -> CmdResult<String> {
+    state
+        .db
+        .with(|c| {
+            c.query_row(
+                "SELECT text FROM clipboard_items WHERE id = ?1",
+                params![id],
+                |r| r.get(0),
+            )
+        })
+        .map_err(|_| "That entry is gone.".to_string())
+}
+
+/// A link without its tracking, or nothing when there was none.
+#[tauri::command]
+pub fn links_clean(text: String) -> Option<String> {
+    nomnom_core::links::clean(&text)
+}
+
 /// Puts an entry on the clipboard. From the popup (`paste`) it also goes into the window that was in
 /// front, where the person was typing.
 #[tauri::command]

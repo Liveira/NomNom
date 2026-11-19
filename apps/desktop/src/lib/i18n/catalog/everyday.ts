@@ -110,3 +110,23 @@ export const MINI: Entry[] = [
   ['Clean the link on the clipboard', 'Limpar o link da área de transferência', 'Limpiar el enlace del portapapeles'],
   ['Click a colour to copy it. Esc to cancel.', 'Clique numa cor para copiá-la. Esc para cancelar.', 'Haz clic en un color para copiarlo. Esc para cancelar.'],
 ];
+
+/** The notification history. */
+export const INBOX: Entry[] = [
+  ['Notifications', 'Notificações', 'Notificaciones'],
+  ['What NomNom told you in the last seven days. They stay on this computer only.', 'O que o NomNom avisou nos últimos sete dias. Ficam só neste computador.', 'Lo que NomNom te avisó en los últimos siete días. Se quedan solo en este equipo.'],
+  ['Nothing yet. When NomNom finishes a download, reaches a goal or reminds you of something, it shows up here too.', 'Nada ainda. Quando o NomNom terminar um download, atingir uma meta ou lembrar de algo, aparece aqui também.', 'Nada todavía. Cuando NomNom termine una descarga, alcance una meta o te recuerde algo, aparecerá aquí también.'],
+  ['The notices NomNom showed in the last days, so one that went away unread can be found again.', 'Os avisos que o NomNom mostrou nos últimos dias, para achar de novo um que sumiu sem ser lido.', 'Los avisos que NomNom mostró en los últimos días, para volver a encontrar uno que desapareció sin leer.'],
+  ['Clear all', 'Limpar tudo', 'Borrar todo'],
+  ['Remove this notice', 'Remover este aviso', 'Quitar este aviso'],
+  ['Today', 'Hoje', 'Hoy'],
+  ['Yesterday', 'Ontem', 'Ayer'],
+];
+
+/** Smart actions in the clipboard list. */
+export const CLIP_SMART: Entry[] = [
+  ['Clean', 'Limpar', 'Limpiar'],
+  ['There was no tracking in that link.', 'Esse link não tinha rastreio.', 'Ese enlace no tenía rastreo.'],
+  ['Cleaned link copied.', 'Link limpo copiado.', 'Enlace limpio copiado.'],
+  ['Readable JSON copied.', 'JSON legível copiado.', 'JSON legible copiado.'],
+];

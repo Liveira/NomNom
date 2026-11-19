@@ -2,7 +2,10 @@
   import { onDestroy, onMount, tick } from 'svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { clipIpc, onClipboardChanged, type ClipEntry } from '../../lib/ipc';
-  import { ago } from './logic';
+  import { app } from '../../app/state.svelte';
+  import { downloads } from '../downloads/store.svelte';
+  import { jsonFormat } from '../toolbox/logic';
+  import { ago, smartOf } from './logic';
 
   /** `popup`: the small window opened by the shortcut (Enter pastes). `page`: inside NomNom. */
   let { mode = 'page' }: { mode?: 'popup' | 'page' } = $props();
@@ -46,6 +49,27 @@
     } catch (err) {
       note = String(err);
     }
+  }
+
+  function say(text: string) {
+    note = text;
+    setTimeout(() => (note = ''), 2400);
+  }
+  async function download(url: string) {
+    downloads.pendingUrl = url;
+    app.go('downloads');
+  }
+  async function clean(url: string) {
+    const c = await clipIpc.cleanLink(url).catch(() => null);
+    if (!c) return say('There was no tracking in that link.');
+    await navigator.clipboard.writeText(c).catch(() => {});
+    say('Cleaned link copied.');
+  }
+  async function readable(e: ClipEntry) {
+    const r = jsonFormat(await clipIpc.text(e.id).catch(() => ''));
+    if (!r.ok) return say(r.error);
+    await navigator.clipboard.writeText(r.value).catch(() => {});
+    say('Readable JSON copied.');
   }
 
   async function pin(e: ClipEntry) {
@@ -99,11 +123,24 @@
 
   <ul class="list" role="listbox" aria-label="Copied text">
     {#each entries as e, i (e.id)}
+      {@const s = smartOf(e.preview, e.chars)}
       <li class="clip-row" class:active={i === active} class:pinned={e.pinned} role="option" aria-selected={i === active}>
         <button class="main" onclick={() => use(e)} onmousemove={() => (active = i)} title="Copy this again">
-          <span class="text" translate="no">{e.preview}</span>
+          <span class="text" translate="no">{#if s?.kind === 'colour'}<span class="sw" style="background:{s.hex}"></span>{/if}{e.preview}</span>
           <span class="meta tabular">{ago(e.last_at)}{e.copies > 1 ? ` · copied ${e.copies} times` : ''}{e.chars > 220 ? ` · ${e.chars} characters` : ''}</span>
         </button>
+        {#if s && mode === 'page'}
+          {#if s.kind === 'link'}
+            <button class="act" onclick={() => download(s.url)}>Download</button>
+            <button class="act" onclick={() => clean(s.url)}>Clean</button>
+          {:else if s.kind === 'calc'}
+            <span class="chip tabular" translate="no">= {s.answer}</span>
+          {:else if s.kind === 'json'}
+            <button class="act" onclick={() => readable(e)}>Make readable</button>
+          {/if}
+        {:else if s?.kind === 'calc'}
+          <span class="chip tabular" translate="no">= {s.answer}</span>
+        {/if}
         <button class="tool" class:on={e.pinned} aria-label={e.pinned ? 'Unpin' : 'Pin'} title={e.pinned ? 'Unpin' : 'Pin: keep it for good'} onclick={() => pin(e)}><Icon name="pin" size={14} /></button>
         <button class="tool" aria-label="Delete" title="Delete" onclick={() => remove(e)}><Icon name="trash" size={14} /></button>
       </li>
@@ -132,6 +169,10 @@
   .main { flex: 1; min-width: 0; display: grid; gap: 2px; text-align: left; border: 0; background: none; color: inherit; padding: 8px 10px; cursor: pointer; }
   .text { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; font-size: 13.5px; }
   .meta { color: var(--text-3); font-size: 11.5px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--border-strong); }
+  .act { flex: none; align-self: center; margin-right: 4px; border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-2); border-radius: 99px; padding: 3px 11px; font: inherit; font-size: 12px; cursor: pointer; }
+  .act:hover { background: var(--surface-3); color: var(--text); }
+  .chip { flex: none; align-self: center; margin-right: 6px; padding: 2px 9px; border-radius: 99px; background: var(--glow-peach); color: var(--accent-text); font-size: 12.5px; font-weight: 700; }
   .tool { flex: none; width: 30px; border: 0; background: none; color: var(--text-3); cursor: pointer; display: grid; place-items: center; }
   .tool:hover { color: var(--text); }
   .tool.on { color: var(--accent-text); }

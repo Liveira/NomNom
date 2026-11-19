@@ -1,10 +1,10 @@
 use crate::modules::downloads;
 use crate::{
     actions, activity, backup, browser, clipboard, colorpick, commands, events, filetools, focus,
-    goals, integrations, launcher, memory, mini, modules, monitor, notes, notifier, ocr, organizer,
-    pdftools, phone, pipe_server, quick, reminders, rename, shortcuts, startup, state::AppState,
-    storage, storage_cleanup, storage_history, storage_ops, storage_tools, subscriptions, toast,
-    translate, tray, updater, windows,
+    goals, integrations, launcher, memory, mini, modules, monitor, notes, notifications, notifier,
+    ocr, organizer, pdftools, phone, pipe_server, quick, reminders, rename, shortcuts, startup,
+    state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools,
+    subscriptions, toast, translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -187,6 +187,8 @@ pub fn run() {
             clipboard::cb_use,
             clipboard::cb_ready,
             clipboard::cb_close,
+            clipboard::cb_text,
+            clipboard::links_clean,
             actions::ca_list,
             actions::ca_save,
             actions::ca_delete,
@@ -203,6 +205,9 @@ pub fn run() {
             reminders::rm_list,
             reminders::rm_delete,
             reminders::rm_snooze,
+            notifications::nf_list,
+            notifications::nf_clear,
+            notifications::nf_delete,
             notes::nt_list,
             notes::nt_save,
             notes::nt_pin,

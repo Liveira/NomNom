@@ -22,6 +22,7 @@ mod mini;
 mod modules;
 mod monitor;
 mod notes;
+mod notifications;
 mod notifier;
 mod ocr;
 mod organizer;

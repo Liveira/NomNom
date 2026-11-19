@@ -163,6 +163,15 @@ const MIGRATIONS: &[&str] = &[
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL);
      CREATE INDEX notes_order ON notes(pinned DESC, updated_at DESC);",
+    // v14: the notices NomNom showed, kept for a few days.
+    "CREATE TABLE notifications(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        action TEXT);
+     CREATE INDEX notifications_at ON notifications(at DESC);",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

@@ -121,6 +121,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'inbox',
+    icon: 'bell',
+    title: 'Notifications',
+    desc: 'The notices NomNom showed in the last days, so one that went away unread can be found again.',
+    tint: 'var(--glow-lavender)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',
