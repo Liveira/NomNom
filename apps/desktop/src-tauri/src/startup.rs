@@ -3,7 +3,6 @@
 
 use nomnom_core::startup::{self as rules, Effect};
 use serde::Serialize;
-use std::collections::HashMap;
 
 type CmdResult<T> = Result<T, String>;
 
@@ -54,7 +53,7 @@ fn read_record(channel_query: &str, count: u32) -> String {
 fn items() -> (Vec<Item>, Option<u64>, bool) {
     use nomnom_win::startup::{list, Kind};
     let slow = rules::parse_slowdowns(&read_record("101", 300));
-    let effects: HashMap<String, Effect> = rules::effects(&slow);
+    let effects: std::collections::HashMap<String, Effect> = rules::effects(&slow);
     let boot = rules::parse_boot_time(&read_record("100", 1));
     let items = list()
         .into_iter()

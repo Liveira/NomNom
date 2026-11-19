@@ -29,6 +29,7 @@ const LIST_CHARS: usize = 220;
 static SUPPRESS_UNTIL: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
 
 /// Keeps what NomNom copies for its own purposes (reading a selection) out of the history.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn suppress(ms: i64) {
     let until = now() * 1000 + ms;
     SUPPRESS_UNTIL.store(until, std::sync::atomic::Ordering::Relaxed);

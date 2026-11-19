@@ -7,9 +7,12 @@
 
 use crate::state::AppState;
 use crate::toast::{self, Toast};
+#[cfg(windows)]
 use crate::windows::shared_webview_args;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager};
+#[cfg(windows)]
+use tauri::{PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 type CmdResult<T> = Result<T, String>;
