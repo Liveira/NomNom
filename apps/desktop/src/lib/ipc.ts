@@ -1022,6 +1022,39 @@ export const pdfIpc = {
   split: (path: string, mode: 'each' | 'pages', pages: string) => invoke<string[]>('pdf_split', { path, mode, pages }),
 };
 
+// ---- File Tools: rename many files ----------------------------------------------------------------
+export interface RenameOptions {
+  template: string;
+  find: string;
+  replace: string;
+  case: 'keep' | 'lower' | 'upper' | 'title';
+  spaces: 'keep' | 'underscore' | 'dash' | 'dot' | 'remove';
+  order: 'given' | 'name' | 'modified';
+  start: number;
+  step: number;
+  lower_ext: boolean;
+  today: string;
+}
+export interface RenameItem {
+  from: string;
+  from_name: string;
+  to_name: string;
+  status: 'ok' | 'same' | 'conflict' | 'invalid';
+  note: string;
+}
+export interface RenameResult {
+  renamed: number;
+  skipped: number;
+  failed: [string, string][];
+}
+export const renameIpc = {
+  inspect: (paths: string[]) => invoke<string[]>('rn_inspect', { paths }),
+  preview: (paths: string[], options: RenameOptions) => invoke<RenameItem[]>('rn_preview', { paths, options }),
+  apply: (paths: string[], options: RenameOptions) => invoke<RenameResult>('rn_apply', { paths, options }),
+  canUndo: () => invoke<number>('rn_can_undo'),
+  undo: () => invoke<RenameResult>('rn_undo'),
+};
+
 // ---- Downloader: schedule -----------------------------------------------------------------------
 export interface Scheduled {
   id: string;

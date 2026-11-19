@@ -277,6 +277,7 @@
     return () => unlisteners.forEach((u) => void u.then((f) => f()));
   });
   import PdfTools from './PdfTools.svelte';
+  import RenameTools from './RenameTools.svelte';
 </script>
 
 <h1>File Tools</h1>
@@ -487,6 +488,7 @@
 {/if}
 
 <PdfTools />
+<RenameTools />
 
 <style>
   h1 { margin-bottom: 18px; }

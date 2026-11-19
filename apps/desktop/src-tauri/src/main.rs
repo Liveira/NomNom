@@ -21,6 +21,7 @@ mod organizer;
 mod pdftools;
 mod pipe_server;
 mod quick;
+mod rename;
 mod shortcuts;
 mod state;
 mod storage;

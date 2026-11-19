@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
     activity, backup, browser, commands, events, filetools, focus, goals, integrations, memory,
-    modules, monitor, notifier, organizer, pdftools, pipe_server, quick, shortcuts,
+    modules, monitor, notifier, organizer, pdftools, pipe_server, quick, rename, shortcuts,
     state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast,
     tray, updater, windows,
 };
@@ -149,6 +149,11 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            rename::rn_inspect,
+            rename::rn_preview,
+            rename::rn_apply,
+            rename::rn_can_undo,
+            rename::rn_undo,
             goals::goals_list,
             goals::goals_save,
             goals::goals_delete,
