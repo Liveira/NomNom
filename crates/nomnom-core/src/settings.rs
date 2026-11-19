@@ -168,7 +168,7 @@ impl Default for Shortcuts {
             quick_download: "Ctrl+Alt+D".into(),
             open_app: "Ctrl+Alt+N".into(),
             clipboard: "Ctrl+Alt+V".into(),
-            translate_replace: "Ctrl+Alt+T".into(),
+            translate_replace: "Ctrl+Alt+R".into(),
             translate_popup: "Ctrl+Alt+Y".into(),
             keep_ready: false,
         }

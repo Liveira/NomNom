@@ -8,7 +8,7 @@
 
   const enabled = $derived(app.settings?.text.enabled ?? false);
   const target = $derived(app.settings?.text.target ?? 'auto');
-  const replaceKeys = $derived(app.settings?.shortcuts.translate_replace ?? 'Ctrl+Alt+T');
+  const replaceKeys = $derived(app.settings?.shortcuts.translate_replace ?? 'Ctrl+Alt+R');
   const popupKeys = $derived(app.settings?.shortcuts.translate_popup ?? 'Ctrl+Alt+Y');
 
   let status = $state<KeyStatus | null>(null);
