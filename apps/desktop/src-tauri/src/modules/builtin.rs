@@ -28,6 +28,30 @@ static SETTINGS: ModuleManifest = ModuleManifest {
     capabilities: &[],
 };
 
+static CLIPBOARD: ModuleManifest = ModuleManifest {
+    id: "clipboard",
+    name: "Clipboard",
+    nav: Some(NavEntry {
+        order: 38,
+        icon: "clipboard",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ClipboardModule;
+#[async_trait]
+impl Module for ClipboardModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &CLIPBOARD
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

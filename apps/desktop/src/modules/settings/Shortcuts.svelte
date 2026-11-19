@@ -8,6 +8,7 @@
   const labels: Record<ShortcutInfo['id'], string> = {
     quick_download: 'Quick download from the clipboard',
     open_app: 'Open NomNom',
+    clipboard: 'Open the clipboard history',
   };
 
   let items = $state<ShortcutInfo[]>([]);

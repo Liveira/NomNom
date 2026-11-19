@@ -122,6 +122,16 @@ const MIGRATIONS: &[&str] = &[
         created_at INTEGER NOT NULL);
      CREATE TABLE activity_goal_alerts(key TEXT PRIMARY KEY, at INTEGER NOT NULL) WITHOUT ROWID;
      CREATE TABLE activity_reports(week_start TEXT PRIMARY KEY, json TEXT NOT NULL, created_at INTEGER NOT NULL) WITHOUT ROWID;",
+    // v11: clipboard history (text only, on this computer).
+    "CREATE TABLE clipboard_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        text TEXT NOT NULL,
+        hash TEXT NOT NULL UNIQUE,
+        pinned INTEGER NOT NULL DEFAULT 0,
+        copies INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        last_at INTEGER NOT NULL);
+     CREATE INDEX clipboard_items_last ON clipboard_items(pinned DESC, last_at DESC);",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

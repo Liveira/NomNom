@@ -153,6 +153,8 @@ impl Default for Downloads {
 pub struct Shortcuts {
     pub quick_download: String,
     pub open_app: String,
+    /// Opens the clipboard history (when it is switched on).
+    pub clipboard: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -161,6 +163,7 @@ impl Default for Shortcuts {
         Shortcuts {
             quick_download: "Ctrl+Alt+D".into(),
             open_app: "Ctrl+Alt+N".into(),
+            clipboard: "Ctrl+Alt+V".into(),
             keep_ready: false,
         }
     }
@@ -292,6 +295,23 @@ impl Default for Activity {
     }
 }
 
+/// The clipboard history. Off until the person turns it on.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Clipboard {
+    pub enabled: bool,
+    /// Days an entry is kept after it was last copied; 0 keeps them for ever. Pinned ones stay.
+    pub keep_days: u32,
+}
+impl Default for Clipboard {
+    fn default() -> Self {
+        Clipboard {
+            enabled: false,
+            keep_days: 30,
+        }
+    }
+}
+
 /// The system monitor.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -315,6 +335,7 @@ pub struct Settings {
     pub updates: Updates,
     pub monitor: Monitor,
     pub activity: Activity,
+    pub clipboard: Clipboard,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -334,6 +355,7 @@ impl Default for Settings {
             updates: Updates::default(),
             monitor: Monitor::default(),
             activity: Activity::default(),
+            clipboard: Clipboard::default(),
             extra: Map::new(),
         }
     }

@@ -8,7 +8,8 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; keep_ready: boolean };
+  clipboard: { enabled: boolean; keep_days: number };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
   organizer: {
@@ -81,6 +82,8 @@ export interface SettingsPatch {
   activityIdleSecs?: number;
   activityTrackNomnom?: boolean;
   sidebarTools?: string[];
+  clipboardEnabled?: boolean;
+  clipboardKeepDays?: number;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -211,7 +214,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app';
+  id: 'quick_download' | 'open_app' | 'clipboard';
   accelerator: string;
   error: string | null;
 }
@@ -329,6 +332,28 @@ export const goalsIpc = {
 };
 export function onGoalsChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('activity://goals', () => handler());
+}
+
+export interface ClipEntry {
+  id: number;
+  preview: string;
+  chars: number;
+  pinned: boolean;
+  copies: number;
+  last_at: number;
+}
+export const clipIpc = {
+  list: (query: string, limit = 200) => invoke<ClipEntry[]>('cb_list', { query, limit }),
+  count: () => invoke<number>('cb_count'),
+  pin: (id: number, pinned: boolean) => invoke<void>('cb_pin', { id, pinned }),
+  remove: (id: number) => invoke<void>('cb_delete', { id }),
+  clear: (keepPinned: boolean) => invoke<void>('cb_clear', { keepPinned }),
+  use: (id: number, paste: boolean) => invoke<void>('cb_use', { id, paste }),
+  ready: () => invoke<void>('cb_ready'),
+  close: () => invoke<void>('cb_close'),
+};
+export function onClipboardChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('clipboard://changed', () => handler());
 }
 
 export interface ToastCard {

@@ -1,5 +1,7 @@
-//! Global shortcuts: Quick Download and Open NOMNOM. Registered at startup, re-registered when
-//! the user changes one. A shortcut another app already owns is reported, never forced.
+//! Global shortcuts: Quick Download, Open NOMNOM, the clipboard history, the translator and the
+//! screen-text capture. Registered at startup, re-registered when the user changes one. A tool's
+//! shortcut is only taken while the tool is switched on, so nobody's keys are held for nothing.
+//! A shortcut another app already owns is reported, never forced.
 
 use crate::state::AppState;
 use crate::{quick, windows};
@@ -9,7 +11,8 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub const QUICK: &str = "quick_download";
 pub const OPEN: &str = "open_app";
-const IDS: [&str; 2] = [QUICK, OPEN];
+pub const CLIPBOARD: &str = "clipboard";
+pub const IDS: [&str; 3] = [QUICK, OPEN, CLIPBOARD];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
 /// can never be hijacked system-wide.
@@ -26,6 +29,7 @@ fn action(app: &AppHandle, id: &str) {
     match id {
         QUICK => quick::trigger(app),
         OPEN => windows::open_main(app),
+        CLIPBOARD => crate::clipboard::open_popup(app),
         _ => {}
     }
 }
@@ -44,17 +48,29 @@ fn register(app: &AppHandle, id: &'static str, accel: &str) -> Result<Shortcut, 
 
 fn configured(app: &AppHandle, id: &str) -> String {
     let s = app.state::<AppState>().settings.get().shortcuts;
-    if id == QUICK {
-        s.quick_download
-    } else {
-        s.open_app
+    match id {
+        QUICK => s.quick_download,
+        OPEN => s.open_app,
+        _ => s.clipboard,
     }
 }
 
-/// Registers both shortcuts from settings. Failures are kept for the Settings screen.
+/// Is this shortcut in use? The two basic ones always are; the others only with their tool on.
+fn wanted(app: &AppHandle, id: &str) -> bool {
+    let s = app.state::<AppState>().settings.get();
+    match id {
+        CLIPBOARD => s.clipboard.enabled,
+        _ => true,
+    }
+}
+
+/// Registers the shortcuts that are in use. Failures are kept for the Settings screen.
 pub fn register_all(app: &AppHandle) {
     let state = app.state::<AppState>();
     for id in IDS {
+        if !wanted(app, id) || state.shortcuts_registered.lock().unwrap().contains_key(id) {
+            continue;
+        }
         let accel = configured(app, id);
         match register(app, id, &accel) {
             Ok(s) => {
@@ -69,6 +85,21 @@ pub fn register_all(app: &AppHandle) {
     }
 }
 
+/// Matches the registered shortcuts to what is switched on now: a tool that was turned off lets go
+/// of its keys, one that was turned on takes them.
+pub fn sync(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    for id in IDS {
+        if !wanted(app, id) {
+            if let Some(old) = state.shortcuts_registered.lock().unwrap().remove(id) {
+                let _ = app.global_shortcut().unregister(old);
+            }
+            state.shortcut_errors.lock().unwrap().remove(id);
+        }
+    }
+    register_all(app);
+}
+
 /// Changes one shortcut. The old one stays active if the new one can't be registered.
 pub fn change(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
     let id: &'static str = IDS
@@ -76,8 +107,11 @@ pub fn change(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
         .find(|i| *i == id)
         .ok_or("Unknown shortcut.")?;
     let new = parse_accelerator(accel)?;
-    let other = IDS.into_iter().find(|i| *i != id).unwrap_or(QUICK);
-    if parse_accelerator(&configured(app, other)).is_ok_and(|o| o == new) {
+    if IDS
+        .into_iter()
+        .filter(|other| *other != id)
+        .any(|other| parse_accelerator(&configured(app, other)).is_ok_and(|o| o == new))
+    {
         return Err("That's already used by another NomNom shortcut.".into());
     }
 
@@ -89,6 +123,10 @@ pub fn change(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             return persist(app, id, accel);
         }
         let _ = app.global_shortcut().unregister(old);
+    }
+    if !wanted(app, id) {
+        // Its tool is off: only remember the keys.
+        return persist(app, id, accel);
     }
     match register(app, id, accel) {
         Ok(s) => {
@@ -111,12 +149,10 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
     let state = app.state::<AppState>();
     state
         .settings
-        .update("shortcuts", |s| {
-            if id == QUICK {
-                s.shortcuts.quick_download = accel.to_string();
-            } else {
-                s.shortcuts.open_app = accel.to_string();
-            }
+        .update("shortcuts", |s| match id {
+            QUICK => s.shortcuts.quick_download = accel.to_string(),
+            OPEN => s.shortcuts.open_app = accel.to_string(),
+            _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())
         .map_err(|e| e.to_string())

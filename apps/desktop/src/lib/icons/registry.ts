@@ -48,6 +48,8 @@ import IMoon from '@lucide/svelte/icons/moon';
 import IZap from '@lucide/svelte/icons/zap';
 import ITriangleAlert from '@lucide/svelte/icons/triangle-alert';
 import IPencil from '@lucide/svelte/icons/pencil';
+import IClipboardList from '@lucide/svelte/icons/clipboard-list';
+import IPin from '@lucide/svelte/icons/pin';
 import ILayoutGrid from '@lucide/svelte/icons/layout-grid';
 import IPuzzle from '@lucide/svelte/icons/puzzle';
 import IRefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -144,6 +146,8 @@ export const ICONS: Record<string, Component<any>> = {
   'zap': IZap,
   'puzzle': IPuzzle,
   'tools': ILayoutGrid,
+  'pin': IPin,
+  'clipboard': IClipboardList,
   'pencil': IPencil,
   'warning': ITriangleAlert,
   'refresh': IRefreshCw,

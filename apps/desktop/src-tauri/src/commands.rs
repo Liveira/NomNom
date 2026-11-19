@@ -63,6 +63,8 @@ pub struct SettingsPatch {
     pretty_notifications: Option<bool>,
     goal_reminder_hour: Option<u8>,
     weekly_report: Option<bool>,
+    clipboard_enabled: Option<bool>,
+    clipboard_keep_days: Option<u32>,
 }
 
 #[tauri::command]
@@ -258,6 +260,12 @@ pub fn update_settings(
             if let Some(v) = patch.goal_reminder_hour {
                 s.activity.goal_reminder_hour = v.min(24);
             }
+            if let Some(v) = patch.clipboard_enabled {
+                s.clipboard.enabled = v;
+            }
+            if let Some(v) = patch.clipboard_keep_days {
+                s.clipboard.keep_days = v.min(3650);
+            }
             if let Some(v) = patch.weekly_report {
                 s.activity.weekly_report = v;
             }
@@ -292,6 +300,9 @@ pub fn update_settings(
     }
     if patch.language.is_some() {
         crate::tray::relabel(&app);
+    }
+    if patch.clipboard_enabled.is_some() {
+        crate::shortcuts::sync(&app);
     }
     if patch.subtitles.is_some() || patch.subtitle_langs.is_some() {
         crate::modules::downloads::apply_subtitles(&state);
@@ -336,6 +347,7 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
     [
         (crate::shortcuts::QUICK, s.quick_download),
         (crate::shortcuts::OPEN, s.open_app),
+        (crate::shortcuts::CLIPBOARD, s.clipboard),
     ]
     .into_iter()
     .map(|(id, accelerator)| ShortcutInfo {

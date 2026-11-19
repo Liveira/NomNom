@@ -51,6 +51,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-lavender)',
   },
   {
+    id: 'clipboard',
+    icon: 'clipboard',
+    title: 'Clipboard',
+    desc: 'Everything you copy, searchable and kept only on this computer. Pin what you reuse.',
+    tint: 'var(--glow-blush)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

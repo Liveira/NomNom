@@ -1,10 +1,11 @@
-import { mount } from 'svelte';
+import { mount, type Component } from 'svelte';
 import '../lib/design/fonts.css';
 import '../lib/design/tokens.css';
 import '../lib/design/base.css';
 import { i18n } from '../lib/i18n/index.svelte';
 import { ipc } from '../lib/ipc';
 import { isLinux } from '../lib/platform';
+import ClipboardPanel from './ClipboardPanel.svelte';
 import Toast from './Toast.svelte';
 
 /** One small page for NomNom's little windows. `?kind=` says which one this is. */
@@ -22,6 +23,6 @@ ipc
   })
   .catch(() => {});
 
-const views: Record<string, typeof Toast> = { toast: Toast };
+const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel };
 mount(views[kind] ?? Toast, { target: document.getElementById('app')! });
 i18n.start('auto');

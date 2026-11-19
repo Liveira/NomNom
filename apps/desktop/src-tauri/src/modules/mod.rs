@@ -17,6 +17,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::Organizer),
         Arc::new(builtin::FileTools),
         Arc::new(builtin::Storage),
+        Arc::new(builtin::ClipboardModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

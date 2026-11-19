@@ -1,7 +1,7 @@
 use crate::modules::downloads;
 use crate::{
-    activity, backup, browser, commands, events, filetools, focus, goals, integrations, memory,
-    modules, monitor, notifier, organizer, pdftools, pipe_server, quick, rename, shortcuts,
+    activity, backup, browser, clipboard, commands, events, filetools, focus, goals, integrations,
+    memory, modules, monitor, notifier, organizer, pdftools, pipe_server, quick, rename, shortcuts,
     state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast,
     tray, updater, windows,
 };
@@ -149,6 +149,14 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            clipboard::cb_list,
+            clipboard::cb_count,
+            clipboard::cb_pin,
+            clipboard::cb_delete,
+            clipboard::cb_clear,
+            clipboard::cb_use,
+            clipboard::cb_ready,
+            clipboard::cb_close,
             rename::rn_inspect,
             rename::rn_preview,
             rename::rn_apply,
@@ -291,6 +299,7 @@ pub fn run() {
             storage_history::spawn(app.handle().clone());
             activity::spawn(app.handle().clone());
             goals::spawn(app.handle().clone());
+            clipboard::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
             memory::spawn(app.handle().clone());

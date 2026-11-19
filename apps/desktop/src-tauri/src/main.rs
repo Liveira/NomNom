@@ -5,6 +5,7 @@ mod activity;
 mod app;
 mod backup;
 mod browser;
+mod clipboard;
 mod commands;
 mod events;
 mod filetools;
