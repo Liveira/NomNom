@@ -216,8 +216,33 @@
   .footer-list {
     padding-top: 8px;
     border-top: 1px solid var(--border);
+    flex: none;
   }
-  .spacer { flex: 1; }
+  /* A short window can't hold every tool: the list scrolls, while the logo and the footer stay put. */
+  .nav-list:not(.footer-list) {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0 -5px;
+    padding: 0 5px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+    overscroll-behavior: contain;
+  }
+  .nav-list:not(.footer-list)::-webkit-scrollbar { width: 5px; }
+  .nav-list:not(.footer-list)::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  @media (max-height: 820px) {
+    .nav-list { gap: 2px; }
+    .item { padding: 6px 10px; }
+    .brand { padding-bottom: 8px; margin-bottom: 4px; }
+  }
+  @media (max-height: 640px) {
+    .item { padding: 4px 9px; gap: 9px; }
+    .icon-wrap { width: 22px; height: 22px; }
+    .footer-list { padding-top: 4px; }
+  }
+  .spacer { flex: 1; min-height: 0; }
 
   .item {
     position: relative;

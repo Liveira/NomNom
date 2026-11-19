@@ -612,7 +612,34 @@
     display: grid;
     grid-template-columns: 1.55fr 1fr;
     gap: 14px;
-    align-items: start;
+    align-items: stretch;
+  }
+  /* The history is as tall as the list of apps beside it and scrolls inside, so it never runs on. */
+  .sessions-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+    contain: size;
+  }
+  .sessions-panel .session-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+    overscroll-behavior: contain;
+  }
+  .apps-panel .app-list {
+    max-height: 680px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+    overscroll-behavior: contain;
+  }
+  @media (max-width: 920px) {
+    .sessions-panel { height: 420px; }
   }
   .apps-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .search-box {
