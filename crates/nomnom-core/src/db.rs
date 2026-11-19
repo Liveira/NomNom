@@ -186,6 +186,13 @@ const MIGRATIONS: &[&str] = &[
      CREATE TABLE rule_state(
         rule_id TEXT PRIMARY KEY,
         scanned_at INTEGER NOT NULL) WITHOUT ROWID;",
+    // v16: text snippets.
+    "CREATE TABLE snippets(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        used_at INTEGER NOT NULL DEFAULT 0);",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

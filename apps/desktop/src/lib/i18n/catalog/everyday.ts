@@ -263,3 +263,23 @@ export const HARDWARE: Entry[] = [
   ['It has reported {} read or write errors.', 'Informou {} erros de leitura ou escrita.', 'Ha informado {} errores de lectura o escritura.'],
   ['Reading disk health needs smartctl and administrator rights, so NomNom does not do it here.', 'Ler a saúde do disco exige smartctl e direitos de administrador, então o NomNom não faz isso aqui.', 'Leer la salud del disco exige smartctl y derechos de administrador, así que NomNom no lo hace aquí.'],
 ];
+
+/** Snippets. */
+export const SNIPPETS: Entry[] = [
+  ['Snippets', 'Trechos de texto', 'Fragmentos de texto'],
+  ['Text you type again and again. Save it under a name, then find it in the search (Alt+Space from anywhere, or Ctrl+K here) and it is pasted where you were typing, with the date or the clipboard filled in.', 'Texto que você digita sempre. Salve com um nome, depois ache na busca (Alt+Espaço de qualquer lugar, ou Ctrl+K aqui) e ele é colado onde você estava digitando, com a data ou a área de transferência preenchidas.', 'Texto que escribes una y otra vez. Guárdalo con un nombre, luego búscalo (Alt+Espacio desde cualquier sitio, o Ctrl+K aquí) y se pega donde estabas escribiendo, con la fecha o el portapapeles rellenados.'],
+  ['Text you type again and again, saved under a name and pasted from the search, with the date or the clipboard filled in.', 'Texto que você digita sempre, salvo com um nome e colado a partir da busca, com a data ou a área de transferência preenchidas.', 'Texto que escribes una y otra vez, guardado con un nombre y pegado desde la búsqueda, con la fecha o el portapapeles rellenados.'],
+  ['New snippet', 'Novo trecho', 'Nuevo fragmento'],
+  ['Text', 'Texto', 'Texto'],
+  ['Add a value:', 'Adicionar um valor:', 'Añadir un valor:'],
+  ['What it will paste right now:', 'O que ele vai colar agora:', 'Lo que pegará ahora:'],
+  ['No snippets yet. Try a sign-off, an address you type often, or a standard reply.', 'Nenhum trecho ainda. Experimente uma despedida, um endereço que você digita sempre, ou uma resposta padrão.', 'Aún no hay fragmentos. Prueba una despedida, una dirección que escribes a menudo o una respuesta estándar.'],
+  ['Snippet', 'Trecho', 'Fragmento'],
+  ["today's date, like 2026-11-19", 'a data de hoje, como 2026-11-19', 'la fecha de hoy, como 2026-11-19'],
+  ['the time, like 14:30', 'a hora, como 14:30', 'la hora, como 14:30'],
+  ['the day of the week', 'o dia da semana', 'el día de la semana'],
+  ['the year', 'o ano', 'el año'],
+  ['the month number', 'o número do mês', 'el número del mes'],
+  ['the day of the month', 'o dia do mês', 'el día del mes'],
+  ['whatever is on the clipboard', 'o que estiver na área de transferência', 'lo que haya en el portapapeles'],
+];

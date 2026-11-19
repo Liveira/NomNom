@@ -37,6 +37,7 @@ mod reminders;
 mod rename;
 mod settings_io;
 mod shortcuts;
+mod snippets;
 mod startup;
 mod state;
 mod storage;

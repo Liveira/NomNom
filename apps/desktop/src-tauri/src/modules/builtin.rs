@@ -316,6 +316,30 @@ impl Module for RulesModule {
     }
 }
 
+static SNIPPETS: ModuleManifest = ModuleManifest {
+    id: "snippets",
+    name: "Snippets",
+    nav: Some(NavEntry {
+        order: 55,
+        icon: "file-text",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct SnippetsModule;
+#[async_trait]
+impl Module for SnippetsModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &SNIPPETS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

@@ -17,6 +17,7 @@ pub mod process;
 pub mod reminders;
 pub mod rename;
 pub mod settings;
+pub mod snippets;
 pub mod startup;
 pub mod tasks;
 pub mod translate;

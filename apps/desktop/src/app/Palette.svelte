@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { actionsIpc, clipIpc, fileIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview } from '../lib/ipc';
+  import { actionsIpc, clipIpc, fileIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, snippetIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview, type Snippet } from '../lib/ipc';
   import { calc, lastTwo, rank, showNumber } from '../lib/palette';
   import { TOOLS } from '../lib/tools';
   import { dueText, noteFrom, startsLikeReminder } from '../modules/reminders/logic';
@@ -32,6 +32,7 @@
   let listEl = $state<HTMLUListElement | null>(null);
   let entries = $state<LauncherEntry[]>([]);
   let loadedActions = $state<CustomAction[]>([]);
+  let snippets = $state<Snippet[]>([]);
   const actions = $derived(loadedActions);
   let note = $state('');
   let answer = $state<{ title: string; ok: boolean; text: string } | null>(null);
@@ -126,6 +127,24 @@
       });
     }
     for (const p of pages) list.push({ key: `page:${p.id}`, title: p.name, hint: 'Open', icon: p.icon, run: () => go(p.id) });
+    for (const sn of snippets) {
+      list.push({
+        key: `snip:${sn.id}`,
+        title: sn.name,
+        hint: 'Snippet',
+        icon: 'file-text',
+        keywords: sn.body.slice(0, 80),
+        run: async () => {
+          try {
+            // From the launcher the text is pasted where the person was typing; inside NomNom it is copied.
+            await snippetIpc.use(sn.id, floating);
+            close();
+          } catch (e) {
+            note = String(e);
+          }
+        },
+      });
+    }
     list.push(...extras);
     const rest: LauncherEntry[] = entries;
     for (const kind of ['recent', 'folder', 'app'] as const) {
@@ -280,6 +299,7 @@
     void launcherIpc.entries().then((e) => (entries = e)).catch(() => {});
     // Read when it opens, so an action added a moment ago is there.
     void actionsIpc.list().then((l) => (loadedActions = l)).catch(() => {});
+    void snippetIpc.list().then((l) => (snippets = l)).catch(() => {});
     if (floating) {
       // Shown once drawn, so the window never appears empty.
       requestAnimationFrame(() => {

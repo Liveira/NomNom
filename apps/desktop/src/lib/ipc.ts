@@ -645,6 +645,22 @@ export const settingsFileIpc = {
   load: (path: string) => invoke<Settings>('settings_import', { path }),
 };
 
+export interface Snippet {
+  id: number;
+  name: string;
+  body: string;
+}
+export const snippetIpc = {
+  list: () => invoke<Snippet[]>('sn_list'),
+  save: (id: number | null, name: string, body: string) => invoke<number>('sn_save', { id, name, body }),
+  remove: (id: number) => invoke<void>('sn_delete', { id }),
+  preview: (body: string) => invoke<string>('sn_preview', { body }),
+  use: (id: number, paste: boolean) => invoke<void>('sn_use', { id, paste }),
+};
+export function onSnippetsChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('snippets://changed', () => handler());
+}
+
 export interface FileHit {
   path: string;
   name: string;

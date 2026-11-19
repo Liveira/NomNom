@@ -135,6 +135,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-peach)',
   },
   {
+    id: 'snippets',
+    icon: 'file-text',
+    title: 'Snippets',
+    desc: 'Text you type again and again, saved under a name and pasted from the search, with the date or the clipboard filled in.',
+    tint: 'var(--glow-mint)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',
