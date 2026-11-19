@@ -86,6 +86,20 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'reminders',
+    icon: 'bell',
+    title: 'Reminders',
+    desc: 'Say "in 20 minutes stretch" or "tomorrow at 9 call mom". A card appears when it is time.',
+    tint: 'var(--glow-peach)',
+  },
+  {
+    id: 'notes',
+    icon: 'pencil',
+    title: 'Notes',
+    desc: 'Short notes kept on this computer. A shortcut opens a blank one at once.',
+    tint: 'var(--glow-mint)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

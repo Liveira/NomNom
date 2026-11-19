@@ -8,7 +8,7 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; notes: string; keep_ready: boolean };
   actions: CustomAction[];
   clipboard: { enabled: boolean; keep_days: number };
   text: { enabled: boolean; target: string; ocr: boolean; ocr_translate: boolean };
@@ -224,7 +224,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher' | 'notes';
   accelerator: string;
   error: string | null;
 }
@@ -516,6 +516,47 @@ export const actionsIpc = {
   remove: (id: string) => invoke<ActionView[]>('ca_delete', { id }),
   run: (id: string, values: Record<string, string>) => invoke<ActionResult>('ca_run', { id, values }),
 };
+
+export interface Reminder {
+  id: number;
+  text: string;
+  due_at: number;
+  repeat: 'daily' | 'weekly' | null;
+  done: boolean;
+}
+export interface ReminderPreview {
+  text: string;
+  due_at: number;
+  repeat: 'daily' | 'weekly' | null;
+}
+export const reminderIpc = {
+  preview: (text: string) => invoke<ReminderPreview | null>('rm_preview', { text }),
+  addText: (text: string) => invoke<void>('rm_add_text', { text }),
+  addAt: (text: string, dueAt: number, repeat: string | null) => invoke<void>('rm_add_at', { text, dueAt, repeat }),
+  list: () => invoke<Reminder[]>('rm_list'),
+  remove: (id: number) => invoke<void>('rm_delete', { id }),
+  snooze: (id: number, minutes: number) => invoke<void>('rm_snooze', { id, minutes }),
+};
+export function onRemindersChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('reminders://changed', () => handler());
+}
+
+export interface Note {
+  id: number;
+  text: string;
+  pinned: boolean;
+  created_at: number;
+  updated_at: number;
+}
+export const noteIpc = {
+  list: (query: string) => invoke<Note[]>('nt_list', { query }),
+  save: (id: number | null, text: string) => invoke<number>('nt_save', { id, text }),
+  pin: (id: number, pinned: boolean) => invoke<void>('nt_pin', { id, pinned }),
+  remove: (id: number) => invoke<void>('nt_delete', { id }),
+};
+export function onNotesChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('notes://changed', () => handler());
+}
 
 export type LauncherKind = 'app' | 'folder' | 'recent';
 export interface LauncherEntry {

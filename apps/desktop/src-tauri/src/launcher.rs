@@ -267,8 +267,15 @@ pub fn lc_open_path(app: AppHandle, path: String, reveal: bool) -> CmdResult<()>
 #[tauri::command]
 pub fn lc_go(app: AppHandle, page: String) {
     close(&app);
+    go(&app, &page);
+}
+
+/// Opens (or raises) the main window on `page`.
+pub fn go(app: &AppHandle, page: &str) {
     let was_open = app.get_webview_window("main").is_some();
-    crate::windows::open_main(&app);
+    crate::windows::open_main(app);
+    let app = app.clone();
+    let page = page.to_string();
     // A window that was just made isn't listening yet.
     tauri::async_runtime::spawn(async move {
         if !was_open {

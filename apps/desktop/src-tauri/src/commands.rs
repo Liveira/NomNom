@@ -342,6 +342,7 @@ pub fn update_settings(
         || patch.text_enabled.is_some()
         || patch.text_ocr.is_some()
         || patch.launcher_on.is_some()
+        || patch.sidebar_tools.is_some()
     {
         crate::shortcuts::sync(&app);
     }
@@ -393,6 +394,7 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::TRANSLATE_POPUP, s.translate_popup),
         (crate::shortcuts::CAPTURE, s.capture_text),
         (crate::shortcuts::LAUNCHER, s.launcher),
+        (crate::shortcuts::NOTES, s.notes),
     ]
     .into_iter()
     .map(|(id, accelerator)| ShortcutInfo {

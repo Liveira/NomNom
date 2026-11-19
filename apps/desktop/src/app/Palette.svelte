@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { actionsIpc, clipIpc, launcherIpc, ocrIpc, type CustomAction, type LauncherEntry } from '../lib/ipc';
+  import { actionsIpc, clipIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, type CustomAction, type LauncherEntry, type ReminderPreview } from '../lib/ipc';
   import { calc, rank, showNumber } from '../lib/palette';
   import { TOOLS } from '../lib/tools';
+  import { dueText, noteFrom, startsLikeReminder } from '../modules/reminders/logic';
   import { THEMES_IN_ORDER } from '../modules/settings/themes';
   import { app } from './state.svelte';
 
@@ -145,10 +146,60 @@
     return list;
   });
 
+  /** A reminder said in words: shown as a row once the words make sense. */
+  let remind = $state<ReminderPreview | null>(null);
+  let remindToken = 0;
+  $effect(() => {
+    const q = query;
+    const mine = ++remindToken;
+    if (!startsLikeReminder(q)) {
+      remind = null;
+      return;
+    }
+    void reminderIpc.preview(q).then((p) => {
+      if (mine === remindToken) remind = p;
+    });
+  });
+  const noteText = $derived(noteFrom(query));
+
   const sum = $derived(calc(query));
   const results = $derived.by((): Item[] => {
     const found = rank(all, query, 40);
-    if (sum === null) return found;
+    const special: Item[] = [];
+    if (remind) {
+      const r = remind;
+      special.push({
+        key: 'remind',
+        title: `Remind: ${r.text}`,
+        hint: dueText(r.due_at, Math.floor(Date.now() / 1000)),
+        icon: 'bell',
+        run: async () => {
+          try {
+            await reminderIpc.addText(query);
+            close();
+          } catch (e) {
+            note = String(e);
+          }
+        },
+      });
+    }
+    if (noteText) {
+      special.push({
+        key: 'note',
+        title: `Save note: ${noteText.length > 60 ? noteText.slice(0, 60) + '…' : noteText}`,
+        hint: 'Notes',
+        icon: 'pencil',
+        run: async () => {
+          try {
+            await noteIpc.save(null, noteText);
+            close();
+          } catch (e) {
+            note = String(e);
+          }
+        },
+      });
+    }
+    if (sum === null) return [...special, ...found];
     const text = showNumber(sum);
     const row: Item = {
       key: 'calc',
@@ -164,7 +215,7 @@
         close();
       },
     };
-    return [row, ...found];
+    return [row, ...special, ...found];
   });
 
   $effect(() => {

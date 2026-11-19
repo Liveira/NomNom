@@ -16,7 +16,8 @@ pub const TRANSLATE_REPLACE: &str = "translate_replace";
 pub const TRANSLATE_POPUP: &str = "translate_popup";
 pub const CAPTURE: &str = "capture_text";
 pub const LAUNCHER: &str = "launcher";
-pub const IDS: [&str; 7] = [
+pub const NOTES: &str = "notes";
+pub const IDS: [&str; 8] = [
     QUICK,
     OPEN,
     CLIPBOARD,
@@ -24,6 +25,7 @@ pub const IDS: [&str; 7] = [
     TRANSLATE_POPUP,
     CAPTURE,
     LAUNCHER,
+    NOTES,
 ];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
@@ -46,6 +48,7 @@ fn action(app: &AppHandle, id: &str) {
         TRANSLATE_POPUP => crate::translate::popup_selection(app),
         CAPTURE => crate::ocr::capture(app),
         LAUNCHER => crate::launcher::toggle(app),
+        NOTES => crate::launcher::go(app, "notes"),
         _ => {}
     }
 }
@@ -71,8 +74,17 @@ fn configured(app: &AppHandle, id: &str) -> String {
         TRANSLATE_POPUP => s.translate_popup,
         CAPTURE => s.capture_text,
         LAUNCHER => s.launcher,
+        NOTES => s.notes,
         _ => s.clipboard,
     }
+}
+
+/// Is a tool in the sidebar? Nobody has chosen yet means all of them are.
+fn tool_on(s: &nomnom_core::settings::Settings, id: &str) -> bool {
+    s.appearance
+        .sidebar_tools
+        .as_ref()
+        .is_none_or(|t| t.iter().any(|x| x == id))
 }
 
 /// Is this shortcut in use? The two basic ones always are; the others only with their tool on.
@@ -83,6 +95,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
         TRANSLATE_REPLACE | TRANSLATE_POPUP => s.text.enabled,
         CAPTURE => s.text.ocr,
         LAUNCHER => s.shortcuts.launcher_on,
+        NOTES => tool_on(&s, "notes"),
         _ => true,
     }
 }
@@ -182,6 +195,7 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             TRANSLATE_POPUP => s.shortcuts.translate_popup = accel.to_string(),
             CAPTURE => s.shortcuts.capture_text = accel.to_string(),
             LAUNCHER => s.shortcuts.launcher = accel.to_string(),
+            NOTES => s.shortcuts.notes = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

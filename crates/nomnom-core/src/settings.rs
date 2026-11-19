@@ -165,6 +165,8 @@ pub struct Shortcuts {
     pub launcher: String,
     /// Whether the launcher shortcut is taken at all.
     pub launcher_on: bool,
+    /// Opens the quick notes (when that tool is in the sidebar).
+    pub notes: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -179,6 +181,7 @@ impl Default for Shortcuts {
             capture_text: "Ctrl+Alt+O".into(),
             launcher: "Alt+Space".into(),
             launcher_on: true,
+            notes: "Ctrl+Alt+M".into(),
             keep_ready: false,
         }
     }

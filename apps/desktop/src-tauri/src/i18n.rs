@@ -259,6 +259,7 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Para ler texto da tela no X11, instale o maim.",
         "Para leer texto de la pantalla en X11, instala maim.",
     ),
+    ("Reminder", "Lembrete", "Recordatorio"),
     (
         "Nothing was selected.",
         "Nada foi selecionado.",

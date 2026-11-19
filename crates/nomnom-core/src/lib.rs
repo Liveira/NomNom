@@ -10,6 +10,7 @@ pub mod module;
 pub mod paths;
 pub mod phone;
 pub mod process;
+pub mod reminders;
 pub mod rename;
 pub mod settings;
 pub mod startup;

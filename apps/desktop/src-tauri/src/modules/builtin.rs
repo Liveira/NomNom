@@ -148,6 +148,54 @@ impl Module for ActionsModule {
     }
 }
 
+static REMINDERS: ModuleManifest = ModuleManifest {
+    id: "reminders",
+    name: "Reminders",
+    nav: Some(NavEntry {
+        order: 48,
+        icon: "bell",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct RemindersModule;
+#[async_trait]
+impl Module for RemindersModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &REMINDERS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
+static NOTES: ModuleManifest = ModuleManifest {
+    id: "notes",
+    name: "Notes",
+    nav: Some(NavEntry {
+        order: 49,
+        icon: "pencil",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct NotesModule;
+#[async_trait]
+impl Module for NotesModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &NOTES
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

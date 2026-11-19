@@ -13,6 +13,7 @@
     translate_popup: 'Show the translation of the selected text',
     capture_text: 'Read text from the screen',
     launcher: 'Open the launcher (search programs, files and your actions)',
+    notes: 'Write a quick note (when Notes is in the sidebar)',
   };
 
   let items = $state<ShortcutInfo[]>([]);

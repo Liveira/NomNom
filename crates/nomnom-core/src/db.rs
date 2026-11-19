@@ -147,6 +147,22 @@ const MIGRATIONS: &[&str] = &[
         sub_id TEXT NOT NULL,
         video_id TEXT NOT NULL,
         PRIMARY KEY(sub_id, video_id)) WITHOUT ROWID;",
+    // v13: reminders and quick notes.
+    "CREATE TABLE reminders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        text TEXT NOT NULL,
+        due_at INTEGER NOT NULL,
+        repeat TEXT,
+        done INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL);
+     CREATE INDEX reminders_due ON reminders(done, due_at);
+     CREATE TABLE notes(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        text TEXT NOT NULL,
+        pinned INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL);
+     CREATE INDEX notes_order ON notes(pinned DESC, updated_at DESC);",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

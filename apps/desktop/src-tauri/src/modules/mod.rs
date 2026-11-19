@@ -22,6 +22,8 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::PhoneModule),
         Arc::new(builtin::StartupModule),
         Arc::new(builtin::ActionsModule),
+        Arc::new(builtin::RemindersModule),
+        Arc::new(builtin::NotesModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {
