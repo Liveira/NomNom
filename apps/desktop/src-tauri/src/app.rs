@@ -2,7 +2,8 @@ use crate::modules::downloads;
 use crate::{
     activity, backup, browser, commands, events, filetools, focus, integrations, memory, modules,
     monitor, notifier, organizer, pdftools, pipe_server, quick, shortcuts, state::AppState,
-    storage, storage_cleanup, storage_history, storage_ops, storage_tools, tray, updater, windows,
+    storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast, tray, updater,
+    windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -148,6 +149,11 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            toast::toast_take,
+            toast::toast_layout,
+            toast::toast_open,
+            toast::toast_close,
+            toast::toast_test,
             commands::list_modules,
             commands::get_settings,
             commands::update_settings,

@@ -46,6 +46,7 @@ import IWandSparkles from '@lucide/svelte/icons/wand-sparkles';
 import ISun from '@lucide/svelte/icons/sun';
 import IMoon from '@lucide/svelte/icons/moon';
 import IZap from '@lucide/svelte/icons/zap';
+import ITriangleAlert from '@lucide/svelte/icons/triangle-alert';
 import ILayoutGrid from '@lucide/svelte/icons/layout-grid';
 import IPuzzle from '@lucide/svelte/icons/puzzle';
 import IRefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -142,6 +143,7 @@ export const ICONS: Record<string, Component<any>> = {
   'zap': IZap,
   'puzzle': IPuzzle,
   'tools': ILayoutGrid,
+  'warning': ITriangleAlert,
   'refresh': IRefreshCw,
   'sliders': ISlidersHorizontal,
   'power': IPower,

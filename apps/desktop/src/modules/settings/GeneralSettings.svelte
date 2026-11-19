@@ -2,10 +2,12 @@
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import { LANGUAGES } from '../../lib/i18n/index.svelte';
+  import { toastIpc } from '../../lib/ipc';
   import Switch from '../../lib/ui/Switch.svelte';
 
   const closeToTray = $derived(app.settings?.general.close_to_tray ?? true);
   const language = $derived(app.settings?.general.language ?? 'auto');
+  const pretty = $derived(app.settings?.general.pretty_notifications ?? true);
 </script>
 
 <section class="group" aria-labelledby="gen">
@@ -16,6 +18,21 @@
       <div class="hint">Downloads, shortcuts and Playtime keep working. Turn this off to quit instead.</div>
     </div>
     <Switch checked={closeToTray} label="Keep running in the tray when the window is closed" onchange={(v) => app.setCloseToTray(v)} />
+  </div>
+</section>
+
+<section class="group" aria-labelledby="notes">
+  <h3 id="notes">Notifications</h3>
+  <div class="row">
+    <div>
+      <div class="label">Notifications that look like NomNom</div>
+      <div class="hint">A small card in the corner of the screen, in your theme. Turn this off to use the system's own notifications.</div>
+    </div>
+    <Switch checked={pretty} label="Notifications that look like NomNom" onchange={(v) => app.update({ prettyNotifications: v })} />
+  </div>
+  <div class="row">
+    <div class="hint">See how they look.</div>
+    <button class="plain" onclick={() => void toastIpc.test()}>Show an example</button>
   </div>
 </section>
 

@@ -60,6 +60,7 @@ pub struct SettingsPatch {
     activity_track_nomnom: Option<bool>,
     sidebar_tools: Option<Vec<String>>,
     renderer: Option<String>,
+    pretty_notifications: Option<bool>,
 }
 
 #[tauri::command]
@@ -251,6 +252,9 @@ pub fn update_settings(
             }
             if let Some(v) = &patch.renderer {
                 s.general.renderer = v.clone();
+            }
+            if let Some(v) = patch.pretty_notifications {
+                s.general.pretty_notifications = v;
             }
             if let Some(v) = patch.sidebar_collapsed {
                 s.appearance.sidebar_collapsed = v;

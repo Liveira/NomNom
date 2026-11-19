@@ -6,7 +6,7 @@ export type Motion = 'full' | 'calm' | 'off';
 
 export interface Settings {
   version: number;
-  general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu' };
+  general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
   shortcuts: { quick_download: string; open_app: string; keep_ready: boolean };
   browser: { launch_from_browser: boolean };
@@ -82,6 +82,7 @@ export interface SettingsPatch {
   activityTrackNomnom?: boolean;
   sidebarTools?: string[];
   renderer?: 'auto' | 'gpu' | 'cpu';
+  prettyNotifications?: boolean;
 }
 
 export interface ModuleManifest {
@@ -294,6 +295,20 @@ export const browserIpc = {
 export function onBrowserOpen(handler: (url: string) => void): Promise<UnlistenFn> {
   return listen<string>('browser://open', (e) => handler(e.payload));
 }
+
+export interface ToastCard {
+  kind: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  body: string;
+  action: string | null;
+}
+export const toastIpc = {
+  take: () => invoke<ToastCard[]>('toast_take'),
+  layout: (height: number) => invoke<void>('toast_layout', { height }),
+  open: (action: string) => invoke<void>('toast_open', { action }),
+  close: () => invoke<void>('toast_close'),
+  test: () => invoke<void>('toast_test'),
+};
 
 export const quickIpc = {
   context: () => invoke<QuickContext | null>('quick_context'),

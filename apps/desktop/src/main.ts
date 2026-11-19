@@ -5,6 +5,7 @@ import './lib/design/base.css';
 import Shell from './app/Shell.svelte';
 import { app } from './app/state.svelte';
 import { i18n } from './lib/i18n/index.svelte';
+import { listen } from '@tauri-apps/api/event';
 import { ipc, onBrowserOpen, onStorageInbox, onTasks, stIpc } from './lib/ipc';
 import { downloads } from './modules/downloads/store.svelte';
 
@@ -14,6 +15,7 @@ async function start() {
   i18n.start(app.settings?.general.language ?? 'auto');
   await onTasks((batch) => app.mergeTasks(batch));
   void downloads.start();
+  await listen<string>('nav://go', (e) => app.go(e.payload));
   await onBrowserOpen((url) => {
     downloads.pendingUrl = url;
     app.go('downloads');

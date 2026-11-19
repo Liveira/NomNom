@@ -25,4 +25,12 @@ export const TOOLS: Entry[] = [
   ['Processor only', 'Só o processador', 'Solo el procesador'],
   ['Never wakes the graphics card. Good for quiet fans.', 'Nunca acorda a placa de vídeo. Bom para ventoinhas silenciosas.', 'Nunca despierta la tarjeta gráfica. Bueno para ventiladores silenciosos.'],
   ['Saved. Close and open NomNom again to use it.', 'Salvo. Feche e abra o NomNom de novo para usar.', 'Guardado. Cierra y abre NomNom de nuevo para usarlo.'],
+  ['Notifications', 'Notificações', 'Notificaciones'],
+  ['Notifications that look like NomNom', 'Notificações com a cara do NomNom', 'Notificaciones con el aspecto de NomNom'],
+  ["A small card in the corner of the screen, in your theme. Turn this off to use the system's own notifications.", 'Um cartão pequeno no canto da tela, no seu tema. Desligue para usar as notificações do sistema.', 'Una tarjeta pequeña en la esquina de la pantalla, con tu tema. Desactívalo para usar las notificaciones del sistema.'],
+  ['See how they look.', 'Veja como ficam.', 'Mira cómo quedan.'],
+  ['Show an example', 'Mostrar um exemplo', 'Mostrar un ejemplo'],
+  ['This is how notifications look', 'Assim ficam as notificações', 'Así se ven las notificaciones'],
+  ['They go away by themselves. Click one to open its page.', 'Elas somem sozinhas. Clique em uma para abrir a página dela.', 'Se van solas. Haz clic en una para abrir su página.'],
+  ['Dismiss', 'Dispensar', 'Descartar'],
 ];

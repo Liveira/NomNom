@@ -6,7 +6,6 @@ use crate::{state::AppState, windows};
 use nomnom_downloads::JobEvent;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_notification::NotificationExt;
 use tokio::sync::broadcast::error::RecvError;
 
 const MERGE_WINDOW: Duration = Duration::from_secs(4);
@@ -69,7 +68,15 @@ pub fn spawn(app: AppHandle) {
                     &failed,
                 ),
             ) {
-                let _ = app.notification().builder().title(title).body(body).show();
+                let kind = if failed.is_empty() {
+                    "success"
+                } else {
+                    "error"
+                };
+                crate::toast::show(
+                    &app,
+                    crate::toast::Toast::new(kind, title, body).opens("downloads"),
+                );
             }
         }
     });

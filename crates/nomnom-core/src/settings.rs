@@ -53,6 +53,8 @@ pub struct General {
     pub language: String,
     /// Linux only. How the web view draws: "auto", "gpu" or "cpu". Applies after a restart.
     pub renderer: String,
+    /// Notifications as themed cards in the corner (otherwise the system's own).
+    pub pretty_notifications: bool,
 }
 impl Default for General {
     fn default() -> Self {
@@ -61,6 +63,7 @@ impl Default for General {
             tray_notice_shown: false,
             language: "auto".into(),
             renderer: "auto".into(),
+            pretty_notifications: true,
         }
     }
 }

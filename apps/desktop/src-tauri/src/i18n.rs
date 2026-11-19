@@ -108,6 +108,16 @@ const TABLE: &[(&str, &str, &str)] = &[
         "O download agendado não pôde começar",
         "La descarga programada no pudo empezar",
     ),
+    (
+        "This is how notifications look",
+        "Assim ficam as notificações",
+        "Así se ven las notificaciones",
+    ),
+    (
+        "They go away by themselves. Click one to open its page.",
+        "Elas somem sozinhas. Clique em uma para abrir a página dela.",
+        "Se van solas. Haz clic en una para abrir su página.",
+    ),
 ];
 
 /// Translates `text`, or returns it unchanged.

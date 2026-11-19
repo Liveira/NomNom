@@ -10,8 +10,8 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: false,
     chunkSizeWarningLimit: 300,
-    // Two small pages: the main window and the quick-download popup.
-    rollupOptions: { input: { main: resolve('index.html'), quick: resolve('quick.html') } },
+    // Three small pages: the main window, the quick-download popup and NomNom's little windows.
+    rollupOptions: { input: { main: resolve('index.html'), quick: resolve('quick.html'), panel: resolve('panel.html') } },
   },
   resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
   test: { environment: 'jsdom', include: ['src/**/*.test.ts'] },
