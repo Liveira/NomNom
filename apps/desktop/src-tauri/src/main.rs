@@ -20,6 +20,7 @@ mod monitor;
 mod notifier;
 mod organizer;
 mod pdftools;
+mod phone;
 mod pipe_server;
 mod quick;
 mod rename;

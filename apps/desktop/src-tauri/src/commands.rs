@@ -67,6 +67,8 @@ pub struct SettingsPatch {
     clipboard_keep_days: Option<u32>,
     text_enabled: Option<bool>,
     text_target: Option<String>,
+    phone_dir: Option<String>,
+    phone_idle_minutes: Option<u32>,
 }
 
 #[tauri::command]
@@ -270,6 +272,12 @@ pub fn update_settings(
             }
             if let Some(v) = patch.goal_reminder_hour {
                 s.activity.goal_reminder_hour = v.min(24);
+            }
+            if let Some(v) = &patch.phone_dir {
+                s.phone.save_dir = (!v.trim().is_empty()).then(|| v.clone());
+            }
+            if let Some(v) = patch.phone_idle_minutes {
+                s.phone.idle_minutes = v.clamp(1, 240);
             }
             if let Some(v) = patch.text_enabled {
                 s.text.enabled = v;

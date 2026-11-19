@@ -214,6 +214,16 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Não foi possível falar com o DeepL. Confira sua conexão com a internet.",
         "No se pudo contactar con DeepL. Revisa tu conexión a internet.",
     ),
+    (
+        "Sharing with your phone stopped",
+        "O compartilhamento com o celular parou",
+        "El uso compartido con el móvil se detuvo",
+    ),
+    (
+        "Nobody used it for a while, so NomNom turned it off.",
+        "Ninguém usou por um tempo, então o NomNom desligou.",
+        "Nadie lo usó durante un rato, así que NomNom lo apagó.",
+    ),
 ];
 
 /// Translates `text`, or returns it unchanged.
@@ -338,6 +348,36 @@ pub fn new_videos_text(lang: Lang, name: &str, n: usize) -> (String, String) {
             } else {
                 format!("{n} vídeos nuevos se están descargando.")
             },
+        ),
+    }
+}
+
+/// The notice that files arrived from the phone.
+pub fn phone_text(lang: Lang, n: usize, folder: &str) -> (String, String) {
+    match lang {
+        Lang::En => (
+            if n == 1 {
+                "1 file from your phone".into()
+            } else {
+                format!("{n} files from your phone")
+            },
+            format!("Saved in {folder}"),
+        ),
+        Lang::Pt => (
+            if n == 1 {
+                "1 arquivo do seu celular".into()
+            } else {
+                format!("{n} arquivos do seu celular")
+            },
+            format!("Salvo em {folder}"),
+        ),
+        Lang::Es => (
+            if n == 1 {
+                "1 archivo de tu móvil".into()
+            } else {
+                format!("{n} archivos de tu móvil")
+            },
+            format!("Guardado en {folder}"),
         ),
     }
 }

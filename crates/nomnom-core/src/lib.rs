@@ -6,6 +6,7 @@ pub mod error;
 pub mod fs;
 pub mod module;
 pub mod paths;
+pub mod phone;
 pub mod process;
 pub mod rename;
 pub mod settings;

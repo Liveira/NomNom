@@ -1,9 +1,9 @@
 use crate::modules::downloads;
 use crate::{
     activity, backup, browser, clipboard, commands, events, filetools, focus, goals, integrations,
-    memory, modules, monitor, notifier, organizer, pdftools, pipe_server, quick, rename, shortcuts,
-    state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools,
-    subscriptions, toast, translate, tray, updater, windows,
+    memory, modules, monitor, notifier, organizer, pdftools, phone, pipe_server, quick, rename,
+    shortcuts, state::AppState, storage, storage_cleanup, storage_history, storage_ops,
+    storage_tools, subscriptions, toast, translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -100,6 +100,7 @@ pub fn run() {
         quick_shown: Default::default(),
         shortcuts_registered: Default::default(),
         shortcut_errors: Default::default(),
+        phone: Default::default(),
         rate_limiter: crate::browser::RateLimiter::new(),
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
         organizer: Default::default(),
@@ -149,6 +150,11 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            phone::ph_status,
+            phone::ph_start,
+            phone::ph_stop,
+            phone::ph_offer,
+            phone::ph_unoffer,
             subscriptions::sub_list,
             subscriptions::sub_add,
             subscriptions::sub_remove,
@@ -316,6 +322,7 @@ pub fn run() {
             goals::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
             subscriptions::spawn(app.handle().clone());
+            phone::spawn(app.handle().clone());
             updater::spawn(app.handle().clone());
             focus::spawn(app.handle().clone());
             memory::spawn(app.handle().clone());

@@ -35,4 +35,5 @@ pub struct AppState {
     /// Why the Windows 11 menu isn't in use, when it isn't (shown in Settings).
     pub shell_note: Mutex<Option<String>>,
     pub started: Instant,
+    pub phone: crate::phone::PhoneState,
 }

@@ -11,6 +11,7 @@ export interface Settings {
   shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; keep_ready: boolean };
   clipboard: { enabled: boolean; keep_days: number };
   text: { enabled: boolean; target: string };
+  phone: { save_dir: string | null; idle_minutes: number };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
   organizer: {
@@ -87,6 +88,8 @@ export interface SettingsPatch {
   clipboardKeepDays?: number;
   textEnabled?: boolean;
   textTarget?: string;
+  phoneDir?: string;
+  phoneIdleMinutes?: number;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -413,6 +416,37 @@ export const subIpc = {
 };
 export function onSubscriptionsChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('subscriptions://changed', () => handler());
+}
+
+export interface PhoneOffered {
+  id: string;
+  name: string;
+  size: number;
+}
+export interface PhoneReceived {
+  name: string;
+  path: string;
+  size: number;
+  at: number;
+}
+export interface PhoneStatus {
+  running: boolean;
+  url: string | null;
+  qr: string | null;
+  dest: string;
+  idle_minutes: number;
+  offered: PhoneOffered[];
+  received: PhoneReceived[];
+}
+export const phoneIpc = {
+  status: () => invoke<PhoneStatus>('ph_status'),
+  start: () => invoke<PhoneStatus>('ph_start'),
+  stop: () => invoke<PhoneStatus>('ph_stop'),
+  offer: (paths: string[]) => invoke<PhoneStatus>('ph_offer', { paths }),
+  unoffer: (id: string) => invoke<PhoneStatus>('ph_unoffer', { id }),
+};
+export function onPhoneChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('phone://changed', () => handler());
 }
 
 export interface ToastCard {

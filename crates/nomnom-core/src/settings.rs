@@ -335,6 +335,24 @@ impl Default for Text {
     }
 }
 
+/// Sending files between this computer and a phone.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Phone {
+    /// Where files from the phone are saved. `None` means "From phone" inside the Downloads folder.
+    pub save_dir: Option<String>,
+    /// Sharing turns itself off after this many quiet minutes.
+    pub idle_minutes: u32,
+}
+impl Default for Phone {
+    fn default() -> Self {
+        Phone {
+            save_dir: None,
+            idle_minutes: 15,
+        }
+    }
+}
+
 /// The system monitor.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -360,6 +378,7 @@ pub struct Settings {
     pub activity: Activity,
     pub clipboard: Clipboard,
     pub text: Text,
+    pub phone: Phone,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -381,6 +400,7 @@ impl Default for Settings {
             activity: Activity::default(),
             clipboard: Clipboard::default(),
             text: Text::default(),
+            phone: Phone::default(),
             extra: Map::new(),
         }
     }

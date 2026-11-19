@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>NomNom</title>
+<style>
+  :root { --bg:#110d18; --card:#1a1424; --card2:#241c32; --text:#faf3fc; --muted:#ad9ebd; --accent:#ffa970; --blush:#ff8fb8; --ok:#7be8bc; --bad:#ff8296; --line:rgba(244,220,255,.14); }
+  @media (prefers-color-scheme: light) { :root { --bg:#fff7f1; --card:#fffdfb; --card2:#fbece2; --text:#281d26; --muted:#6b5766; --accent:#c4561a; --blush:#d6407c; --ok:#17794f; --bad:#b3263a; --line:rgba(88,42,24,.16); } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); padding:max(16px, env(safe-area-inset-top)) 16px 32px; }
+  main { max-width: 560px; margin: 0 auto; display: grid; gap: 14px; }
+  h1 { font-size: 22px; margin: 4px 0 0; }
+  p { margin: 0; color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; display: grid; gap: 12px; }
+  h2 { margin: 0; font-size: 16px; }
+  .drop { display:grid; place-items:center; gap:6px; padding: 22px 14px; border: 2px dashed var(--line); border-radius: 14px; text-align:center; background: var(--card2); }
+  .drop.over { border-color: var(--accent); }
+  button, .btn { appearance:none; border:0; border-radius: 12px; padding: 13px 18px; font: inherit; font-weight: 700; color:#220f05; background: linear-gradient(135deg, var(--accent), var(--blush)); cursor:pointer; text-decoration:none; text-align:center; display:inline-block; }
+  button.plain { background: var(--card2); color: var(--text); border: 1px solid var(--line); }
+  ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  li { display:grid; gap:6px; padding:10px 12px; border-radius:12px; background: var(--card2); }
+  li .row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  li .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+  li .size { color: var(--muted); font-size: 13px; flex:none; }
+  .bar { height:6px; border-radius:99px; background: var(--line); overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; background: var(--accent); transition: width .15s; }
+  .ok { color: var(--ok); } .bad { color: var(--bad); }
+  .empty { color: var(--muted); font-size: 14px; }
+  input[type=file] { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>NomNom</h1>
+  <p>Send files to the computer, or take files from it. This only works on your own Wi-Fi.</p>
+
+  <section>
+    <h2>Send to the computer</h2>
+    <label class="drop" id="drop">
+      <strong>Choose photos or files</strong>
+      <span class="empty">They are saved on the computer in the folder it chose.</span>
+      <input type="file" id="pick" multiple>
+    </label>
+    <ul id="sending"></ul>
+  </section>
+
+  <section>
+    <h2>Get from the computer</h2>
+    <ul id="offered"></ul>
+    <p class="empty" id="none">Nothing is shared from the computer yet. Add files in NomNom and they show up here.</p>
+  </section>
+</main>
+<script>
+(() => {
+  const base = location.pathname.replace(/\/?$/, '/');
+  const $ = (id) => document.getElementById(id);
+  const size = (n) => { const u = ['B','KB','MB','GB']; let i = 0; while (n >= 1024 && i < 3) { n /= 1024; i++; } return (i ? n.toFixed(1) : n) + ' ' + u[i]; };
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+
+  // ---- phone to computer ----------------------------------------------------------------------
+  let sent = 0;
+  function upload(file) {
+    const li = el('li'); const row = el('div', 'row'); row.append(el('span', 'name', file.name), el('span', 'size', size(file.size)));
+    const bar = el('div', 'bar'); const fill = el('i'); bar.append(fill); li.append(row, bar); $('sending').prepend(li);
+    return new Promise((resolve) => {
+      const x = new XMLHttpRequest();
+      x.open('PUT', base + 'put?name=' + encodeURIComponent(file.name));
+      x.upload.onprogress = (e) => { if (e.lengthComputable) fill.style.width = (e.loaded / e.total * 100) + '%'; };
+      x.onload = () => { const ok = x.status === 200; fill.style.width = '100%'; row.lastChild.textContent = ok ? 'Done' : (x.responseText || 'Failed'); row.lastChild.className = ok ? 'size ok' : 'size bad'; if (ok) sent++; resolve(); };
+      x.onerror = () => { row.lastChild.textContent = 'Failed'; row.lastChild.className = 'size bad'; resolve(); };
+      x.send(file);
+    });
+  }
+  async function send(files) {
+    sent = 0;
+    for (const f of files) await upload(f);
+    if (sent > 0) fetch(base + 'done?count=' + sent, { method: 'POST' }).catch(() => {});
+  }
+  $('pick').addEventListener('change', (e) => { send([...e.target.files]); e.target.value = ''; });
+  const drop = $('drop');
+  ['dragover', 'dragenter'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((n) => drop.addEventListener(n, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => send([...e.dataTransfer.files]));
+
+  // ---- computer to phone ------------------------------------------------------------------------
+  let shown = '';
+  async function refresh() {
+    try {
+      const r = await fetch(base + 'list', { cache: 'no-store' });
+      const j = await r.json();
+      const key = JSON.stringify(j.offered);
+      if (key === shown) return;
+      shown = key;
+      const ul = $('offered'); ul.textContent = '';
+      for (const f of j.offered) {
+        const li = el('li'); const row = el('div', 'row');
+        row.append(el('span', 'name', f.name), el('span', 'size', size(f.size)));
+        const a = el('a', 'btn', 'Download'); a.href = base + 'get/' + f.id; a.setAttribute('download', f.name);
+        li.append(row, a); ul.append(li);
+      }
+      $('none').style.display = j.offered.length ? 'none' : '';
+    } catch (e) { /* the computer stopped sharing */ }
+  }
+  refresh(); setInterval(refresh, 3000);
+})();
+</script>
+</body>
+</html>

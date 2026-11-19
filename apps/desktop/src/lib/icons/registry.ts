@@ -51,6 +51,7 @@ import IPencil from '@lucide/svelte/icons/pencil';
 import IClipboardList from '@lucide/svelte/icons/clipboard-list';
 import IPin from '@lucide/svelte/icons/pin';
 import IMusic from '@lucide/svelte/icons/music';
+import ISmartphone from '@lucide/svelte/icons/smartphone';
 import ILayoutGrid from '@lucide/svelte/icons/layout-grid';
 import IPuzzle from '@lucide/svelte/icons/puzzle';
 import IRefreshCw from '@lucide/svelte/icons/refresh-cw';
@@ -147,6 +148,7 @@ export const ICONS: Record<string, Component<any>> = {
   'zap': IZap,
   'puzzle': IPuzzle,
   'tools': ILayoutGrid,
+  'smartphone': ISmartphone,
   'music': IMusic,
   'pin': IPin,
   'clipboard': IClipboardList,

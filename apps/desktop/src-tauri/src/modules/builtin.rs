@@ -76,6 +76,30 @@ impl Module for TextModule {
     }
 }
 
+static PHONE: ModuleManifest = ModuleManifest {
+    id: "phone",
+    name: "Phone transfer",
+    nav: Some(NavEntry {
+        order: 44,
+        icon: "smartphone",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct PhoneModule;
+#[async_trait]
+impl Module for PhoneModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &PHONE
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

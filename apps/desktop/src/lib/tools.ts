@@ -65,6 +65,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-peach)',
   },
   {
+    id: 'phone',
+    icon: 'smartphone',
+    title: 'Phone transfer',
+    desc: 'Send files between your phone and this computer over your Wi-Fi, with a QR code and no cloud.',
+    tint: 'var(--glow-lavender)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

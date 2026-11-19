@@ -22,6 +22,8 @@ nomnom-backup = { path = "../../../crates/nomnom-backup" }
 sysinfo = { version = "0.33", default-features = false, features = ["system", "disk", "network", "component"] }
 nomnom-activity = { path = "../../../crates/nomnom-activity" }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "http2", "json"] }
+tiny_http = "0.12"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 tokio-util.workspace = true
