@@ -51,6 +51,7 @@ It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, o
 | ⏱️ | **Time tools** | World clocks, a time-zone converter, a stopwatch, and a timer that rings with a card even when NomNom is closed. |
 | 🧰 | **Text toolbox** | JSON, Base64, URLs, MD5 and SHA hashes, UUIDs, a regex tester that cannot freeze the window, timestamps, text differences, colours and contrast, and case conversion. All offline. |
 | 🪄 | **Mini tools** | Keep any window on top, pick a colour from the screen (Windows), paste as plain text (Windows), and take the tracking off links. |
+| 🪄 | **Folder rules** | "When a picture shows up in Downloads, make it WebP and move it to Pictures." NomNom waits for the file to finish arriving, never replaces or deletes anything, and every move can be put back. |
 | 🕘 | **Notifications** | The notices NomNom showed in the last seven days, so one that went away unread can be found again. |
 | 💾 | **Settings file** | Save your settings, actions and choices to a file and load them on another computer. Home also shows memory, disk, your next reminder and your latest note. |
 | 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live. It only looks, it never touches anything. |

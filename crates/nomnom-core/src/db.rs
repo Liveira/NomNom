@@ -172,6 +172,20 @@ const MIGRATIONS: &[&str] = &[
         body TEXT NOT NULL,
         action TEXT);
      CREATE INDEX notifications_at ON notifications(at DESC);",
+    // v15: what folder rules did, and how far each rule had looked.
+    "CREATE TABLE rule_log(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at INTEGER NOT NULL,
+        rule TEXT NOT NULL,
+        step TEXT NOT NULL,
+        src TEXT NOT NULL,
+        dst TEXT NOT NULL,
+        ok INTEGER NOT NULL,
+        note TEXT NOT NULL,
+        undone INTEGER NOT NULL DEFAULT 0);
+     CREATE TABLE rule_state(
+        rule_id TEXT PRIMARY KEY,
+        scanned_at INTEGER NOT NULL) WITHOUT ROWID;",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

@@ -292,6 +292,30 @@ impl Module for InboxModule {
     }
 }
 
+static RULES: ModuleManifest = ModuleManifest {
+    id: "rules",
+    name: "Folder rules",
+    nav: Some(NavEntry {
+        order: 54,
+        icon: "wand",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct RulesModule;
+#[async_trait]
+impl Module for RulesModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &RULES
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

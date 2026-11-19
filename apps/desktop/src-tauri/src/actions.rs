@@ -130,6 +130,28 @@ pub async fn ca_run(
     run(&app, &action, &values).await
 }
 
+/// Runs a saved action with the values given (used by folder rules, which pass the file).
+pub async fn run_by_id(
+    app: &AppHandle,
+    id: &str,
+    values: &HashMap<String, String>,
+) -> Result<RunResult, String> {
+    let action = app
+        .state::<AppState>()
+        .settings
+        .get()
+        .actions
+        .into_iter()
+        .find(|a| a.id == id)
+        .ok_or("The action it should run is gone.")?;
+    let r = run(app, &action, values).await?;
+    if r.ok {
+        Ok(r)
+    } else {
+        Err(format!("{}: {}", action.name, r.message))
+    }
+}
+
 /// Runs an action from its shortcut: no window to show the answer in, so a card says what happened.
 pub fn run_in_background(app: &AppHandle, id: &str) {
     let app = app.clone();

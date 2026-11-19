@@ -47,6 +47,11 @@ pub fn settings_import(
             .map_err(|e| format!("An action in the file is not valid: {e}"))?;
     }
     nomnom_core::actions::check_list(&imported.actions)?;
+    for r in &imported.rules {
+        nomnom_core::folder_rules::validate(r)
+            .map_err(|e| format!("A rule in the file is not valid: {e}"))?;
+    }
+    nomnom_core::folder_rules::check_list(&imported.rules)?;
     let merged = state.settings.get().with_imported(imported);
     let saved = state
         .settings

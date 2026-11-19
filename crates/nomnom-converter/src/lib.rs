@@ -6,7 +6,7 @@
 pub mod batch;
 mod error;
 pub mod ffmpeg;
-mod image_conv;
+pub mod image_conv;
 pub mod model;
 pub mod naming;
 pub mod office;

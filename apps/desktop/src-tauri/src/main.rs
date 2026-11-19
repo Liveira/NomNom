@@ -12,6 +12,7 @@ mod commands;
 mod events;
 mod filetools;
 mod focus;
+mod folder_rules;
 mod goals;
 mod graphics;
 mod i18n;

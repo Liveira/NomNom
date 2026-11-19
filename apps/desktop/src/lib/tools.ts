@@ -128,6 +128,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-lavender)',
   },
   {
+    id: 'rules',
+    icon: 'wand',
+    title: 'Folder rules',
+    desc: 'When a file shows up in a folder, move it, rename it or turn it into WebP for you. Nothing is ever deleted, and every move can be undone.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

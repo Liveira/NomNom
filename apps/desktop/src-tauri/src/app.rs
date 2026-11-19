@@ -1,10 +1,11 @@
 use crate::modules::downloads;
 use crate::{
     actions, activity, backup, browser, clipboard, colorpick, commands, events, filetools, focus,
-    goals, integrations, launcher, memory, mini, modules, monitor, notes, notifications, notifier,
-    ocr, organizer, pdftools, phone, pipe_server, quick, reminders, rename, settings_io, shortcuts,
-    startup, state::AppState, storage, storage_cleanup, storage_history, storage_ops,
-    storage_tools, subscriptions, toast, translate, tray, updater, windows,
+    folder_rules, goals, integrations, launcher, memory, mini, modules, monitor, notes,
+    notifications, notifier, ocr, organizer, pdftools, phone, pipe_server, quick, reminders,
+    rename, settings_io, shortcuts, startup, state::AppState, storage, storage_cleanup,
+    storage_history, storage_ops, storage_tools, subscriptions, toast, translate, tray, updater,
+    windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -195,6 +196,14 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            folder_rules::fr_list,
+            folder_rules::fr_save,
+            folder_rules::fr_delete,
+            folder_rules::fr_preview,
+            folder_rules::fr_apply_existing,
+            folder_rules::fr_log,
+            folder_rules::fr_undo,
+            folder_rules::fr_clear_log,
             colorpick::pk_image,
             colorpick::pk_ready,
             colorpick::pk_cancel,
@@ -357,6 +366,7 @@ pub fn run() {
             shortcuts::register_all(app.handle());
             shortcuts::sync_custom(app.handle());
             reminders::spawn(app.handle().clone());
+            folder_rules::spawn(app.handle().clone());
             #[cfg(windows)]
             mini::spawn(app.handle().clone());
             browser::write_integration(&app.state::<AppState>());

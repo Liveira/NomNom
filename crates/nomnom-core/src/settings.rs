@@ -420,6 +420,8 @@ pub struct Settings {
     pub mini: Mini,
     /// Things the person added: programs, folders, links and commands with shortcuts.
     pub actions: Vec<crate::actions::Action>,
+    /// Folder rules: what to do with files that show up in a folder.
+    pub rules: Vec<crate::folder_rules::Rule>,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -444,6 +446,7 @@ impl Default for Settings {
             phone: Phone::default(),
             mini: Mini::default(),
             actions: Vec::new(),
+            rules: Vec::new(),
             extra: Map::new(),
         }
     }

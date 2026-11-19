@@ -51,6 +51,7 @@ Funciona no **Windows 11**, no **Arch Linux** e no **Debian / Ubuntu**. É gratu
 | ⏱️ | **Ferramentas de tempo** | Relógios mundiais, conversor de fuso horário, cronômetro e um temporizador que avisa com um cartão mesmo com o NomNom fechado. |
 | 🧰 | **Caixa de ferramentas de texto** | JSON, Base64, URLs, hashes MD5 e SHA, UUIDs, um testador de regex que não trava a janela, timestamps, diferenças de texto, cores e contraste, e troca de maiúsculas. Tudo offline. |
 | 🪄 | **Mini ferramentas** | Manter qualquer janela no topo, escolher uma cor da tela (Windows), colar como texto simples (Windows) e tirar o rastreio de links. |
+| 🪄 | **Regras para pastas** | "Quando uma imagem aparecer em Downloads, transforme em WebP e mova para Imagens." O NomNom espera o arquivo terminar de chegar, nunca substitui nem apaga nada, e todo movimento pode ser desfeito. |
 | 🕘 | **Notificações** | Os avisos que o NomNom mostrou nos últimos sete dias, para achar de novo um que sumiu sem ser lido. |
 | 💾 | **Arquivo de configurações** | Salve suas configurações, ações e escolhas num arquivo e carregue em outro computador. O início também mostra memória, disco, seu próximo lembrete e sua última nota. |
 | 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo. Só observa, nunca mexe em nada. |

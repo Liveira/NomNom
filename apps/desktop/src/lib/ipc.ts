@@ -594,6 +594,51 @@ export function onNoticesChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('notifications://changed', () => handler());
 }
 
+export type RuleStep =
+  | { type: 'move'; folder: string }
+  | { type: 'copy'; folder: string }
+  | { type: 'rename'; template: string }
+  | { type: 'convert'; to: 'webp' | 'jpg' | 'png'; originals: string }
+  | { type: 'run'; action: string }
+  | { type: 'notify' };
+export interface FolderRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  folder: string;
+  subfolders: boolean;
+  extensions: string[];
+  name_has: string;
+  min_kb: number;
+  max_kb: number;
+  steps: RuleStep[];
+  since: number;
+}
+export interface RuleLogItem {
+  id: number;
+  at: number;
+  rule: string;
+  step: string;
+  from: string;
+  to: string;
+  ok: boolean;
+  note: string;
+  undone: boolean;
+}
+export const rulesIpc = {
+  list: () => invoke<FolderRule[]>('fr_list'),
+  save: (rule: FolderRule) => invoke<FolderRule[]>('fr_save', { rule }),
+  remove: (id: string) => invoke<FolderRule[]>('fr_delete', { id }),
+  preview: (id: string) => invoke<{ name: string; size: number }[]>('fr_preview', { id }),
+  applyExisting: (id: string) => invoke<number>('fr_apply_existing', { id }),
+  log: () => invoke<RuleLogItem[]>('fr_log'),
+  undo: (id: number) => invoke<void>('fr_undo', { id }),
+  clearLog: () => invoke<void>('fr_clear_log'),
+};
+export function onRulesChanged(handler: () => void): Promise<UnlistenFn> {
+  return listen('rules://changed', () => handler());
+}
+
 export const settingsFileIpc = {
   save: (path: string) => invoke<void>('settings_export', { path }),
   load: (path: string) => invoke<Settings>('settings_import', { path }),
