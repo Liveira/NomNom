@@ -44,6 +44,15 @@ Funciona no **Windows 11**, no **Arch Linux** e no **Debian / Ubuntu**. É gratu
 | 📋 | **Histórico da área de transferência** | Desligado até você ligar. Só texto, com busca, itens fixados e um número de dias para guardar. Cópias que um gerenciador de senhas marca como privadas ficam de fora. |
 | 📱 | **Transferência com o celular** | Um QR code abre uma página no seu Wi-Fi: envie fotos e arquivos do celular para o computador, ou baixe o que você oferecer do computador. Sem nuvem, e desliga sozinho quando ninguém usa. |
 | 🚀 | **Apps de inicialização** | Veja o que abre com o computador e quanto cada um atrasou (pelo registro do próprio Windows). Desligue e ligue programas sem desinstalar. |
+| 🔎 | **Busca e lançador** | `Ctrl+K` dentro do NomNom, ou `Alt+Espaço` de qualquer lugar: ache uma ferramenta, um programa, uma pasta ou um arquivo recente, rode uma ação sua, ou digite uma conta e veja a resposta. |
+| 🚀 | **Minhas ações** | Programas, pastas, links e comandos seus, com atalho global e valores que eles perguntam (uma busca na web que pergunta o que procurar). Comandos rodam com uma lista de argumentos, nunca por um shell. |
+| 🔔 | **Lembretes** | "em 20 minutos alongar", "amanhã às 9 ligar para a mãe", "todo dia às 18:30 beber água", em português, inglês ou espanhol. Um cartão aparece mesmo com a janela fechada. |
+| ✏️ | **Notas** | Notas curtas guardadas neste computador, com fixar e busca. Um atalho abre uma em branco; "nota comprar leite" na busca salva uma. |
+| ⏱️ | **Ferramentas de tempo** | Relógios mundiais, conversor de fuso horário, cronômetro e um temporizador que avisa com um cartão mesmo com o NomNom fechado. |
+| 🧰 | **Caixa de ferramentas de texto** | JSON, Base64, URLs, hashes MD5 e SHA, UUIDs, um testador de regex que não trava a janela, timestamps, diferenças de texto, cores e contraste, e troca de maiúsculas. Tudo offline. |
+| 🪄 | **Mini ferramentas** | Manter qualquer janela no topo, escolher uma cor da tela (Windows), colar como texto simples (Windows) e tirar o rastreio de links. |
+| 🕘 | **Notificações** | Os avisos que o NomNom mostrou nos últimos sete dias, para achar de novo um que sumiu sem ser lido. |
+| 💾 | **Arquivo de configurações** | Salve suas configurações, ações e escolhas num arquivo e carregue em outro computador. O início também mostra memória, disco, seu próximo lembrete e sua última nota. |
 | 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo. Só observa, nunca mexe em nada. |
 | 🖱️ | **Menu do gerenciador de arquivos** | Clique com o botão direito em arquivos para convertê-los, ou em uma pasta para analisar o espaço. Funciona no Explorer do Windows 11, KDE Dolphin, GNOME Files e Cinnamon Nemo. |
 | 🌐 | **Extensão do navegador** | Botões de download no YouTube, X, Instagram, Reddit e sobre o player no TikTok, Vimeo, Twitch e outros. |
