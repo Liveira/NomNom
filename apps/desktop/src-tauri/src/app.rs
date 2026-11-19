@@ -1,8 +1,8 @@
 use crate::modules::downloads;
 use crate::{
-    actions, activity, backup, browser, clipboard, colorpick, commands, events, filetools, focus,
-    folder_rules, goals, integrations, launcher, memory, mini, modules, monitor, notes,
-    notifications, notifier, ocr, organizer, pdftools, phone, pipe_server, quick, reminders,
+    actions, activity, backup, browser, clipboard, colorpick, commands, events, filesearch,
+    filetools, focus, folder_rules, goals, integrations, launcher, memory, mini, modules, monitor,
+    notes, notifications, notifier, ocr, organizer, pdftools, phone, pipe_server, quick, reminders,
     rename, settings_io, shortcuts, startup, state::AppState, storage, storage_cleanup,
     storage_history, storage_ops, storage_tools, subscriptions, toast, translate, tray, updater,
     windows,
@@ -196,6 +196,7 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            filesearch::fs_search,
             folder_rules::fr_list,
             folder_rules::fr_save,
             folder_rules::fr_delete,
@@ -367,6 +368,8 @@ pub fn run() {
             shortcuts::sync_custom(app.handle());
             reminders::spawn(app.handle().clone());
             folder_rules::spawn(app.handle().clone());
+            #[cfg(windows)]
+            filesearch::spawn_idle_watch();
             #[cfg(windows)]
             mini::spawn(app.handle().clone());
             browser::write_integration(&app.state::<AppState>());

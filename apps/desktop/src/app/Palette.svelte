@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { actionsIpc, clipIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, type CustomAction, type LauncherEntry, type ReminderPreview } from '../lib/ipc';
-  import { calc, rank, showNumber } from '../lib/palette';
+  import { actionsIpc, clipIpc, fileIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview } from '../lib/ipc';
+  import { calc, lastTwo, rank, showNumber } from '../lib/palette';
   import { TOOLS } from '../lib/tools';
   import { dueText, noteFrom, startsLikeReminder } from '../modules/reminders/logic';
+  import { parentOf } from '../modules/rules/logic';
   import { THEMES_IN_ORDER } from '../modules/settings/themes';
   import { app } from './state.svelte';
 
@@ -21,6 +22,8 @@
     icon: string;
     keywords?: string;
     run: () => void | Promise<void>;
+    /** Ctrl+Enter: for a file, show it in its folder. */
+    alt?: () => void | Promise<void>;
   }
 
   let query = $state('');
@@ -162,6 +165,53 @@
   });
   const noteText = $derived(noteFrom(query));
 
+  /** Files whose name has the words typed, from the system's own index. */
+  let fileHits = $state<FileHit[]>([]);
+  let fileToken = 0;
+  $effect(() => {
+    const q = query;
+    const mine = ++fileToken;
+    if (q.trim().length < 2 || startsLikeReminder(q) || noteFrom(q) !== null || calc(q) !== null) {
+      fileHits = [];
+      return;
+    }
+    const wait = setTimeout(() => {
+      void fileIpc
+        .search(q)
+        .then((h) => {
+          if (mine === fileToken) fileHits = h;
+        })
+        .catch(() => {
+          if (mine === fileToken) fileHits = [];
+        });
+    }, 280);
+    return () => clearTimeout(wait);
+  });
+  const fileRows = $derived.by((): Item[] =>
+    fileHits.map((h) => ({
+      key: `file:${h.path}`,
+      title: h.name,
+      hint: lastTwo(parentOf(h.path)),
+      icon: h.is_dir ? 'folder' : 'file',
+      run: async () => {
+        try {
+          await launcherIpc.openPath(h.path, false);
+          if (!floating) onclose();
+        } catch (err) {
+          note = String(err);
+        }
+      },
+      alt: async () => {
+        try {
+          await launcherIpc.openPath(h.path, true);
+          if (!floating) onclose();
+        } catch (err) {
+          note = String(err);
+        }
+      },
+    })),
+  );
+
   const sum = $derived(calc(query));
   const results = $derived.by((): Item[] => {
     const found = rank(all, query, 40);
@@ -199,7 +249,8 @@
         },
       });
     }
-    if (sum === null) return [...special, ...found];
+    const withFiles = [...found, ...fileRows.filter((f) => !found.some((x) => x.key === f.key))];
+    if (sum === null) return [...special, ...withFiles];
     const text = showNumber(sum);
     const row: Item = {
       key: 'calc',
@@ -215,7 +266,7 @@
         close();
       },
     };
-    return [row, ...special, ...found];
+    return [row, ...special, ...withFiles];
   });
 
   $effect(() => {
@@ -262,7 +313,9 @@
       void scroll();
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      void results[active]?.run();
+      const r = results[active];
+      if (e.ctrlKey && r?.alt) void r.alt();
+      else void r?.run();
     }
   }
 
@@ -366,7 +419,7 @@
   li.on button { background: var(--surface-3); }
   .ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--glow-peach); color: var(--accent-text); }
   .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-  .h { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+  .h { color: var(--text-3); font-size: 12px; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
   .none { padding: 18px; text-align: center; color: var(--text-3); }
   .note { margin: 0; padding: 8px 16px 12px; color: var(--danger); font-size: 13px; }
   .answer { padding: 16px 18px; display: grid; gap: 8px; min-height: 0; overflow: auto; }

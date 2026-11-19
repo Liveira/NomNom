@@ -644,6 +644,17 @@ export const settingsFileIpc = {
   load: (path: string) => invoke<Settings>('settings_import', { path }),
 };
 
+export interface FileHit {
+  path: string;
+  name: string;
+  is_dir: boolean;
+  size: number;
+  modified: number;
+}
+export const fileIpc = {
+  search: (query: string) => invoke<FileHit[]>('fs_search', { query }),
+};
+
 export const miniIpc = {
   pick: () => invoke<void>('mini_pick'),
   cleanNow: () => invoke<void>('mini_clean_now'),

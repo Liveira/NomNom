@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calc, rank, score, showNumber } from './palette';
+import { calc, lastTwo, rank, score, showNumber } from './palette';
 
 describe('score', () => {
   it('an empty query matches everything', () => {
@@ -85,6 +85,16 @@ describe('calc', () => {
     expect(calc('constructor')).toBeNull();
     expect(calc('1; 2')).toBeNull();
     expect(calc('process.exit()')).toBeNull();
+  });
+});
+
+describe('lastTwo', () => {
+  it('keeps the end of a long folder path', () => {
+    expect(lastTwo('C:\\Users\\a\\Docs\\Reports')).toBe('…\\Docs\\Reports');
+    expect(lastTwo('/home/a/docs/reports')).toBe('…/docs/reports');
+  });
+  it('leaves a short path alone', () => {
+    expect(lastTwo('C:\\Docs')).toBe('C:\\Docs');
   });
 });
 

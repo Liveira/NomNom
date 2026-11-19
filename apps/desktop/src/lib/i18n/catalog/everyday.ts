@@ -222,3 +222,10 @@ export const RULES: Entry[] = [
   ['Delete {}', 'Excluir {}', 'Eliminar {}'],
   ['Turn {} on or off', 'Ligar ou desligar {}', 'Activar o desactivar {}'],
 ];
+
+/** File results in the search. */
+export const FILE_SEARCH: Entry[] = [
+  ['Type at least two letters.', 'Digite pelo menos duas letras.', 'Escribe al menos dos letras.'],
+  ['To find files by name, install plocate.', 'Para achar arquivos pelo nome, instale o plocate.', 'Para encontrar archivos por nombre, instala plocate.'],
+  ['Windows Search took too long to answer.', 'A Busca do Windows demorou demais para responder.', 'La búsqueda de Windows tardó demasiado en responder.'],
+];

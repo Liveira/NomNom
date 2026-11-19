@@ -60,6 +60,13 @@ export function rank<T extends Rankable>(items: T[], query: string, limit = 40):
   return scored.slice(0, limit).map((x) => x.item);
 }
 
+/** The end of a folder path, which is the part that tells folders apart: "…\Docs\Reports". */
+export function lastTwo(path: string): string {
+  const parts = path.split(/[\\/]+/).filter(Boolean);
+  const sep = path.includes('\\') ? '\\' : '/';
+  return parts.length > 2 ? `…${sep}${parts.slice(-2).join(sep)}` : path;
+}
+
 // ---- A calculator that never runs the text as code. ----
 
 type Tok = { t: 'n'; v: number } | { t: 'op'; v: string } | { t: 'id'; v: string };

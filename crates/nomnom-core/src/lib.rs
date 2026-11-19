@@ -4,6 +4,7 @@ pub mod actions;
 pub mod clipboard;
 pub mod db;
 pub mod error;
+pub mod filesearch;
 pub mod folder_rules;
 pub mod fs;
 pub mod launcher;

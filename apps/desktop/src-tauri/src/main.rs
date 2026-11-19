@@ -10,6 +10,7 @@ mod clipboard;
 mod colorpick;
 mod commands;
 mod events;
+mod filesearch;
 mod filetools;
 mod focus;
 mod folder_rules;
