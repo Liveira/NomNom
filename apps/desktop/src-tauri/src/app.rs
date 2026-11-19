@@ -1,10 +1,10 @@
 use crate::modules::downloads;
 use crate::{
-    actions, activity, backup, browser, clipboard, commands, events, filetools, focus, goals,
-    integrations, launcher, memory, modules, monitor, notes, notifier, ocr, organizer, pdftools,
-    phone, pipe_server, quick, reminders, rename, shortcuts, startup, state::AppState, storage,
-    storage_cleanup, storage_history, storage_ops, storage_tools, subscriptions, toast, translate,
-    tray, updater, windows,
+    actions, activity, backup, browser, clipboard, colorpick, commands, events, filetools, focus,
+    goals, integrations, launcher, memory, mini, modules, monitor, notes, notifier, ocr, organizer,
+    pdftools, phone, pipe_server, quick, reminders, rename, shortcuts, startup, state::AppState,
+    storage, storage_cleanup, storage_history, storage_ops, storage_tools, subscriptions, toast,
+    translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -191,6 +191,12 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            colorpick::pk_image,
+            colorpick::pk_ready,
+            colorpick::pk_cancel,
+            colorpick::pk_done,
+            colorpick::mini_pick,
+            mini::mini_clean_now,
             reminders::rm_preview,
             reminders::rm_add_text,
             reminders::rm_add_at,
@@ -344,6 +350,8 @@ pub fn run() {
             shortcuts::register_all(app.handle());
             shortcuts::sync_custom(app.handle());
             reminders::spawn(app.handle().clone());
+            #[cfg(windows)]
+            mini::spawn(app.handle().clone());
             browser::write_integration(&app.state::<AppState>());
             pipe_server::spawn(app.handle().clone());
             quick::apply_keep_ready(app.handle());

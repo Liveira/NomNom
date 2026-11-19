@@ -167,6 +167,14 @@ pub struct Shortcuts {
     pub launcher_on: bool,
     /// Opens the quick notes (when that tool is in the sidebar).
     pub notes: String,
+    /// Keeps the window in front of the others (Windows, when Mini tools is in the sidebar).
+    pub pin_top: String,
+    /// Picks a colour from the screen and copies it.
+    pub pick_color: String,
+    /// Pastes the clipboard as plain text, with no formatting.
+    pub paste_plain: String,
+    /// Takes the tracking off the link on the clipboard.
+    pub clean_link: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -182,6 +190,10 @@ impl Default for Shortcuts {
             launcher: "Alt+Space".into(),
             launcher_on: true,
             notes: "Ctrl+Alt+M".into(),
+            pin_top: "Ctrl+Alt+T".into(),
+            pick_color: "Ctrl+Alt+C".into(),
+            paste_plain: "Ctrl+Alt+Shift+V".into(),
+            clean_link: "Ctrl+Alt+L".into(),
             keep_ready: false,
         }
     }
@@ -371,6 +383,14 @@ impl Default for Phone {
     }
 }
 
+/// The small everyday tools.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+pub struct Mini {
+    /// Take the tracking off a link as soon as it is copied (Windows).
+    pub clean_links_auto: bool,
+}
+
 /// The system monitor.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -397,6 +417,7 @@ pub struct Settings {
     pub clipboard: Clipboard,
     pub text: Text,
     pub phone: Phone,
+    pub mini: Mini,
     /// Things the person added: programs, folders, links and commands with shortcuts.
     pub actions: Vec<crate::actions::Action>,
     /// Sections owned by modules or by newer versions, kept verbatim.
@@ -421,6 +442,7 @@ impl Default for Settings {
             clipboard: Clipboard::default(),
             text: Text::default(),
             phone: Phone::default(),
+            mini: Mini::default(),
             actions: Vec::new(),
             extra: Map::new(),
         }

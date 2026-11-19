@@ -100,6 +100,27 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-mint)',
   },
   {
+    id: 'clocks',
+    icon: 'clock',
+    title: 'Time tools',
+    desc: 'World clocks, a time-zone converter, a stopwatch and a timer that rings even with the window closed.',
+    tint: 'var(--glow-lavender)',
+  },
+  {
+    id: 'toolbox',
+    icon: 'wrench',
+    title: 'Text toolbox',
+    desc: 'JSON, Base64, URLs, hashes, UUIDs, regex, timestamps, text differences and colours, all on this computer.',
+    tint: 'var(--glow-mint)',
+  },
+  {
+    id: 'mini',
+    icon: 'wand',
+    title: 'Mini tools',
+    desc: 'Keep a window on top, pick a colour from the screen, paste without formatting and clean tracking off links.',
+    tint: 'var(--glow-blush)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

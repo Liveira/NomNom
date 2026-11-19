@@ -260,6 +260,31 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Para leer texto de la pantalla en X11, instala maim.",
     ),
     ("Reminder", "Lembrete", "Recordatorio"),
+    ("Pinned on top", "Fixada no topo", "Fijada encima"),
+    ("Not on top any more", "Não está mais no topo", "Ya no está encima"),
+    ("There is no window to pin.", "Não há janela para fixar.", "No hay ventana que fijar."),
+    (
+        "Pinning windows works on Windows only.",
+        "Fixar janelas funciona só no Windows.",
+        "Fijar ventanas funciona solo en Windows.",
+    ),
+    ("Link cleaned", "Link limpo", "Enlace limpio"),
+    (
+        "There was no tracking in the link on the clipboard.",
+        "Não havia rastreio no link da área de transferência.",
+        "No había rastreo en el enlace del portapapeles.",
+    ),
+    (
+        "The clipboard has no text.",
+        "A área de transferência não tem texto.",
+        "El portapapeles no tiene texto.",
+    ),
+    ("Colour copied", "Cor copiada", "Color copiado"),
+    (
+        "Picking a colour works on Windows only.",
+        "Escolher uma cor funciona só no Windows.",
+        "Elegir un color funciona solo en Windows.",
+    ),
     (
         "Nothing was selected.",
         "Nada foi selecionado.",

@@ -17,7 +17,13 @@ pub const TRANSLATE_POPUP: &str = "translate_popup";
 pub const CAPTURE: &str = "capture_text";
 pub const LAUNCHER: &str = "launcher";
 pub const NOTES: &str = "notes";
-pub const IDS: [&str; 8] = [
+pub const PIN_TOP: &str = "pin_top";
+pub const PICK_COLOR: &str = "pick_color";
+pub const PASTE_PLAIN: &str = "paste_plain";
+pub const CLEAN_LINK: &str = "clean_link";
+/// Shortcuts that only do something on Windows.
+pub const WINDOWS_ONLY: [&str; 3] = [PIN_TOP, PICK_COLOR, PASTE_PLAIN];
+pub const IDS: [&str; 12] = [
     QUICK,
     OPEN,
     CLIPBOARD,
@@ -26,6 +32,10 @@ pub const IDS: [&str; 8] = [
     CAPTURE,
     LAUNCHER,
     NOTES,
+    PIN_TOP,
+    PICK_COLOR,
+    PASTE_PLAIN,
+    CLEAN_LINK,
 ];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
@@ -49,6 +59,10 @@ fn action(app: &AppHandle, id: &str) {
         CAPTURE => crate::ocr::capture(app),
         LAUNCHER => crate::launcher::toggle(app),
         NOTES => crate::launcher::go(app, "notes"),
+        PIN_TOP => crate::mini::pin_top(app),
+        PICK_COLOR => crate::colorpick::start(app),
+        PASTE_PLAIN => crate::mini::paste_plain(app),
+        CLEAN_LINK => crate::mini::clean_clipboard(app),
         _ => {}
     }
 }
@@ -75,6 +89,10 @@ fn configured(app: &AppHandle, id: &str) -> String {
         CAPTURE => s.capture_text,
         LAUNCHER => s.launcher,
         NOTES => s.notes,
+        PIN_TOP => s.pin_top,
+        PICK_COLOR => s.pick_color,
+        PASTE_PLAIN => s.paste_plain,
+        CLEAN_LINK => s.clean_link,
         _ => s.clipboard,
     }
 }
@@ -96,6 +114,8 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
         CAPTURE => s.text.ocr,
         LAUNCHER => s.shortcuts.launcher_on,
         NOTES => tool_on(&s, "notes"),
+        PIN_TOP | PICK_COLOR | PASTE_PLAIN => cfg!(windows) && tool_on(&s, "mini"),
+        CLEAN_LINK => tool_on(&s, "mini"),
         _ => true,
     }
 }
@@ -196,6 +216,10 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             CAPTURE => s.shortcuts.capture_text = accel.to_string(),
             LAUNCHER => s.shortcuts.launcher = accel.to_string(),
             NOTES => s.shortcuts.notes = accel.to_string(),
+            PIN_TOP => s.shortcuts.pin_top = accel.to_string(),
+            PICK_COLOR => s.shortcuts.pick_color = accel.to_string(),
+            PASTE_PLAIN => s.shortcuts.paste_plain = accel.to_string(),
+            CLEAN_LINK => s.shortcuts.clean_link = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

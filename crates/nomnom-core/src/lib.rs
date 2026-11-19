@@ -6,6 +6,7 @@ pub mod db;
 pub mod error;
 pub mod fs;
 pub mod launcher;
+pub mod links;
 pub mod module;
 pub mod paths;
 pub mod phone;

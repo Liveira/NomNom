@@ -129,7 +129,9 @@ pub fn capture(app: &AppHandle) {
 }
 
 #[cfg(windows)]
-fn screen_under_pointer(app: &AppHandle) -> Option<(i32, i32, nomnom_win::screen::Shot)> {
+pub(crate) fn screen_under_pointer(
+    app: &AppHandle,
+) -> Option<(i32, i32, nomnom_win::screen::Shot)> {
     let cursor = app.cursor_position().ok()?;
     let monitor = app
         .monitor_from_point(cursor.x, cursor.y)

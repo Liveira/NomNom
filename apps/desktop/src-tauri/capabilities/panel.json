@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "panel",
   "description": "Permissions for NomNom's little windows (notifications, translation, clipboard, capture)",
-  "windows": ["toast", "translate", "clipboard", "ocr", "launcher"],
+  "windows": ["toast", "translate", "clipboard", "ocr", "launcher", "picker"],
   "permissions": ["core:default"]
 }

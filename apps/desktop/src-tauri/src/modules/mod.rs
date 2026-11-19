@@ -24,6 +24,9 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ActionsModule),
         Arc::new(builtin::RemindersModule),
         Arc::new(builtin::NotesModule),
+        Arc::new(builtin::ClocksModule),
+        Arc::new(builtin::ToolboxModule),
+        Arc::new(builtin::MiniModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

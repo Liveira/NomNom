@@ -196,6 +196,78 @@ impl Module for NotesModule {
     }
 }
 
+static CLOCKS: ModuleManifest = ModuleManifest {
+    id: "clocks",
+    name: "Time tools",
+    nav: Some(NavEntry {
+        order: 50,
+        icon: "clock",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ClocksModule;
+#[async_trait]
+impl Module for ClocksModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &CLOCKS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
+static TOOLBOX: ModuleManifest = ModuleManifest {
+    id: "toolbox",
+    name: "Text toolbox",
+    nav: Some(NavEntry {
+        order: 51,
+        icon: "wrench",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ToolboxModule;
+#[async_trait]
+impl Module for ToolboxModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &TOOLBOX
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
+static MINI: ModuleManifest = ModuleManifest {
+    id: "mini",
+    name: "Mini tools",
+    nav: Some(NavEntry {
+        order: 52,
+        icon: "wand",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct MiniModule;
+#[async_trait]
+impl Module for MiniModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &MINI
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

@@ -8,9 +8,10 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; notes: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; capture_text: string; launcher: string; launcher_on: boolean; notes: string; pin_top: string; pick_color: string; paste_plain: string; clean_link: string; keep_ready: boolean };
   actions: CustomAction[];
   clipboard: { enabled: boolean; keep_days: number };
+  mini: { clean_links_auto: boolean };
   text: { enabled: boolean; target: string; ocr: boolean; ocr_translate: boolean };
   phone: { save_dir: string | null; idle_minutes: number };
   browser: { launch_from_browser: boolean };
@@ -94,6 +95,7 @@ export interface SettingsPatch {
   phoneDir?: string;
   phoneIdleMinutes?: number;
   launcherOn?: boolean;
+  cleanLinksAuto?: boolean;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -224,7 +226,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher' | 'notes';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup' | 'capture_text' | 'launcher' | 'notes' | 'pin_top' | 'pick_color' | 'paste_plain' | 'clean_link';
   accelerator: string;
   error: string | null;
 }
@@ -571,6 +573,17 @@ export const launcherIpc = {
   go: (page: string) => invoke<void>('lc_go', { page }),
   close: () => invoke<void>('lc_close'),
   ready: () => invoke<void>('lc_ready'),
+};
+
+export const miniIpc = {
+  pick: () => invoke<void>('mini_pick'),
+  cleanNow: () => invoke<void>('mini_clean_now'),
+};
+export const pickerIpc = {
+  image: () => invoke<string | null>('pk_image'),
+  ready: () => invoke<void>('pk_ready'),
+  cancel: () => invoke<void>('pk_cancel'),
+  done: (hex: string) => invoke<void>('pk_done', { hex }),
 };
 
 export const ocrIpc = {

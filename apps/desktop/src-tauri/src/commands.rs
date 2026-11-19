@@ -72,6 +72,7 @@ pub struct SettingsPatch {
     phone_dir: Option<String>,
     phone_idle_minutes: Option<u32>,
     launcher_on: Option<bool>,
+    clean_links_auto: Option<bool>,
 }
 
 #[tauri::command]
@@ -282,6 +283,9 @@ pub fn update_settings(
             if let Some(v) = patch.phone_idle_minutes {
                 s.phone.idle_minutes = v.clamp(1, 240);
             }
+            if let Some(v) = patch.clean_links_auto {
+                s.mini.clean_links_auto = v;
+            }
             if let Some(v) = patch.launcher_on {
                 s.shortcuts.launcher_on = v;
             }
@@ -395,8 +399,14 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::CAPTURE, s.capture_text),
         (crate::shortcuts::LAUNCHER, s.launcher),
         (crate::shortcuts::NOTES, s.notes),
+        (crate::shortcuts::PIN_TOP, s.pin_top),
+        (crate::shortcuts::PICK_COLOR, s.pick_color),
+        (crate::shortcuts::PASTE_PLAIN, s.paste_plain),
+        (crate::shortcuts::CLEAN_LINK, s.clean_link),
     ]
     .into_iter()
+    // Pinning, the picker and plain paste are not there on other systems.
+    .filter(|(id, _)| cfg!(windows) || !crate::shortcuts::WINDOWS_ONLY.contains(id))
     .map(|(id, accelerator)| ShortcutInfo {
         id,
         accelerator,

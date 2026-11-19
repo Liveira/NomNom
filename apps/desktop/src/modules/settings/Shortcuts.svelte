@@ -14,6 +14,10 @@
     capture_text: 'Read text from the screen',
     launcher: 'Open the launcher (search programs, files and your actions)',
     notes: 'Write a quick note (when Notes is in the sidebar)',
+    pin_top: 'Keep the window in front on top, or let it go',
+    pick_color: 'Pick a colour from the screen',
+    paste_plain: 'Paste as plain text',
+    clean_link: 'Clean the link on the clipboard',
   };
 
   let items = $state<ShortcutInfo[]>([]);
