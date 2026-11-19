@@ -65,6 +65,8 @@ pub struct SettingsPatch {
     weekly_report: Option<bool>,
     clipboard_enabled: Option<bool>,
     clipboard_keep_days: Option<u32>,
+    text_enabled: Option<bool>,
+    text_target: Option<String>,
 }
 
 #[tauri::command]
@@ -81,6 +83,15 @@ pub fn update_settings(
     if let Some(l) = patch.language.as_deref() {
         if !matches!(l, "auto" | "en" | "pt" | "es") {
             return Err("Pick Automatic, English, Portugues or Espanol.".into());
+        }
+    }
+    if let Some(t) = patch.text_target.as_deref() {
+        if t != "auto"
+            && !nomnom_core::translate::LANGUAGES
+                .iter()
+                .any(|l| l.code == t)
+        {
+            return Err("Pick a language from the list.".into());
         }
     }
     if let Some(r) = patch.renderer.as_deref() {
@@ -260,6 +271,12 @@ pub fn update_settings(
             if let Some(v) = patch.goal_reminder_hour {
                 s.activity.goal_reminder_hour = v.min(24);
             }
+            if let Some(v) = patch.text_enabled {
+                s.text.enabled = v;
+            }
+            if let Some(v) = &patch.text_target {
+                s.text.target = v.clone();
+            }
             if let Some(v) = patch.clipboard_enabled {
                 s.clipboard.enabled = v;
             }
@@ -301,7 +318,7 @@ pub fn update_settings(
     if patch.language.is_some() {
         crate::tray::relabel(&app);
     }
-    if patch.clipboard_enabled.is_some() {
+    if patch.clipboard_enabled.is_some() || patch.text_enabled.is_some() {
         crate::shortcuts::sync(&app);
     }
     if patch.subtitles.is_some() || patch.subtitle_langs.is_some() {
@@ -348,6 +365,8 @@ pub fn shortcuts_status(state: State<'_, AppState>) -> Vec<ShortcutInfo> {
         (crate::shortcuts::QUICK, s.quick_download),
         (crate::shortcuts::OPEN, s.open_app),
         (crate::shortcuts::CLIPBOARD, s.clipboard),
+        (crate::shortcuts::TRANSLATE_REPLACE, s.translate_replace),
+        (crate::shortcuts::TRANSLATE_POPUP, s.translate_popup),
     ]
     .into_iter()
     .map(|(id, accelerator)| ShortcutInfo {

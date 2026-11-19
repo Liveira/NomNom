@@ -155,6 +155,10 @@ pub struct Shortcuts {
     pub open_app: String,
     /// Opens the clipboard history (when it is switched on).
     pub clipboard: String,
+    /// Replaces the selected text with its translation (when the translator is on).
+    pub translate_replace: String,
+    /// Shows the translation of the selected text next to the pointer.
+    pub translate_popup: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -164,6 +168,8 @@ impl Default for Shortcuts {
             quick_download: "Ctrl+Alt+D".into(),
             open_app: "Ctrl+Alt+N".into(),
             clipboard: "Ctrl+Alt+V".into(),
+            translate_replace: "Ctrl+Alt+T".into(),
+            translate_popup: "Ctrl+Alt+Y".into(),
             keep_ready: false,
         }
     }
@@ -312,6 +318,23 @@ impl Default for Clipboard {
     }
 }
 
+/// Translating selected text with DeepL, and reading text from the screen. Off until switched on.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Text {
+    pub enabled: bool,
+    /// A DeepL language code such as "PT-BR", or "auto" for the language NomNom is shown in.
+    pub target: String,
+}
+impl Default for Text {
+    fn default() -> Self {
+        Text {
+            enabled: false,
+            target: "auto".into(),
+        }
+    }
+}
+
 /// The system monitor.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -336,6 +359,7 @@ pub struct Settings {
     pub monitor: Monitor,
     pub activity: Activity,
     pub clipboard: Clipboard,
+    pub text: Text,
     /// Sections owned by modules or by newer versions, kept verbatim.
     #[serde(flatten)]
     pub extra: Map<String, Value>,
@@ -356,6 +380,7 @@ impl Default for Settings {
             monitor: Monitor::default(),
             activity: Activity::default(),
             clipboard: Clipboard::default(),
+            text: Text::default(),
             extra: Map::new(),
         }
     }

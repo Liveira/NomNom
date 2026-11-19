@@ -12,7 +12,9 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 pub const QUICK: &str = "quick_download";
 pub const OPEN: &str = "open_app";
 pub const CLIPBOARD: &str = "clipboard";
-pub const IDS: [&str; 3] = [QUICK, OPEN, CLIPBOARD];
+pub const TRANSLATE_REPLACE: &str = "translate_replace";
+pub const TRANSLATE_POPUP: &str = "translate_popup";
+pub const IDS: [&str; 5] = [QUICK, OPEN, CLIPBOARD, TRANSLATE_REPLACE, TRANSLATE_POPUP];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
 /// can never be hijacked system-wide.
@@ -30,6 +32,8 @@ fn action(app: &AppHandle, id: &str) {
         QUICK => quick::trigger(app),
         OPEN => windows::open_main(app),
         CLIPBOARD => crate::clipboard::open_popup(app),
+        TRANSLATE_REPLACE => crate::translate::replace_selection(app),
+        TRANSLATE_POPUP => crate::translate::popup_selection(app),
         _ => {}
     }
 }
@@ -51,6 +55,8 @@ fn configured(app: &AppHandle, id: &str) -> String {
     match id {
         QUICK => s.quick_download,
         OPEN => s.open_app,
+        TRANSLATE_REPLACE => s.translate_replace,
+        TRANSLATE_POPUP => s.translate_popup,
         _ => s.clipboard,
     }
 }
@@ -60,6 +66,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
     let s = app.state::<AppState>().settings.get();
     match id {
         CLIPBOARD => s.clipboard.enabled,
+        TRANSLATE_REPLACE | TRANSLATE_POPUP => s.text.enabled,
         _ => true,
     }
 }
@@ -152,6 +159,8 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
         .update("shortcuts", |s| match id {
             QUICK => s.shortcuts.quick_download = accel.to_string(),
             OPEN => s.shortcuts.open_app = accel.to_string(),
+            TRANSLATE_REPLACE => s.shortcuts.translate_replace = accel.to_string(),
+            TRANSLATE_POPUP => s.shortcuts.translate_popup = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

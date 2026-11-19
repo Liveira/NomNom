@@ -13,6 +13,8 @@ pub mod memory;
 #[cfg(windows)]
 pub mod native_host;
 #[cfg(windows)]
+pub mod secret;
+#[cfg(windows)]
 pub mod shell_menu;
 #[cfg(windows)]
 pub mod sparse;

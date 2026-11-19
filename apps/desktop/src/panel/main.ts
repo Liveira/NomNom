@@ -7,6 +7,7 @@ import { ipc } from '../lib/ipc';
 import { isLinux } from '../lib/platform';
 import ClipboardPanel from './ClipboardPanel.svelte';
 import Toast from './Toast.svelte';
+import TranslatePanel from './TranslatePanel.svelte';
 
 /** One small page for NomNom's little windows. `?kind=` says which one this is. */
 const kind = new URLSearchParams(location.search).get('kind') ?? 'toast';
@@ -23,6 +24,6 @@ ipc
   })
   .catch(() => {});
 
-const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel };
+const views: Record<string, Component> = { toast: Toast, clipboard: ClipboardPanel, translate: TranslatePanel };
 mount(views[kind] ?? Toast, { target: document.getElementById('app')! });
 i18n.start('auto');

@@ -9,6 +9,8 @@
     quick_download: 'Quick download from the clipboard',
     open_app: 'Open NomNom',
     clipboard: 'Open the clipboard history',
+    translate_replace: 'Replace the selected text with its translation',
+    translate_popup: 'Show the translation of the selected text',
   };
 
   let items = $state<ShortcutInfo[]>([]);

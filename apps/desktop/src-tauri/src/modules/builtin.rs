@@ -52,6 +52,30 @@ impl Module for ClipboardModule {
     }
 }
 
+static TEXT: ModuleManifest = ModuleManifest {
+    id: "text",
+    name: "Translator",
+    nav: Some(NavEntry {
+        order: 42,
+        icon: "languages",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct TextModule;
+#[async_trait]
+impl Module for TextModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &TEXT
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

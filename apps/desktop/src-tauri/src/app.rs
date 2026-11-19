@@ -3,7 +3,7 @@ use crate::{
     activity, backup, browser, clipboard, commands, events, filetools, focus, goals, integrations,
     memory, modules, monitor, notifier, organizer, pdftools, pipe_server, quick, rename, shortcuts,
     state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools, toast,
-    tray, updater, windows,
+    translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -149,6 +149,15 @@ pub fn run() {
         .manage(backup::BackupState::default())
         .manage(monitor::MonitorState::default())
         .invoke_handler(tauri::generate_handler![
+            translate::tr_key_status,
+            translate::tr_set_key,
+            translate::tr_clear_key,
+            translate::tr_languages,
+            translate::tr_translate,
+            translate::tr_popup_take,
+            translate::tr_popup_ready,
+            translate::tr_popup_close,
+            translate::tr_popup_use,
             clipboard::cb_list,
             clipboard::cb_count,
             clipboard::cb_pin,

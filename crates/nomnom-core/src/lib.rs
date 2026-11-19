@@ -10,5 +10,6 @@ pub mod process;
 pub mod rename;
 pub mod settings;
 pub mod tasks;
+pub mod translate;
 
 pub use error::{Error, Result};

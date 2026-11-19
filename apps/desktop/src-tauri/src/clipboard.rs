@@ -25,6 +25,23 @@ const POPUP_H: f64 = 560.0;
 const MAX_ITEMS: i64 = 3000;
 const LIST_CHARS: usize = 220;
 
+/// Until when (milliseconds since 1970) copies NomNom makes itself are not written to the history.
+static SUPPRESS_UNTIL: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+
+/// Keeps what NomNom copies for its own purposes (reading a selection) out of the history.
+pub fn suppress(ms: i64) {
+    let until = now() * 1000 + ms;
+    SUPPRESS_UNTIL.store(until, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn suppressed() -> bool {
+    let now_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0);
+    now_ms < SUPPRESS_UNTIL.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// The window that was in front when the popup opened, and when the popup appeared.
 static BEFORE: Mutex<(isize, Option<Instant>)> = Mutex::new((0, None));
 
@@ -121,7 +138,7 @@ pub fn spawn(app: AppHandle) {
                     if print != last_print {
                         let first = last_print.is_empty();
                         last_print = print;
-                        if !first && remember(&app.state::<AppState>().db, &text) {
+                        if !first && !suppressed() && remember(&app.state::<AppState>().db, &text) {
                             let _ = app.emit("clipboard://changed", ());
                         }
                     }

@@ -7,8 +7,8 @@ use windows::Win32::System::DataExchange::{
     GetClipboardSequenceNumber, IsClipboardFormatAvailable, RegisterClipboardFormatW,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY,
-    VK_CONTROL, VK_V,
+    GetAsyncKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
+    VIRTUAL_KEY, VK_C, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT, VK_V,
 };
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, SetForegroundWindow};
 
@@ -64,6 +64,43 @@ pub fn press_paste() {
     unsafe {
         SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
     }
+}
+
+/// Presses Ctrl+C in whatever window has the keyboard.
+pub fn press_copy() {
+    let inputs = [
+        key(VK_CONTROL, false),
+        key(VK_C, false),
+        key(VK_C, true),
+        key(VK_CONTROL, true),
+    ];
+    // SAFETY: the array is valid for the call and the size is that of one INPUT.
+    unsafe {
+        SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
+    }
+}
+
+/// Are Ctrl, Alt, Shift or Windows held down right now?
+pub fn modifiers_down() -> bool {
+    // SAFETY: only reads key state.
+    unsafe {
+        [VK_CONTROL, VK_MENU, VK_SHIFT, VK_LWIN, VK_RWIN]
+            .iter()
+            .any(|k| (GetAsyncKeyState(i32::from(k.0)) as u16) & 0x8000 != 0)
+    }
+}
+
+/// Waits (at most `max_ms`) until the person lets go of the keys of a shortcut, so that a Ctrl+C
+/// sent after it isn't read as Ctrl+Alt+C. Returns whether they were released.
+pub fn wait_modifiers_released(max_ms: u64) -> bool {
+    let start = std::time::Instant::now();
+    while modifiers_down() {
+        if start.elapsed().as_millis() as u64 > max_ms {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(15));
+    }
+    true
 }
 
 /// Puts `window` (from `foreground()`) back in front, then pastes into it.

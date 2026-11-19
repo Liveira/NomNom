@@ -118,6 +118,102 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Elas somem sozinhas. Clique em uma para abrir a página dela.",
         "Se van solas. Haz clic en una para abrir su página.",
     ),
+    (
+        "Couldn't translate",
+        "Não foi possível traduzir",
+        "No se pudo traducir",
+    ),
+    (
+        "Add your DeepL key in the Translator page first.",
+        "Adicione sua chave do DeepL na página Tradutor primeiro.",
+        "Añade tu clave de DeepL en la página Traductor primero.",
+    ),
+    (
+        "Select some text first.",
+        "Selecione algum texto primeiro.",
+        "Selecciona algún texto primero.",
+    ),
+    (
+        "The selection isn't text.",
+        "A seleção não é texto.",
+        "La selección no es texto.",
+    ),
+    (
+        "Already in that language",
+        "Já está nesse idioma",
+        "Ya está en ese idioma",
+    ),
+    (
+        "Nothing to change.",
+        "Nada para mudar.",
+        "Nada que cambiar.",
+    ),
+    ("Translated", "Traduzido", "Traducido"),
+    (
+        "It is on the clipboard: press Ctrl+V to paste it.",
+        "Está na área de transferência: pressione Ctrl+V para colar.",
+        "Está en el portapapeles: pulsa Ctrl+V para pegarlo.",
+    ),
+    (
+        "Couldn't use the clipboard.",
+        "Não foi possível usar a área de transferência.",
+        "No se pudo usar el portapapeles.",
+    ),
+    (
+        "Couldn't open the translation window.",
+        "Não foi possível abrir a janela de tradução.",
+        "No se pudo abrir la ventana de traducción.",
+    ),
+    (
+        "To translate selected text, install wl-clipboard (wl-paste).",
+        "Para traduzir texto selecionado, instale o wl-clipboard (wl-paste).",
+        "Para traducir texto seleccionado, instala wl-clipboard (wl-paste).",
+    ),
+    (
+        "To translate selected text, install xclip or xsel.",
+        "Para traduzir texto selecionado, instale o xclip ou o xsel.",
+        "Para traducir texto seleccionado, instala xclip o xsel.",
+    ),
+    (
+        "DeepL didn't accept the key. Check it in the Translator page.",
+        "O DeepL não aceitou a chave. Confira na página Tradutor.",
+        "DeepL no aceptó la clave. Revísala en la página Traductor.",
+    ),
+    (
+        "This month's DeepL characters are used up.",
+        "Os caracteres do DeepL deste mês acabaram.",
+        "Se acabaron los caracteres de DeepL de este mes.",
+    ),
+    (
+        "DeepL is busy right now. Try again in a moment.",
+        "O DeepL está ocupado agora. Tente de novo em instantes.",
+        "DeepL está ocupado ahora. Inténtalo de nuevo en un momento.",
+    ),
+    (
+        "That text is too long for DeepL.",
+        "Esse texto é longo demais para o DeepL.",
+        "Ese texto es demasiado largo para DeepL.",
+    ),
+    (
+        "DeepL couldn't use that text or language.",
+        "O DeepL não conseguiu usar esse texto ou idioma.",
+        "DeepL no pudo usar ese texto o idioma.",
+    ),
+    (
+        "DeepL had a problem. Try again in a moment.",
+        "O DeepL teve um problema. Tente de novo em instantes.",
+        "DeepL tuvo un problema. Inténtalo de nuevo en un momento.",
+    ),
+    (
+        "DeepL answered with an error.",
+        "O DeepL respondeu com um erro.",
+        "DeepL respondió con un error.",
+    ),
+    (
+        "Couldn't reach DeepL. Check your internet connection.",
+        "Não foi possível falar com o DeepL. Confira sua conexão com a internet.",
+        "No se pudo contactar con DeepL. Revisa tu conexión a internet.",
+    ),
 ];
 
 /// Translates `text`, or returns it unchanged.

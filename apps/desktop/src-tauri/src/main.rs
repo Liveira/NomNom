@@ -31,6 +31,7 @@ mod storage_history;
 mod storage_ops;
 mod storage_tools;
 mod toast;
+mod translate;
 mod tray;
 mod updater;
 mod windows;

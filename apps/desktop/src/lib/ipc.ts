@@ -8,8 +8,9 @@ export interface Settings {
   version: number;
   general: { close_to_tray: boolean; tray_notice_shown: boolean; language: 'auto' | 'en' | 'pt' | 'es'; renderer: 'auto' | 'gpu' | 'cpu'; pretty_notifications: boolean };
   appearance: { theme: Theme; motion: Motion; sidebar_collapsed: boolean; sidebar_tools: string[] | null };
-  shortcuts: { quick_download: string; open_app: string; clipboard: string; keep_ready: boolean };
+  shortcuts: { quick_download: string; open_app: string; clipboard: string; translate_replace: string; translate_popup: string; keep_ready: boolean };
   clipboard: { enabled: boolean; keep_days: number };
+  text: { enabled: boolean; target: string };
   browser: { launch_from_browser: boolean };
   system: { shell_menu: boolean; autostart: boolean; first_run_done: boolean };
   organizer: {
@@ -84,6 +85,8 @@ export interface SettingsPatch {
   sidebarTools?: string[];
   clipboardEnabled?: boolean;
   clipboardKeepDays?: number;
+  textEnabled?: boolean;
+  textTarget?: string;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -214,7 +217,7 @@ export interface QuickContext {
   site: string;
 }
 export interface ShortcutInfo {
-  id: 'quick_download' | 'open_app' | 'clipboard';
+  id: 'quick_download' | 'open_app' | 'clipboard' | 'translate_replace' | 'translate_popup';
   accelerator: string;
   error: string | null;
 }
@@ -356,6 +359,39 @@ export const clipIpc = {
 export function onClipboardChanged(handler: () => void): Promise<UnlistenFn> {
   return listen('clipboard://changed', () => handler());
 }
+
+export interface KeyStatus {
+  set: boolean;
+  used: number | null;
+  limit: number | null;
+  free: boolean;
+}
+export interface TrLanguage {
+  code: string;
+  name: string;
+}
+export interface Translated {
+  text: string;
+  detected: string;
+}
+export interface PopupData {
+  original: string;
+  translated: string | null;
+  detected: string;
+  target: string;
+  error: string | null;
+}
+export const trIpc = {
+  keyStatus: () => invoke<KeyStatus>('tr_key_status'),
+  setKey: (key: string) => invoke<KeyStatus>('tr_set_key', { key }),
+  clearKey: () => invoke<void>('tr_clear_key'),
+  languages: () => invoke<TrLanguage[]>('tr_languages'),
+  translate: (text: string) => invoke<Translated>('tr_translate', { text }),
+  popupTake: () => invoke<PopupData | null>('tr_popup_take'),
+  popupReady: () => invoke<void>('tr_popup_ready'),
+  popupClose: () => invoke<void>('tr_popup_close'),
+  popupUse: (action: 'copy' | 'replace') => invoke<void>('tr_popup_use', { action }),
+};
 
 export interface ToastCard {
   kind: 'info' | 'success' | 'warning' | 'error';

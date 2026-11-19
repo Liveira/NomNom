@@ -58,6 +58,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'text',
+    icon: 'languages',
+    title: 'Translator',
+    desc: 'Translate any selected text with DeepL: replace it in place, or read it in a small window.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',
