@@ -388,6 +388,30 @@ impl Module for GameModeModule {
     }
 }
 
+static QR: ModuleManifest = ModuleManifest {
+    id: "qr",
+    name: "QR codes",
+    nav: Some(NavEntry {
+        order: 58,
+        icon: "layers",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct QrModule;
+#[async_trait]
+impl Module for QrModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &QR
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

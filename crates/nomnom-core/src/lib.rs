@@ -15,6 +15,7 @@ pub mod module;
 pub mod paths;
 pub mod phone;
 pub mod process;
+pub mod qr;
 pub mod reminders;
 pub mod rename;
 pub mod settings;

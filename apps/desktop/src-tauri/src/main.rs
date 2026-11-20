@@ -33,6 +33,7 @@ mod organizer;
 mod pdftools;
 mod phone;
 mod pipe_server;
+mod qr;
 mod quick;
 mod reminders;
 mod rename;

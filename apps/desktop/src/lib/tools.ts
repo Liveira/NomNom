@@ -156,6 +156,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'qr',
+    icon: 'layers',
+    title: 'QR codes',
+    desc: 'Make a code from text or a Wi-Fi network, or read one that is on your screen.',
+    tint: 'var(--glow-lavender)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

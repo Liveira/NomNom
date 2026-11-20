@@ -6,7 +6,9 @@
 use crate::i18n::{lang_of, Lang};
 use crate::state::AppState;
 use crate::toast::{self, Toast};
-use nomnom_core::game::{self as rules, Change, Watch};
+#[cfg(windows)]
+use nomnom_core::game as rules;
+use nomnom_core::game::{Change, Watch};
 use serde::Serialize;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;

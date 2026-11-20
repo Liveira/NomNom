@@ -677,6 +677,19 @@ export const fileIpc = {
   search: (query: string) => invoke<FileHit[]>('fs_search', { query }),
 };
 
+export interface QrScanned {
+  text: string;
+  kind: string;
+  openable: boolean;
+}
+export const qrIpc = {
+  make: (text: string) => invoke<string>('qr_make', { text }),
+  wifi: (ssid: string, password: string, security: string, hidden: boolean) => invoke<[string, string]>('qr_wifi', { ssid, password, security, hidden }),
+  save: (path: string, svg: string) => invoke<void>('qr_save', { path, svg }),
+  readScreen: () => invoke<QrScanned[]>('qr_read_screen'),
+  open: (link: string) => invoke<void>('qr_open', { link }),
+};
+
 export const gameModeIpc = {
   status: () => invoke<{ on: boolean; game: string | null }>('gm_status'),
 };
