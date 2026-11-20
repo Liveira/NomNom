@@ -18,6 +18,7 @@ pub mod paths;
 pub mod phone;
 pub mod process;
 pub mod qr;
+pub mod recorder;
 pub mod reminders;
 pub mod rename;
 pub mod settings;

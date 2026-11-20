@@ -177,6 +177,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-peach)',
   },
   {
+    id: 'recorder',
+    icon: 'film',
+    title: 'Screen recorder',
+    desc: 'Record the screen, or part of it, as a video or a small GIF. No sound.',
+    tint: 'var(--glow-blush)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

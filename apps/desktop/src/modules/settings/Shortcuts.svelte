@@ -19,6 +19,7 @@
     paste_plain: 'Paste as plain text',
     clean_link: 'Clean the link on the clipboard',
     screenshot: 'Take a screenshot to mark up',
+    record: 'Record an area of the screen, or stop recording',
   };
 
   let items = $state<ShortcutInfo[]>([]);

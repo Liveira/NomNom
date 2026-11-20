@@ -22,9 +22,10 @@ pub const PICK_COLOR: &str = "pick_color";
 pub const PASTE_PLAIN: &str = "paste_plain";
 pub const CLEAN_LINK: &str = "clean_link";
 pub const SCREENSHOT: &str = "screenshot";
+pub const RECORD: &str = "record";
 /// Shortcuts that only do something on Windows.
-pub const WINDOWS_ONLY: [&str; 4] = [PIN_TOP, PICK_COLOR, PASTE_PLAIN, SCREENSHOT];
-pub const IDS: [&str; 13] = [
+pub const WINDOWS_ONLY: [&str; 5] = [PIN_TOP, PICK_COLOR, PASTE_PLAIN, SCREENSHOT, RECORD];
+pub const IDS: [&str; 14] = [
     QUICK,
     OPEN,
     CLIPBOARD,
@@ -38,6 +39,7 @@ pub const IDS: [&str; 13] = [
     PASTE_PLAIN,
     CLEAN_LINK,
     SCREENSHOT,
+    RECORD,
 ];
 
 /// Parses an accelerator such as `Ctrl+Alt+D`. Requires at least one modifier so a plain letter
@@ -66,6 +68,7 @@ fn action(app: &AppHandle, id: &str) {
         PASTE_PLAIN => crate::mini::paste_plain(app),
         CLEAN_LINK => crate::mini::clean_clipboard(app),
         SCREENSHOT => crate::shots::start(app),
+        RECORD => crate::recorder::toggle(app),
         _ => {}
     }
 }
@@ -97,6 +100,7 @@ fn configured(app: &AppHandle, id: &str) -> String {
         PASTE_PLAIN => s.paste_plain,
         CLEAN_LINK => s.clean_link,
         SCREENSHOT => s.screenshot,
+        RECORD => s.record,
         _ => s.clipboard,
     }
 }
@@ -120,6 +124,7 @@ fn wanted(app: &AppHandle, id: &str) -> bool {
         NOTES => tool_on(&s, "notes"),
         PIN_TOP | PICK_COLOR | PASTE_PLAIN => cfg!(windows) && tool_on(&s, "mini"),
         SCREENSHOT => cfg!(windows) && tool_on(&s, "shots"),
+        RECORD => cfg!(windows) && tool_on(&s, "recorder"),
         CLEAN_LINK => tool_on(&s, "mini"),
         _ => true,
     }
@@ -226,6 +231,7 @@ fn persist(app: &AppHandle, id: &str, accel: &str) -> Result<(), String> {
             PASTE_PLAIN => s.shortcuts.paste_plain = accel.to_string(),
             CLEAN_LINK => s.shortcuts.clean_link = accel.to_string(),
             SCREENSHOT => s.shortcuts.screenshot = accel.to_string(),
+            RECORD => s.shortcuts.record = accel.to_string(),
             _ => s.shortcuts.clipboard = accel.to_string(),
         })
         .map(|_| ())

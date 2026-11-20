@@ -3,9 +3,10 @@ use crate::{
     actions, activity, archives, backup, browser, clipboard, colorpick, commands, events,
     filesearch, filetools, focus, folder_compare, folder_rules, game_mode, goals, hardware,
     integrations, launcher, memory, mini, modules, monitor, notes, notifications, notifier, ocr,
-    organizer, pdftools, phone, pipe_server, qr, quick, reminders, rename, settings_io, shortcuts,
-    shots, snippets, startup, state::AppState, storage, storage_cleanup, storage_history,
-    storage_ops, storage_tools, subscriptions, toast, translate, tray, updater, windows,
+    organizer, pdftools, phone, pipe_server, qr, quick, recorder, reminders, rename, settings_io,
+    shortcuts, shots, snippets, startup, state::AppState, storage, storage_cleanup,
+    storage_history, storage_ops, storage_tools, subscriptions, toast, translate, tray, updater,
+    windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -196,6 +197,11 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            recorder::rec_status,
+            recorder::rec_start_screen,
+            recorder::rec_start_area,
+            recorder::rec_stop,
+            recorder::rec_folder,
             archives::ar_list,
             archives::ar_extract,
             archives::ar_create,
@@ -442,6 +448,7 @@ pub fn run() {
             }
         }
         RunEvent::Exit => {
+            recorder::shutdown();
             activity::flush_on_exit(app);
         }
         _ => {}

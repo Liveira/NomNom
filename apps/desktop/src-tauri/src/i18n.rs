@@ -260,6 +260,33 @@ const TABLE: &[(&str, &str, &str)] = &[
         "Para leer texto de la pantalla en X11, instala maim.",
     ),
     ("Reminder", "Lembrete", "Recordatorio"),
+    ("Recording", "Gravação", "Grabación"),
+    ("Recording saved", "Gravação salva", "Grabación guardada"),
+    (
+        "Recording the screen. Press the shortcut again, or use the page, to stop.",
+        "Gravando a tela. Aperte o atalho de novo, ou use a página, para parar.",
+        "Grabando la pantalla. Pulsa el atajo otra vez, o usa la página, para detener.",
+    ),
+    (
+        "The recording didn't work. ffmpeg couldn't capture the screen.",
+        "A gravação não funcionou. O ffmpeg não conseguiu capturar a tela.",
+        "La grabación no funcionó. ffmpeg no pudo capturar la pantalla.",
+    ),
+    (
+        "Recording the screen works on Windows for now.",
+        "Gravar a tela funciona por enquanto só no Windows.",
+        "Grabar la pantalla funciona por ahora solo en Windows.",
+    ),
+    (
+        "That area is too small to record.",
+        "Essa área é pequena demais para gravar.",
+        "Esa zona es demasiado pequeña para grabar.",
+    ),
+    (
+        "A recording is already running.",
+        "Já há uma gravação em andamento.",
+        "Ya hay una grabación en curso.",
+    ),
     (
         "Screenshots with notes work on Windows only.",
         "Capturas com anotações funcionam só no Windows.",

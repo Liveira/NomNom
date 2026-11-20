@@ -445,3 +445,23 @@ export const ZIPS: Entry[] = [
   ['That archive has a password. Archives with passwords are not supported yet.', 'Esse arquivo tem senha. Arquivos com senha ainda não são suportados.', 'Ese archivo tiene contraseña. Los archivos con contraseña aún no se admiten.'],
   ['Stopped.', 'Interrompido.', 'Detenido.'],
 ];
+
+/** Screen recorder. */
+export const RECORDER: Entry[] = [
+  ['Screen recorder', 'Gravador de tela', 'Grabador de pantalla'],
+  ['Record the screen, or part of it, as an MP4 video or a small GIF. There is no sound. It uses the ffmpeg that NomNom already sets up for File Tools.', 'Grave a tela, ou parte dela, como vídeo MP4 ou um GIF pequeno. Não há som. Usa o ffmpeg que o NomNom já prepara para as Ferramentas de arquivo.', 'Graba la pantalla, o parte de ella, como vídeo MP4 o un GIF pequeño. No hay sonido. Usa el ffmpeg que NomNom ya prepara para las Herramientas de archivo.'],
+  ['Record the screen, or part of it, as a video or a small GIF. No sound.', 'Grave a tela, ou parte dela, como vídeo ou um GIF pequeno. Sem som.', 'Graba la pantalla, o parte de ella, como vídeo o un GIF pequeño. Sin sonido.'],
+  ['Recording the screen works on Windows for now.', 'Gravar a tela funciona por enquanto só no Windows.', 'Grabar la pantalla funciona por ahora solo en Windows.'],
+  ['Recording', 'Gravando', 'Grabando'],
+  ['Stop and save', 'Parar e salvar', 'Detener y guardar'],
+  ['Record an area…', 'Gravar uma área…', 'Grabar una zona…'],
+  ['Record the whole screen', 'Gravar a tela inteira', 'Grabar toda la pantalla'],
+  ['Make a GIF instead of a video', 'Fazer um GIF em vez de um vídeo', 'Hacer un GIF en lugar de un vídeo'],
+  ['Make a GIF instead of a video (small, no sound, best for short clips)', 'Fazer um GIF em vez de um vídeo (pequeno, sem som, bom para trechos curtos)', 'Hacer un GIF en lugar de un vídeo (pequeño, sin sonido, bueno para clips cortos)'],
+  ['A recording stops by itself after 10 minutes. The toast that says it started is not part of the video if you record away from the corner.', 'Uma gravação para sozinha depois de 10 minutos. O aviso de que ela começou não entra no vídeo se você gravar longe do canto.', 'Una grabación se detiene sola a los 10 minutos. El aviso de que empezó no sale en el vídeo si grabas lejos de la esquina.'],
+  ['Open the recordings folder', 'Abrir a pasta das gravações', 'Abrir la carpeta de grabaciones'],
+  ['There are no recordings yet.', 'Ainda não há gravações.', 'Todavía no hay grabaciones.'],
+  ['Saved:', 'Salvo:', 'Guardado:'],
+  ['Record an area of the screen, or stop recording', 'Gravar uma área da tela, ou parar de gravar', 'Grabar una zona de la pantalla, o dejar de grabar'],
+  ['Recording needs ffmpeg. Open File Tools once, or the Downloader, and let it set up its tools.', 'Gravar precisa do ffmpeg. Abra as Ferramentas de arquivo uma vez, ou o Downloader, e deixe preparar as ferramentas.', 'Grabar necesita ffmpeg. Abre las Herramientas de archivo una vez, o el Descargador, y deja que prepare sus herramientas.'],
+];

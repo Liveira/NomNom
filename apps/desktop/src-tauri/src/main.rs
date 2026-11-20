@@ -37,6 +37,7 @@ mod phone;
 mod pipe_server;
 mod qr;
 mod quick;
+mod recorder;
 mod reminders;
 mod rename;
 mod settings_io;

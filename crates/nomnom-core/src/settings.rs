@@ -177,6 +177,8 @@ pub struct Shortcuts {
     pub clean_link: String,
     /// Takes a picture of part of the screen and opens it to mark up.
     pub screenshot: String,
+    /// Starts a screen recording of a chosen area, or stops the one that is running.
+    pub record: String,
     /// Keep a hidden, pre-loaded popup so the shortcut responds instantly (uses memory while idle).
     pub keep_ready: bool,
 }
@@ -197,6 +199,7 @@ impl Default for Shortcuts {
             paste_plain: "Ctrl+Alt+Shift+V".into(),
             clean_link: "Ctrl+Alt+L".into(),
             screenshot: "Ctrl+Alt+S".into(),
+            record: "Ctrl+Alt+Shift+R".into(),
             keep_ready: false,
         }
     }

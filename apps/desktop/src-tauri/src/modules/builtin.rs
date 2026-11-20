@@ -460,6 +460,30 @@ impl Module for ArchivesModule {
     }
 }
 
+static RECORDER: ModuleManifest = ModuleManifest {
+    id: "recorder",
+    name: "Screen recorder",
+    nav: Some(NavEntry {
+        order: 61,
+        icon: "film",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct RecorderModule;
+#[async_trait]
+impl Module for RecorderModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &RECORDER
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

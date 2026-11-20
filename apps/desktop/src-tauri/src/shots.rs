@@ -109,12 +109,27 @@ mod imp {
         width: u32,
         height: u32,
         bgra: Vec<u8>,
+        /// Where this screen starts on the whole desktop.
+        x: i32,
+        y: i32,
     }
     static HELD: Mutex<Option<Held>> = Mutex::new(None);
+    /// What the rectangle is for: `None` is a screenshot, `Some(gif)` is a recording.
+    static PURPOSE: Mutex<Option<bool>> = Mutex::new(None);
     /// The picked part, as PNG, while the editor is open.
     static EDITING: Mutex<Option<Vec<u8>>> = Mutex::new(None);
 
     pub fn start(app: &AppHandle) {
+        *PURPOSE.lock().unwrap() = None;
+        begin(app);
+    }
+
+    pub fn start_for_recording(app: &AppHandle, gif: bool) {
+        *PURPOSE.lock().unwrap() = Some(gif);
+        begin(app);
+    }
+
+    fn begin(app: &AppHandle) {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
             if app.get_webview_window(OVERLAY).is_some() || app.get_webview_window(EDITOR).is_some()
@@ -140,6 +155,8 @@ mod imp {
                 width: w,
                 height: h,
                 bgra: shot.bgra,
+                x,
+                y,
             });
             let built = WebviewWindowBuilder::new(
                 &app,
@@ -196,6 +213,16 @@ mod imp {
         let held = held.ok_or("The picture is gone. Press the shortcut again.")?;
         let (cw, ch, part) = crate::ocr::crop(&held.bgra, held.width, held.height, x, y, w, h)
             .ok_or("Drag a bigger rectangle.")?;
+        // A rectangle chosen for a recording goes to the recorder, as whole-desktop pixels.
+        let purpose = *PURPOSE.lock().unwrap();
+        if let Some(gif) = purpose {
+            let (cx, cy) = (
+                x.clamp(0, i64::from(held.width)) as i32,
+                y.clamp(0, i64::from(held.height)) as i32,
+            );
+            crate::recorder::start_chosen(app, held.x + cx, held.y + cy, cw, ch, gif);
+            return Ok(());
+        }
         let png = crate::ocr::png_of(cw, ch, &part).ok_or("Couldn't make the picture.")?;
         *EDITING.lock().unwrap() = Some(png);
         let (win_w, win_h) = (
@@ -253,7 +280,7 @@ mod imp {
 }
 
 #[cfg(windows)]
-pub use imp::start;
+pub use imp::{start, start_for_recording};
 
 #[cfg(not(windows))]
 pub fn start(app: &AppHandle) {
