@@ -52,9 +52,13 @@ It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, o
 | 🧰 | **Text toolbox** | JSON, Base64, URLs, MD5 and SHA hashes, UUIDs, a regex tester that cannot freeze the window, timestamps, text differences, colours and contrast, and case conversion. All offline. |
 | 🪄 | **Mini tools** | Keep any window on top, pick a colour from the screen (Windows), paste as plain text (Windows), and take the tracking off links. |
 | 🪄 | **Folder rules** | "When a picture shows up in Downloads, make it WebP and move it to Pictures." NomNom waits for the file to finish arriving, never replaces or deletes anything, and every move can be put back. |
+| 📸 | **Screenshots** | Press a shortcut, drag over part of the screen, and mark it up: arrows, boxes, a marker, numbered steps, text, and blocked-out parts for what must not be seen. Copy it or save it as a PNG. The picture is never uploaded or kept on disk unless you save it. (Windows) |
+| 📝 | **Snippets** | Text you type again and again, saved under a name and pasted from the search box, with the date or the clipboard filled in. |
+| 🎯 | **Game mode** | While a game is in front: notices held back, Windows' fastest power plan, and the background programs you choose asked to close. The plan is put back afterwards, even after a crash. (Windows) |
+| 🔳 | **QR codes** | Make a code from text or a Wi-Fi network, or read one that is on your screen. |
 | 🕘 | **Notifications** | The notices NomNom showed in the last seven days, so one that went away unread can be found again. |
 | 💾 | **Settings file** | Save your settings, actions and choices to a file and load them on another computer. Home also shows memory, disk, your next reminder and your latest note. |
-| 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live. It only looks, it never touches anything. |
+| 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live, plus the graphics card and battery, and each disk's health (with a daily check that says so when one needs attention). It only looks, it never touches anything. |
 | 🖱️ | **File manager menu** | Right-click files to convert them, or a folder to analyze its space. Works in Windows 11 Explorer, KDE Dolphin, GNOME Files and Cinnamon Nemo. |
 | 🌐 | **Browser extension** | Download buttons on YouTube, X, Instagram, Reddit and over the video player on TikTok, Vimeo, Twitch and more. |
 | 🎨 | **17 themes, 3 languages** | Each theme has its own moving background. English, Português (Brasil) and Español. Choose which tools show in the sidebar. |

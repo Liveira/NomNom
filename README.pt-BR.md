@@ -52,9 +52,13 @@ Funciona no **Windows 11**, no **Arch Linux** e no **Debian / Ubuntu**. É gratu
 | 🧰 | **Caixa de ferramentas de texto** | JSON, Base64, URLs, hashes MD5 e SHA, UUIDs, um testador de regex que não trava a janela, timestamps, diferenças de texto, cores e contraste, e troca de maiúsculas. Tudo offline. |
 | 🪄 | **Mini ferramentas** | Manter qualquer janela no topo, escolher uma cor da tela (Windows), colar como texto simples (Windows) e tirar o rastreio de links. |
 | 🪄 | **Regras para pastas** | "Quando uma imagem aparecer em Downloads, transforme em WebP e mova para Imagens." O NomNom espera o arquivo terminar de chegar, nunca substitui nem apaga nada, e todo movimento pode ser desfeito. |
+| 📸 | **Capturas de tela** | Aperte um atalho, arraste sobre parte da tela e anote: setas, caixas, marcador, passos numerados, texto e partes tampadas para o que não deve ser visto. Copie ou salve como PNG. A imagem nunca é enviada nem guardada em disco a menos que você salve. (Windows) |
+| 📝 | **Trechos de texto** | Texto que você digita sempre, salvo com um nome e colado a partir da busca, com a data ou a área de transferência preenchidas. |
+| 🎯 | **Modo jogo** | Enquanto um jogo está na frente: avisos segurados, o plano de energia mais rápido do Windows e os programas de fundo que você escolheu fechados com educação. O plano volta depois, mesmo depois de uma falha. (Windows) |
+| 🔳 | **Códigos QR** | Crie um código a partir de um texto ou de uma rede Wi-Fi, ou leia um que está na tela. |
 | 🕘 | **Notificações** | Os avisos que o NomNom mostrou nos últimos sete dias, para achar de novo um que sumiu sem ser lido. |
 | 💾 | **Arquivo de configurações** | Salve suas configurações, ações e escolhas num arquivo e carregue em outro computador. O início também mostra memória, disco, seu próximo lembrete e sua última nota. |
-| 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo. Só observa, nunca mexe em nada. |
+| 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo, mais a placa de vídeo, a bateria e a saúde de cada disco (com uma checagem diária que avisa quando um precisa de atenção). Só observa, nunca mexe em nada. |
 | 🖱️ | **Menu do gerenciador de arquivos** | Clique com o botão direito em arquivos para convertê-los, ou em uma pasta para analisar o espaço. Funciona no Explorer do Windows 11, KDE Dolphin, GNOME Files e Cinnamon Nemo. |
 | 🌐 | **Extensão do navegador** | Botões de download no YouTube, X, Instagram, Reddit e sobre o player no TikTok, Vimeo, Twitch e outros. |
 | 🎨 | **17 temas, 3 idiomas** | Cada tema tem seu próprio fundo animado. Inglês, Português (Brasil) e Espanhol. Você escolhe quais ferramentas aparecem na barra lateral. |

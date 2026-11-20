@@ -74,6 +74,7 @@ pub struct Scanned {
 }
 
 /// Looks for QR codes in a grey picture (one byte a pixel).
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn decode_grey(width: usize, height: usize, grey: &[u8]) -> Vec<String> {
     if grey.len() < width * height || width < 21 || height < 21 {
         return Vec::new();
