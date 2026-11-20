@@ -12,6 +12,7 @@ export interface Settings {
   actions: CustomAction[];
   clipboard: { enabled: boolean; keep_days: number };
   mini: { clean_links_auto: boolean };
+  game: { enabled: boolean; silence: boolean; power_plan: boolean; close: string[]; restore_plan: string | null };
   text: { enabled: boolean; target: string; ocr: boolean; ocr_translate: boolean };
   phone: { save_dir: string | null; idle_minutes: number };
   browser: { launch_from_browser: boolean };
@@ -97,6 +98,10 @@ export interface SettingsPatch {
   launcherOn?: boolean;
   cleanLinksAuto?: boolean;
   diskAlerts?: boolean;
+  gameEnabled?: boolean;
+  gameSilence?: boolean;
+  gamePowerPlan?: boolean;
+  gameClose?: string;
   goalReminderHour?: number;
   weeklyReport?: boolean;
   renderer?: 'auto' | 'gpu' | 'cpu';
@@ -670,6 +675,10 @@ export interface FileHit {
 }
 export const fileIpc = {
   search: (query: string) => invoke<FileHit[]>('fs_search', { query }),
+};
+
+export const gameModeIpc = {
+  status: () => invoke<{ on: boolean; game: string | null }>('gm_status'),
 };
 
 export const shotIpc = {

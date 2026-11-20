@@ -149,6 +149,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-lavender)',
   },
   {
+    id: 'gamemode',
+    icon: 'playtime',
+    title: 'Game mode',
+    desc: 'While a game is in front: quieter notices, the fastest power plan and the background programs you choose closed. Put back afterwards.',
+    tint: 'var(--glow-blush)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

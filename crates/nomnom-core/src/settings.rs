@@ -386,6 +386,32 @@ impl Default for Phone {
     }
 }
 
+/// Game mode.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Game {
+    pub enabled: bool,
+    /// Hold back notices (except errors and reminders) while a game is in front.
+    pub silence: bool,
+    /// Ask Windows for its fastest power plan while a game is in front.
+    pub power_plan: bool,
+    /// Programs to close when a game starts, by file name. Never relaunched.
+    pub close: Vec<String>,
+    /// The plan to put back, kept so a crash during a game can be repaired at the next start.
+    pub restore_plan: Option<String>,
+}
+impl Default for Game {
+    fn default() -> Self {
+        Game {
+            enabled: false,
+            silence: true,
+            power_plan: true,
+            close: Vec::new(),
+            restore_plan: None,
+        }
+    }
+}
+
 /// The small everyday tools.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -431,6 +457,7 @@ pub struct Settings {
     pub text: Text,
     pub phone: Phone,
     pub mini: Mini,
+    pub game: Game,
     /// Things the person added: programs, folders, links and commands with shortcuts.
     pub actions: Vec<crate::actions::Action>,
     /// Folder rules: what to do with files that show up in a folder.
@@ -458,6 +485,7 @@ impl Default for Settings {
             text: Text::default(),
             phone: Phone::default(),
             mini: Mini::default(),
+            game: Game::default(),
             actions: Vec::new(),
             rules: Vec::new(),
             extra: Map::new(),

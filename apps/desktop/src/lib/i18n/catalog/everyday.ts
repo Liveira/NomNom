@@ -321,3 +321,23 @@ export const SHOTS: Entry[] = [
   ['Text to put on the picture', 'Texto para pôr na imagem', 'Texto para poner en la imagen'],
   ['Take a screenshot to mark up', 'Tirar uma captura para anotar', 'Hacer una captura para anotar'],
 ];
+
+/** Game mode. */
+export const GAME: Entry[] = [
+  ['Game mode', 'Modo jogo', 'Modo juego'],
+  ['When a game has been in front for a few seconds, NomNom can keep notices from covering it, ask Windows for its fastest power plan, and close the background programs you pick. A few seconds after the game is gone, the power plan is put back. Playtime is what tells a game from other programs.', 'Quando um jogo fica na frente por alguns segundos, o NomNom pode impedir que avisos o cubram, pedir ao Windows o plano de energia mais rápido e fechar os programas de fundo que você escolher. Alguns segundos depois de o jogo sair, o plano de energia volta. O Playtime é quem diferencia um jogo dos outros programas.', 'Cuando un juego lleva unos segundos delante, NomNom puede evitar que los avisos lo tapen, pedir a Windows su plan de energía más rápido y cerrar los programas de fondo que elijas. Unos segundos después de que el juego se vaya, se restaura el plan de energía. Playtime es quien distingue un juego de otros programas.'],
+  ['While a game is in front: quieter notices, the fastest power plan and the background programs you choose closed. Put back afterwards.', 'Enquanto um jogo está na frente: avisos mais quietos, o plano de energia mais rápido e os programas de fundo que você escolher fechados. Tudo volta depois.', 'Mientras un juego está delante: avisos más silenciosos, el plan de energía más rápido y los programas de fondo que elijas cerrados. Todo vuelve después.'],
+  ['Game mode works on Windows for now.', 'O modo jogo funciona por enquanto só no Windows.', 'El modo juego funciona por ahora solo en Windows.'],
+  ['Use game mode', 'Usar o modo jogo', 'Usar el modo juego'],
+  ['On right now', 'Ligado agora', 'Activado ahora'],
+  ['Waiting for a game.', 'Esperando um jogo.', 'Esperando un juego.'],
+  ['Hold back notices', 'Segurar os avisos', 'Retener los avisos'],
+  ['Errors, warnings and reminders still show. The rest wait in Notifications.', 'Erros, alertas e lembretes ainda aparecem. O resto espera em Notificações.', 'Los errores, advertencias y recordatorios siguen apareciendo. El resto espera en Notificaciones.'],
+  ['Use the fastest power plan', 'Usar o plano de energia mais rápido', 'Usar el plan de energía más rápido'],
+  ['Uses more power while you play, and the plan you had comes back after. If NomNom closes in the middle of a game, it puts it back the next time it starts.', 'Gasta mais energia enquanto você joga, e o plano que você tinha volta depois. Se o NomNom fechar no meio de um jogo, ele repõe na próxima vez que iniciar.', 'Gasta más energía mientras juegas, y el plan que tenías vuelve después. Si NomNom se cierra en mitad de un juego, lo restaura la próxima vez que arranque.'],
+  ['Close these programs when a game starts', 'Fechar estes programas quando um jogo começar', 'Cerrar estos programas cuando empiece un juego'],
+  ["File names such as OneDrive.exe, separated by commas. NomNom asks each one to close, like its close button does, so a program with unsaved work can ask you first. It does not start them again. Windows itself and NomNom can't be on the list.", 'Nomes de arquivo como OneDrive.exe, separados por vírgulas. O NomNom pede a cada um que feche, como o botão de fechar faz, então um programa com trabalho não salvo pode perguntar antes. Ele não os abre de novo. O próprio Windows e o NomNom não podem estar na lista.', 'Nombres de archivo como OneDrive.exe, separados por comas. NomNom pide a cada uno que se cierre, como hace su botón de cerrar, así que un programa con trabajo sin guardar puede preguntarte antes. No los vuelve a abrir. Windows y NomNom no pueden estar en la lista.'],
+  ['Programs to close', 'Programas a fechar', 'Programas a cerrar'],
+  ['Save the list', 'Salvar a lista', 'Guardar la lista'],
+  ['Saved.', 'Salvo.', 'Guardado.'],
+];

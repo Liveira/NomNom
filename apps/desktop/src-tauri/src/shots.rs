@@ -8,7 +8,6 @@
 use crate::i18n::{lang_of, tr};
 use crate::state::AppState;
 use crate::toast::{self, Toast};
-use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
 type CmdResult<T> = Result<T, String>;
@@ -99,6 +98,7 @@ fn base64_decode(s: &str) -> Option<Vec<u8>> {
 mod imp {
     use super::*;
     use crate::windows::shared_webview_args;
+    use std::sync::Mutex;
     use tauri::{PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindowBuilder};
     use tauri_plugin_clipboard_manager::ClipboardExt;
 

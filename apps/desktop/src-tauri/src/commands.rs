@@ -74,6 +74,11 @@ pub struct SettingsPatch {
     launcher_on: Option<bool>,
     clean_links_auto: Option<bool>,
     disk_alerts: Option<bool>,
+    game_enabled: Option<bool>,
+    game_silence: Option<bool>,
+    game_power_plan: Option<bool>,
+    /// Program names, typed in any of the usual ways.
+    game_close: Option<String>,
 }
 
 #[tauri::command]
@@ -283,6 +288,18 @@ pub fn update_settings(
             }
             if let Some(v) = patch.phone_idle_minutes {
                 s.phone.idle_minutes = v.clamp(1, 240);
+            }
+            if let Some(v) = patch.game_enabled {
+                s.game.enabled = v;
+            }
+            if let Some(v) = patch.game_silence {
+                s.game.silence = v;
+            }
+            if let Some(v) = patch.game_power_plan {
+                s.game.power_plan = v;
+            }
+            if let Some(v) = &patch.game_close {
+                s.game.close = nomnom_core::game::parse_programs(v);
             }
             if let Some(v) = patch.disk_alerts {
                 s.monitor.disk_alerts = v;

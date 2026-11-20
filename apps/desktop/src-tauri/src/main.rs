@@ -14,6 +14,7 @@ mod filesearch;
 mod filetools;
 mod focus;
 mod folder_rules;
+mod game_mode;
 mod goals;
 mod graphics;
 mod hardware;

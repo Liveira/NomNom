@@ -62,6 +62,10 @@ fn pretty(app: &AppHandle) -> bool {
 /// Shows a notification: the themed card where possible, the system's own otherwise.
 pub fn show(app: &AppHandle, toast: Toast) {
     crate::notifications::record(app, &toast);
+    // While a game is in front the notice waits in the history instead of covering the game.
+    if crate::game_mode::holds_back(&toast) {
+        return;
+    }
     if !pretty(app) {
         let _ = app
             .notification()

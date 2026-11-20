@@ -364,6 +364,30 @@ impl Module for ShotsModule {
     }
 }
 
+static GAMEMODE: ModuleManifest = ModuleManifest {
+    id: "gamemode",
+    name: "Game mode",
+    nav: Some(NavEntry {
+        order: 57,
+        icon: "playtime",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct GameModeModule;
+#[async_trait]
+impl Module for GameModeModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &GAMEMODE
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

@@ -7,6 +7,7 @@ pub mod error;
 pub mod filesearch;
 pub mod folder_rules;
 pub mod fs;
+pub mod game;
 pub mod hardware;
 pub mod launcher;
 pub mod links;

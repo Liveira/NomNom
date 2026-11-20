@@ -1,11 +1,11 @@
 use crate::modules::downloads;
 use crate::{
     actions, activity, backup, browser, clipboard, colorpick, commands, events, filesearch,
-    filetools, focus, folder_rules, goals, hardware, integrations, launcher, memory, mini, modules,
-    monitor, notes, notifications, notifier, ocr, organizer, pdftools, phone, pipe_server, quick,
-    reminders, rename, settings_io, shortcuts, shots, snippets, startup, state::AppState, storage,
-    storage_cleanup, storage_history, storage_ops, storage_tools, subscriptions, toast, translate,
-    tray, updater, windows,
+    filetools, focus, folder_rules, game_mode, goals, hardware, integrations, launcher, memory,
+    mini, modules, monitor, notes, notifications, notifier, ocr, organizer, pdftools, phone,
+    pipe_server, quick, reminders, rename, settings_io, shortcuts, shots, snippets, startup,
+    state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools,
+    subscriptions, toast, translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -196,6 +196,7 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            game_mode::gm_status,
             shots::sh_image,
             shots::sh_ready,
             shots::sh_cancel,
@@ -387,6 +388,7 @@ pub fn run() {
             reminders::spawn(app.handle().clone());
             folder_rules::spawn(app.handle().clone());
             hardware::spawn(app.handle().clone());
+            game_mode::spawn(app.handle().clone());
             #[cfg(windows)]
             filesearch::spawn_idle_watch();
             #[cfg(windows)]

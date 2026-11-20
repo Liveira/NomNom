@@ -23,6 +23,13 @@ pub struct ActivityState {
     known_icons: Mutex<HashSet<String>>,
 }
 
+impl ActivityState {
+    /// What is in front right now, if anything.
+    pub fn live(&self) -> Option<LiveFocus> {
+        self.tracker.lock().unwrap().live()
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct TrackedAppRow {
     pub id: String,
