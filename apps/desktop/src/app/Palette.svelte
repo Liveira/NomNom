@@ -3,6 +3,7 @@
   import Icon from '../lib/icons/Icon.svelte';
   import { actionsIpc, clipIpc, fileIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, snippetIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview, type Snippet } from '../lib/ipc';
   import { calc, lastTwo, rank, showNumber } from '../lib/palette';
+  import { convert } from '../lib/units';
   import { TOOLS } from '../lib/tools';
   import { dueText, noteFrom, startsLikeReminder } from '../modules/reminders/logic';
   import { parentOf } from '../modules/rules/logic';
@@ -269,6 +270,24 @@
       });
     }
     const withFiles = [...found, ...fileRows.filter((f) => !found.some((x) => x.key === f.key))];
+    const unit = convert(query);
+    if (unit) {
+      const answer = `${showNumber(Number(unit.value.toPrecision(8)))} ${unit.to}`;
+      special.unshift({
+        key: 'unit',
+        title: `= ${answer}`,
+        hint: 'Press Enter to copy the answer',
+        icon: 'sparkle',
+        run: async () => {
+          try {
+            await navigator.clipboard.writeText(answer);
+          } catch {
+            /* copying is a courtesy */
+          }
+          close();
+        },
+      });
+    }
     if (sum === null) return [...special, ...withFiles];
     const text = showNumber(sum);
     const row: Item = {
