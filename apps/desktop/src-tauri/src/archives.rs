@@ -483,7 +483,7 @@ mod tests {
         std::fs::write(src.join("sub/b.txt"), "beta").unwrap();
         std::fs::create_dir_all(src.join("empty")).unwrap();
         let z = d.path().join("stuff.zip");
-        let (files, bytes) = build(&[src.clone()], &z, |_, _, _| {}).unwrap();
+        let (files, bytes) = build(std::slice::from_ref(&src), &z, |_, _, _| {}).unwrap();
         assert_eq!((files, bytes), (2, 9));
         let out = d.path().join("out");
         let (n, b) = unpack(z.to_str().unwrap(), &out, |_, _, _| {}).unwrap();
