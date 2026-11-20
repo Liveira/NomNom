@@ -3,7 +3,9 @@
 //! shown but never written, since that needs administrator rights.
 
 use crate::state::AppState;
-use nomnom_core::path_tools::{self as rules, Entry};
+#[cfg(windows)]
+use nomnom_core::path_tools as rules;
+use nomnom_core::path_tools::Entry;
 use serde::Serialize;
 use tauri::State;
 
