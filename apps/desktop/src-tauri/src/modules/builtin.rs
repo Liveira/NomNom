@@ -436,6 +436,30 @@ impl Module for CompareModule {
     }
 }
 
+static ARCHIVES: ModuleManifest = ModuleManifest {
+    id: "archives",
+    name: "ZIP files",
+    nav: Some(NavEntry {
+        order: 60,
+        icon: "package",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ArchivesModule;
+#[async_trait]
+impl Module for ArchivesModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &ARCHIVES
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

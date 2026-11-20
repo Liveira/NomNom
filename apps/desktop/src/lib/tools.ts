@@ -170,6 +170,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-mint)',
   },
   {
+    id: 'archives',
+    icon: 'package',
+    title: 'ZIP files',
+    desc: 'Pack files and folders into a ZIP, or unpack one safely into a new folder.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

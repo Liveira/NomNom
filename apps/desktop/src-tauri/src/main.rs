@@ -4,6 +4,7 @@
 mod actions;
 mod activity;
 mod app;
+mod archives;
 mod backup;
 mod browser;
 mod clipboard;

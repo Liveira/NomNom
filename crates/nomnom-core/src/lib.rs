@@ -1,6 +1,7 @@
 //! NOMNOM core: shared infrastructure used by every feature module.
 
 pub mod actions;
+pub mod archive;
 pub mod clipboard;
 pub mod compare;
 pub mod db;

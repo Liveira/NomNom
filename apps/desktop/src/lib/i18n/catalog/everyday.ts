@@ -415,3 +415,33 @@ export const COMPARE: Entry[] = [
   ['Choose two different folders, neither inside the other.', 'Escolha duas pastas diferentes, nenhuma dentro da outra.', 'Elige dos carpetas distintas, ninguna dentro de la otra.'],
   ['One of the folders isn\'t there.', 'Uma das pastas não está lá.', 'Una de las carpetas no está.'],
 ];
+
+/** ZIP files. */
+export const ZIPS: Entry[] = [
+  ['ZIP files', 'Arquivos ZIP', 'Archivos ZIP'],
+  ['Pack files and folders into a ZIP, or unpack one safely into a new folder.', 'Compacte arquivos e pastas num ZIP, ou descompacte um com segurança numa pasta nova.', 'Comprime archivos y carpetas en un ZIP, o descomprime uno con seguridad en una carpeta nueva.'],
+  ['Pack files and folders into a ZIP, or unpack one. A ZIP is always unpacked into a new folder, nothing is replaced, and one that tries to write outside it, or that unpacks to far more than it weighs, is refused. Files with a password, 7z and RAR are not supported yet.', 'Compacte arquivos e pastas num ZIP, ou descompacte um. Um ZIP sempre é aberto numa pasta nova, nada é substituído, e um que tente escrever fora dela, ou que descompacte muito mais do que pesa, é recusado. Arquivos com senha, 7z e RAR ainda não são suportados.', 'Comprime archivos y carpetas en un ZIP, o descomprime uno. Un ZIP siempre se abre en una carpeta nueva, no se reemplaza nada, y uno que intente escribir fuera de ella, o que se descomprima en mucho más de lo que pesa, se rechaza. Los archivos con contraseña, 7z y RAR aún no se admiten.'],
+  ['Make a ZIP', 'Fazer um ZIP', 'Hacer un ZIP'],
+  ['Open a ZIP', 'Abrir um ZIP', 'Abrir un ZIP'],
+  ['Add files…', 'Adicionar arquivos…', 'Añadir archivos…'],
+  ['Add a folder…', 'Adicionar uma pasta…', 'Añadir una carpeta…'],
+  ['Clear', 'Limpar', 'Limpiar'],
+  ['Add what should go in the ZIP.', 'Adicione o que deve ir no ZIP.', 'Añade lo que debe ir en el ZIP.'],
+  ['Make the ZIP…', 'Fazer o ZIP…', 'Hacer el ZIP…'],
+  ['Packing…', 'Compactando…', 'Comprimiendo…'],
+  ['Choose a ZIP…', 'Escolher um ZIP…', 'Elegir un ZIP…'],
+  ['This ZIP has a password, which is not supported yet.', 'Este ZIP tem senha, o que ainda não é suportado.', 'Este ZIP tiene contraseña, lo que aún no se admite.'],
+  ['Unpack into a new folder…', 'Descompactar numa pasta nova…', 'Descomprimir en una carpeta nueva…'],
+  ['Unpacking…', 'Descompactando…', 'Descomprimiendo…'],
+  ['Progress', 'Progresso', 'Progreso'],
+  ['Stop', 'Parar', 'Detener'],
+  ['Show it', 'Mostrar', 'Mostrar'],
+  ['What to do', 'O que fazer', 'Qué hacer'],
+  ['Only .zip files can be opened here. 7z and RAR are not supported yet.', 'Só arquivos .zip podem ser abertos aqui. 7z e RAR ainda não são suportados.', 'Aquí solo se pueden abrir archivos .zip. 7z y RAR aún no se admiten.'],
+  ['That is not a ZIP file, or it is damaged.', 'Isso não é um arquivo ZIP, ou está danificado.', 'Eso no es un archivo ZIP, o está dañado.'],
+  ['A file with that name is already there. Choose another name.', 'Já existe um arquivo com esse nome. Escolha outro nome.', 'Ya hay un archivo con ese nombre. Elige otro nombre.'],
+  ['Choose a name that ends in .zip.', 'Escolha um nome que termine em .zip.', 'Elige un nombre que acabe en .zip.'],
+  ["The archive can't be saved inside something it is made from.", 'O arquivo não pode ser salvo dentro de algo de que ele é feito.', 'El archivo no puede guardarse dentro de algo con lo que se hace.'],
+  ['That archive has a password. Archives with passwords are not supported yet.', 'Esse arquivo tem senha. Arquivos com senha ainda não são suportados.', 'Ese archivo tiene contraseña. Los archivos con contraseña aún no se admiten.'],
+  ['Stopped.', 'Interrompido.', 'Detenido.'],
+];

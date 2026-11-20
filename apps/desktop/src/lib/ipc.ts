@@ -693,6 +693,20 @@ export interface CompareApplied {
   replaced: number;
   failed: [string, string][];
 }
+export interface ZipListing {
+  items: { name: string; size: number; is_dir: boolean }[];
+  count: number;
+  unpacked: number;
+  packed: number;
+  encrypted: boolean;
+}
+export const archiveIpc = {
+  list: (path: string) => invoke<ZipListing>('ar_list', { path }),
+  extract: (path: string, into: string) => invoke<{ folder: string; files: number; bytes: number }>('ar_extract', { path, into }),
+  create: (sources: string[], dest: string) => invoke<{ path: string; files: number; bytes: number }>('ar_create', { sources, dest }),
+  cancel: () => invoke<void>('ar_cancel'),
+};
+
 export const compareIpc = {
   scan: (left: string, right: string, exact: boolean) => invoke<{ rows: CompareRow[]; truncated: boolean }>('cmp_scan', { left, right, exact }),
   apply: (left: string, right: string, todo: { rel: string; action: 'copy_right' | 'copy_left' }[]) => invoke<CompareApplied>('cmp_apply', { left, right, todo }),
