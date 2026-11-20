@@ -9,6 +9,8 @@ pub mod autostart;
 #[cfg(windows)]
 pub mod clipboard;
 #[cfg(windows)]
+pub mod env;
+#[cfg(windows)]
 pub mod memory;
 #[cfg(windows)]
 pub mod native_host;

@@ -184,6 +184,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'paths',
+    icon: 'wrench',
+    title: 'PATH editor',
+    desc: 'See the folders Windows looks in for programs, find the repeated and missing ones, and tidy them with a saved copy to go back to.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

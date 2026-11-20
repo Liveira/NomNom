@@ -56,6 +56,10 @@ It runs on **Windows 11**, **Arch Linux** and **Debian / Ubuntu**. It is free, o
 | 📝 | **Snippets** | Text you type again and again, saved under a name and pasted from the search box, with the date or the clipboard filled in. |
 | 🎯 | **Game mode** | While a game is in front: notices held back, Windows' fastest power plan, and the background programs you choose asked to close. The plan is put back afterwards, even after a crash. (Windows) |
 | 🔳 | **QR codes** | Make a code from text or a Wi-Fi network, or read one that is on your screen. |
+| 🆚 | **Compare folders** | Put two folders side by side, see what is only in one, what differs and what is the same, and copy what you choose. A file that gets replaced is kept in a `.nomnom-replaced` folder, never lost. |
+| 🗜️ | **ZIP files** | Pack files into a ZIP, look inside one, or unpack it into a new folder. Names that try to leave the folder are refused and nothing is overwritten. |
+| 🎥 | **Screen recorder** | Record the screen or a part of it as MP4 or GIF with a shortcut. Uses `ffmpeg`, which NomNom downloads for you the first time. (Windows) |
+| 🛣️ | **PATH editor** | See the folders Windows looks in for programs, find the repeated and missing ones, and tidy them. A copy of the old list is kept every time you save, so you can put it back. The computer-wide list is shown, never changed. (Windows) |
 | 🕘 | **Notifications** | The notices NomNom showed in the last seven days, so one that went away unread can be found again. |
 | 💾 | **Settings file** | Save your settings, actions and choices to a file and load them on another computer. Home also shows memory, disk, your next reminder and your latest note. |
 | 📈 | **System Monitor** | CPU, memory, disks, network and the busiest programs, live, plus the graphics card and battery, and each disk's health (with a daily check that says so when one needs attention). It only looks, it never touches anything. |

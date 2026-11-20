@@ -1,7 +1,7 @@
 import type { Entry } from '../engine';
 import { ACTIONS } from './actions';
 import { BACKUP } from './backup';
-import { CLIP_SMART, COMPARE, EVERYDAY, FILE_SEARCH, GAME, GLANCE, HARDWARE, INBOX, MINI, QR, RECORDER, RULES, SETTINGS_FILE, SHOTS, SNIPPETS, ZIPS } from './everyday';
+import { CLIP_SMART, COMPARE, EVERYDAY, FILE_SEARCH, GAME, GLANCE, HARDWARE, INBOX, MINI, PATHS, QR, RECORDER, RULES, SETTINGS_FILE, SHOTS, SNIPPETS, ZIPS } from './everyday';
 import { FEATURES } from './features';
 import { FILETOOLS } from './filetools';
 import { MESSAGES } from './messages';
@@ -16,4 +16,4 @@ import { STORAGE2 } from './storage2';
 import { TOOLS } from './tools';
 
 /** Every translated string, [English, Português, Español]. Add new text to the file of its area. */
-export const CATALOG: Entry[] = [...SHELL, ...SETTINGS, ...PLAYTIME, ...FILETOOLS, ...STORAGE, ...STORAGE2, ...MISC, ...MESSAGES, ...FEATURES, ...BACKUP, ...MONITOR, ...TOOLS, ...ACTIONS, ...REMINDERS, ...EVERYDAY, ...MINI, ...INBOX, ...CLIP_SMART, ...GLANCE, ...SETTINGS_FILE, ...RULES, ...FILE_SEARCH, ...HARDWARE, ...SNIPPETS, ...SHOTS, ...GAME, ...QR, ...COMPARE, ...ZIPS, ...RECORDER];
+export const CATALOG: Entry[] = [...SHELL, ...SETTINGS, ...PLAYTIME, ...FILETOOLS, ...STORAGE, ...STORAGE2, ...MISC, ...MESSAGES, ...FEATURES, ...BACKUP, ...MONITOR, ...TOOLS, ...ACTIONS, ...REMINDERS, ...EVERYDAY, ...MINI, ...INBOX, ...CLIP_SMART, ...GLANCE, ...SETTINGS_FILE, ...RULES, ...FILE_SEARCH, ...HARDWARE, ...SNIPPETS, ...SHOTS, ...GAME, ...QR, ...COMPARE, ...ZIPS, ...RECORDER, ...PATHS];

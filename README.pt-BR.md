@@ -56,6 +56,10 @@ Funciona no **Windows 11**, no **Arch Linux** e no **Debian / Ubuntu**. É gratu
 | 📝 | **Trechos de texto** | Texto que você digita sempre, salvo com um nome e colado a partir da busca, com a data ou a área de transferência preenchidas. |
 | 🎯 | **Modo jogo** | Enquanto um jogo está na frente: avisos segurados, o plano de energia mais rápido do Windows e os programas de fundo que você escolheu fechados com educação. O plano volta depois, mesmo depois de uma falha. (Windows) |
 | 🔳 | **Códigos QR** | Crie um código a partir de um texto ou de uma rede Wi-Fi, ou leia um que está na tela. |
+| 🆚 | **Comparar pastas** | Coloque duas pastas lado a lado, veja o que só existe em uma, o que mudou e o que é igual, e copie o que escolher. Um arquivo substituído fica guardado numa pasta `.nomnom-replaced`, nunca se perde. |
+| 🗜️ | **Arquivos ZIP** | Junte arquivos num ZIP, veja o que há dentro de um ou extraia numa pasta nova. Nomes que tentam sair da pasta são recusados e nada é sobrescrito. |
+| 🎥 | **Gravador de tela** | Grave a tela, ou uma parte dela, em MP4 ou GIF com um atalho. Usa o `ffmpeg`, que o NomNom baixa para você na primeira vez. (Windows) |
+| 🛣️ | **Editor de PATH** | Veja as pastas onde o Windows procura programas, ache as repetidas e as que sumiram, e arrume. Uma cópia da lista antiga é guardada a cada vez que você salva, para poder voltar. A lista do computador inteiro é mostrada, nunca alterada. (Windows) |
 | 🕘 | **Notificações** | Os avisos que o NomNom mostrou nos últimos sete dias, para achar de novo um que sumiu sem ser lido. |
 | 💾 | **Arquivo de configurações** | Salve suas configurações, ações e escolhas num arquivo e carregue em outro computador. O início também mostra memória, disco, seu próximo lembrete e sua última nota. |
 | 📈 | **Monitor do sistema** | Processador, memória, discos, rede e os programas que mais usam, ao vivo, mais a placa de vídeo, a bateria e a saúde de cada disco (com uma checagem diária que avisa quando um precisa de atenção). Só observa, nunca mexe em nada. |

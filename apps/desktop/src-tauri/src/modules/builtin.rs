@@ -484,6 +484,30 @@ impl Module for RecorderModule {
     }
 }
 
+static PATHS: ModuleManifest = ModuleManifest {
+    id: "paths",
+    name: "PATH editor",
+    nav: Some(NavEntry {
+        order: 62,
+        icon: "wrench",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct PathsModule;
+#[async_trait]
+impl Module for PathsModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &PATHS
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

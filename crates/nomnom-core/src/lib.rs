@@ -14,6 +14,7 @@ pub mod hardware;
 pub mod launcher;
 pub mod links;
 pub mod module;
+pub mod path_tools;
 pub mod paths;
 pub mod phone;
 pub mod process;

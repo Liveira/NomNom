@@ -706,6 +706,23 @@ export interface RecorderStatus {
   clock: string;
   file: string | null;
 }
+export interface PathEntry {
+  raw: string;
+  expanded: string;
+  issue: 'duplicate' | 'missing' | 'empty' | null;
+}
+export interface PathView {
+  user: PathEntry[];
+  machine: PathEntry[];
+  backups: string[];
+  supported: boolean;
+}
+export const pathIpc = {
+  get: () => invoke<PathView>('env_get'),
+  apply: (entries: string[]) => invoke<PathView>('env_apply', { entries }),
+  restore: (name: string) => invoke<PathView>('env_restore', { name }),
+};
+
 export const recorderIpc = {
   status: () => invoke<RecorderStatus>('rec_status'),
   startScreen: (gif: boolean) => invoke<void>('rec_start_screen', { gif }),

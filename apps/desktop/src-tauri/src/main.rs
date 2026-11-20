@@ -32,6 +32,7 @@ mod notifications;
 mod notifier;
 mod ocr;
 mod organizer;
+mod path_editor;
 mod pdftools;
 mod phone;
 mod pipe_server;

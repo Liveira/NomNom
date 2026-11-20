@@ -465,3 +465,32 @@ export const RECORDER: Entry[] = [
   ['Record an area of the screen, or stop recording', 'Gravar uma área da tela, ou parar de gravar', 'Grabar una zona de la pantalla, o dejar de grabar'],
   ['Recording needs ffmpeg. Open File Tools once, or the Downloader, and let it set up its tools.', 'Gravar precisa do ffmpeg. Abra as Ferramentas de arquivo uma vez, ou o Downloader, e deixe preparar as ferramentas.', 'Grabar necesita ffmpeg. Abre las Herramientas de archivo una vez, o el Descargador, y deja que prepare sus herramientas.'],
 ];
+
+/** PATH editor. */
+export const PATHS: Entry[] = [
+  ['PATH editor', 'Editor de PATH', 'Editor de PATH'],
+  ["PATH is the list of folders Windows looks in when you type a program's name in a terminal. Here you can see yours, find the entries that repeat or point to folders that are gone, and tidy them. A copy of the old list is kept every time you save, so you can put it back.", 'O PATH é a lista de pastas onde o Windows procura quando você digita o nome de um programa num terminal. Aqui você vê a sua, acha as entradas repetidas ou que apontam para pastas que sumiram, e arruma. Uma cópia da lista antiga é guardada a cada vez que você salva, para poder voltar.', 'El PATH es la lista de carpetas donde Windows busca cuando escribes el nombre de un programa en un terminal. Aquí ves la tuya, encuentras las entradas repetidas o que apuntan a carpetas que ya no existen, y las ordenas. Se guarda una copia de la lista antigua cada vez que guardas, para poder volver.'],
+  ['See the folders Windows looks in for programs, find the repeated and missing ones, and tidy them with a saved copy to go back to.', 'Veja as pastas onde o Windows procura programas, ache as repetidas e as que sumiram, e arrume com uma cópia guardada para voltar.', 'Mira las carpetas donde Windows busca programas, encuentra las repetidas y las que faltan, y ordénalas con una copia guardada para volver.'],
+  ['The PATH editor works on Windows for now.', 'O editor de PATH funciona por enquanto só no Windows.', 'El editor de PATH funciona por ahora solo en Windows.'],
+  ['Whose list', 'De quem é a lista', 'De quién es la lista'],
+  ['Yours', 'A sua', 'La tuya'],
+  ["The whole computer's", 'A do computador inteiro', 'La de todo el equipo'],
+  ['Repeated', 'Repetida', 'Repetida'],
+  ['Not there', 'Não existe', 'No existe'],
+  ['Empty', 'Vazia', 'Vacía'],
+  ['Add a folder…', 'Adicionar uma pasta…', 'Añadir una carpeta…'],
+  ['Remove the repeated and missing', 'Remover as repetidas e as que sumiram', 'Quitar las repetidas y las que faltan'],
+  ['Remove this entry', 'Remover esta entrada', 'Quitar esta entrada'],
+  ['Put back an older list…', 'Voltar uma lista antiga…', 'Recuperar una lista antigua…'],
+  ['Save…', 'Salvar…', 'Guardar…'],
+  ["This list is shared by everyone who uses this computer. NomNom shows it but does not change it, because that needs administrator rights.", 'Esta lista é compartilhada por todos que usam este computador. O NomNom mostra, mas não muda, porque isso exige direitos de administrador.', 'Esta lista la comparten todos los que usan este equipo. NomNom la muestra pero no la cambia, porque eso requiere derechos de administrador.'],
+  ['Save your PATH?', 'Salvar o seu PATH?', '¿Guardar tu PATH?'],
+  ['Programs that are already open keep the old list until they are restarted.', 'Programas que já estão abertos continuam com a lista antiga até serem reiniciados.', 'Los programas que ya están abiertos conservan la lista antigua hasta que se reinicien.'],
+  ['Put back an older list', 'Voltar uma lista antiga', 'Recuperar una lista antigua'],
+  ['Saved. Programs you open from now on will see it.', 'Salvo. Os programas que você abrir daqui em diante vão enxergar.', 'Guardado. Los programas que abras desde ahora lo verán.'],
+  ['Cancel', 'Cancelar', 'Cancelar'],
+  ['Save', 'Salvar', 'Guardar'],
+  ['Close', 'Fechar', 'Cerrar'],
+  ['There is an empty entry. Remove it first.', 'Há uma entrada vazia. Remova primeiro.', 'Hay una entrada vacía. Quítala primero.'],
+  ['That list is too long for Windows to keep.', 'Essa lista é longa demais para o Windows guardar.', 'Esa lista es demasiado larga para que Windows la guarde.'],
+];
