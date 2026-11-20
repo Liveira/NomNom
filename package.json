@@ -1,7 +1,7 @@
 {
   "name": "nomnom",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "workspaces": ["apps/desktop", "apps/firefox-extension"],
   "scripts": {
     "dev": "npm run tauri dev -w apps/desktop",
