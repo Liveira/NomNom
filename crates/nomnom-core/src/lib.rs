@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod clipboard;
+pub mod compare;
 pub mod db;
 pub mod error;
 pub mod filesearch;

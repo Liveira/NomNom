@@ -163,6 +163,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-lavender)',
   },
   {
+    id: 'compare',
+    icon: 'arrow',
+    title: 'Compare folders',
+    desc: 'See what is different between two folders and copy what you choose. Nothing is deleted, and a replaced file keeps its old version.',
+    tint: 'var(--glow-mint)',
+  },
+  {
     id: 'monitor',
     icon: 'activity',
     title: 'System Monitor',

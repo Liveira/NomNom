@@ -46,6 +46,7 @@ tracing-appender.workspace = true
 async-trait.workspace = true
 anyhow.workspace = true
 uuid.workspace = true
+blake3 = "1"
 
 [target.'cfg(windows)'.dependencies]
 nomnom-win = { path = "../../../crates/nomnom-win" }

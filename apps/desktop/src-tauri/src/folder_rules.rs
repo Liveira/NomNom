@@ -56,7 +56,7 @@ fn secs(t: SystemTime) -> i64 {
 
 /// Is this a folder rules may watch, or put things in? Drive roots, the system's own folders and
 /// NomNom's data are not.
-fn allowed(state: &AppState, folder: &Path) -> Result<(), String> {
+pub(crate) fn allowed(state: &AppState, folder: &Path) -> Result<(), String> {
     if !folder.is_absolute() || pathutil::has_traversal(folder) {
         return Err("Use a full folder path.".into());
     }

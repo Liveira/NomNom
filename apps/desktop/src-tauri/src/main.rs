@@ -13,6 +13,7 @@ mod events;
 mod filesearch;
 mod filetools;
 mod focus;
+mod folder_compare;
 mod folder_rules;
 mod game_mode;
 mod goals;

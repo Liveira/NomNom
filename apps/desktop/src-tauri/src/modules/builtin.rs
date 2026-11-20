@@ -412,6 +412,30 @@ impl Module for QrModule {
     }
 }
 
+static COMPARE: ModuleManifest = ModuleManifest {
+    id: "compare",
+    name: "Compare folders",
+    nav: Some(NavEntry {
+        order: 59,
+        icon: "arrow",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct CompareModule;
+#[async_trait]
+impl Module for CompareModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &COMPARE
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static TOOLS: ModuleManifest = ModuleManifest {
     id: "tools",
     name: "Tools",

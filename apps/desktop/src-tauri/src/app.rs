@@ -1,11 +1,11 @@
 use crate::modules::downloads;
 use crate::{
     actions, activity, backup, browser, clipboard, colorpick, commands, events, filesearch,
-    filetools, focus, folder_rules, game_mode, goals, hardware, integrations, launcher, memory,
-    mini, modules, monitor, notes, notifications, notifier, ocr, organizer, pdftools, phone,
-    pipe_server, qr, quick, reminders, rename, settings_io, shortcuts, shots, snippets, startup,
-    state::AppState, storage, storage_cleanup, storage_history, storage_ops, storage_tools,
-    subscriptions, toast, translate, tray, updater, windows,
+    filetools, focus, folder_compare, folder_rules, game_mode, goals, hardware, integrations,
+    launcher, memory, mini, modules, monitor, notes, notifications, notifier, ocr, organizer,
+    pdftools, phone, pipe_server, qr, quick, reminders, rename, settings_io, shortcuts, shots,
+    snippets, startup, state::AppState, storage, storage_cleanup, storage_history, storage_ops,
+    storage_tools, subscriptions, toast, translate, tray, updater, windows,
 };
 use nomnom_core::{
     db::Db, module::ModuleRegistry, paths::Paths, settings::SettingsStore, tasks::TaskManager,
@@ -196,6 +196,8 @@ pub fn run() {
             actions::ca_save,
             actions::ca_delete,
             actions::ca_run,
+            folder_compare::cmp_scan,
+            folder_compare::cmp_apply,
             qr::qr_make,
             qr::qr_wifi,
             qr::qr_save,

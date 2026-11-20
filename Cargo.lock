@@ -2729,6 +2729,7 @@ version = "0.6.1"
 dependencies = [
  "anyhow",
  "async-trait",
+ "blake3",
  "chrono",
  "libc",
  "nomnom-activity",

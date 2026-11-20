@@ -33,6 +33,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ShotsModule),
         Arc::new(builtin::GameModeModule),
         Arc::new(builtin::QrModule),
+        Arc::new(builtin::CompareModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

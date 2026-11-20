@@ -682,6 +682,22 @@ export interface QrScanned {
   kind: string;
   openable: boolean;
 }
+export interface CompareRow {
+  rel: string;
+  status: 'only_left' | 'only_right' | 'same' | 'left_newer' | 'right_newer' | 'different';
+  left: [number, number] | null;
+  right: [number, number] | null;
+}
+export interface CompareApplied {
+  copied: number;
+  replaced: number;
+  failed: [string, string][];
+}
+export const compareIpc = {
+  scan: (left: string, right: string, exact: boolean) => invoke<{ rows: CompareRow[]; truncated: boolean }>('cmp_scan', { left, right, exact }),
+  apply: (left: string, right: string, todo: { rel: string; action: 'copy_right' | 'copy_left' }[]) => invoke<CompareApplied>('cmp_apply', { left, right, todo }),
+};
+
 export const qrIpc = {
   make: (text: string) => invoke<string>('qr_make', { text }),
   wifi: (ssid: string, password: string, security: string, hidden: boolean) => invoke<[string, string]>('qr_wifi', { ssid, password, security, hidden }),
