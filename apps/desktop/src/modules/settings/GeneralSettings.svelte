@@ -54,14 +54,14 @@
 <style>
   .lead { margin: 0 0 12px; }
   .langs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-  .lang { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; cursor: pointer; border-radius: var(--radius-m); border: 1px solid var(--border-strong); background: var(--surface-2); }
-  .lang:hover { border-color: var(--border-glow); }
+  .lang { position: relative; display: flex; align-items: center; gap: 11px; padding: 11px 13px; text-align: left; cursor: pointer; border-radius: var(--radius-m); border: 1px solid var(--border); background: var(--surface-2); transition: border-color var(--dur-1), background var(--dur-1); }
+  .lang:hover { border-color: var(--border-strong); background: var(--surface-3); }
   .lang.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  .lico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); flex: none; }
-  .lang.on .lico { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); }
+  .lico { width: 32px; height: 32px; border-radius: var(--radius-s); display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); flex: none; }
+  .lang.on .lico { background: var(--accent); color: var(--on-accent); }
   .ltext { display: grid; gap: 1px; }
   .ltext span { font-size: 12px; color: var(--text-3); }
-  .lcheck { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
+  .lcheck { position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); }
 
   .group { max-width: 640px; margin-bottom: 16px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 16px 18px; }
   h3 { margin-bottom: 12px; }

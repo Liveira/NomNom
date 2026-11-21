@@ -49,7 +49,7 @@
   .sched { margin-bottom: 18px; }
   h2 { margin-bottom: 8px; }
   ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); animation: rise var(--dur-3) var(--ease-out); }
+  li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); }
   .ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--surface-3); color: var(--accent-text); }
   .what { display: grid; min-width: 0; }
   .what strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -3,50 +3,46 @@
   A theme is one block: [data-theme='name']. The same block works on the whole page (<html>) and on
   a small preview card in Settings, so the theme gallery shows the real colours.
 
-  Themes: dark (Midnight Mochi, the default), light, aurora, synthwave, sakura, ocean, forest.
-  "system" is not a palette: it picks dark or light from the operating system.
   Text on every surface is checked for WCAG AA contrast by contrast.test.ts.
 */
 :root {
-  --radius-xs: 8px;
-  --radius-s: 12px;
-  --radius-m: 18px;
-  --radius-l: 24px;
+  --radius-xs: 6px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
   --radius-pill: 999px;
   --titlebar-h: 38px;
 
-  --font-ui: 'Nunito', 'Quicksand', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
-  --font-display: 'Fredoka', 'Nunito', 'Quicksand', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Nunito', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
+  --font-display: 'Nunito', 'Segoe UI Variable Display', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
 
-  --dur-1: 100ms;
-  --dur-2: 180ms;
-  --dur-3: 260ms;
-  --dur-4: 520ms;
+  --dur-1: 90ms;
+  --dur-2: 150ms;
+  --dur-3: 200ms;
+  --dur-4: 260ms;
   --ease-out: cubic-bezier(0.2, 0.85, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --ease-spring: cubic-bezier(0.25, 1.2, 0.5, 1);
 }
 
 /* ---- Midnight Mochi: warm plum, peach and blush. The default dark theme. ---------------------- */
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #110d18;
-  --surface-1: #1a1424;
-  --surface-2: #241c32;
-  --surface-3: #312744;
-  --border: rgba(244, 220, 255, 0.09);
-  --border-strong: rgba(244, 220, 255, 0.18);
-  --border-glow: rgba(255, 169, 112, 0.36);
-  --text: #faf3fc;
-  --text-2: #cfc2dc;
-  --text-3: #ad9ebd;
+  --bg: #121017;
+  --surface-1: #191620;
+  --surface-2: #221e2b;
+  --surface-3: #2d2838;
+  --border: rgba(244, 232, 255, 0.08);
+  --border-strong: rgba(244, 232, 255, 0.14);
+  --border-glow: rgba(255, 169, 112, 0.42);
+  --text: #f7f3fa;
+  --text-2: #c9bfd4;
+  --text-3: #a297b0;
   --accent: #ffa970;
-  --accent-hover: #ffc093;
-  /* Accent used as text colour (links); checked for >= 4.5:1 WCAG AA contrast. */
+  --accent-hover: #ffbc8f;
   --accent-text: #ffb380;
   --on-accent: #220f05;
-  /* Keyboard focus ring: stands out >= 3:1. */
   --focus: #ffb380;
   --blush: #ff8fb8;
   --lavender: #c0a3ff;
@@ -54,29 +50,29 @@
   --danger: #ff8296;
   --info: #8ec5ff;
 
-  --glow-peach: rgba(255, 169, 112, 0.16);
-  --glow-blush: rgba(255, 143, 184, 0.14);
-  --glow-lavender: rgba(192, 163, 255, 0.15);
-  --glow-mint: rgba(123, 232, 188, 0.14);
-  --shadow-card: 0 10px 28px rgba(5, 2, 12, 0.42), inset 0 1px 0 rgba(255, 240, 252, 0.07);
-  --shadow-soft: 0 4px 14px rgba(5, 2, 12, 0.28), inset 0 1px 0 rgba(255, 240, 252, 0.05);
-  --shadow-pop: 0 18px 46px rgba(4, 2, 10, 0.62), inset 0 1px 0 rgba(255, 240, 252, 0.1);
+  --glow-peach: rgba(255, 169, 112, 0.11);
+  --glow-blush: rgba(255, 143, 184, 0.09);
+  --glow-lavender: rgba(192, 163, 255, 0.1);
+  --glow-mint: rgba(123, 232, 188, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-pop: 0 14px 36px rgba(4, 2, 10, 0.52);
   --title-shadow: none;
 }
 
 /* ---- Light: cream and peach. -------------------------------------------------------------------- */
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #fff6f0;
-  --surface-1: #fffdfb;
-  --surface-2: #fbece2;
-  --surface-3: #f3dfd0;
-  --border: rgba(88, 42, 24, 0.1);
-  --border-strong: rgba(88, 42, 24, 0.2);
-  --border-glow: rgba(232, 125, 58, 0.35);
-  --text: #281d26;
-  --text-2: #5d4d59;
-  --text-3: #705e6b;
+  --bg: #faf6f2;
+  --surface-1: #ffffff;
+  --surface-2: #f4ece4;
+  --surface-3: #eadfd4;
+  --border: rgba(70, 38, 22, 0.09);
+  --border-strong: rgba(70, 38, 22, 0.16);
+  --border-glow: rgba(218, 112, 48, 0.42);
+  --text: #241c22;
+  --text-2: #594c56;
+  --text-3: #6c5d68;
   --accent: #ef9650;
   --accent-hover: #e5853b;
   --accent-text: #a4460c;
@@ -88,26 +84,26 @@
   --danger: #c63646;
   --info: #295ec4;
 
-  --glow-peach: rgba(239, 150, 80, 0.16);
-  --glow-blush: rgba(226, 100, 139, 0.14);
-  --glow-lavender: rgba(124, 82, 217, 0.12);
-  --glow-mint: rgba(17, 120, 78, 0.12);
-  --shadow-card: 0 8px 24px rgba(72, 34, 20, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-soft: 0 3px 10px rgba(72, 34, 20, 0.06);
-  --shadow-pop: 0 16px 40px rgba(72, 34, 20, 0.18);
+  --glow-peach: rgba(239, 150, 80, 0.12);
+  --glow-blush: rgba(226, 100, 139, 0.1);
+  --glow-lavender: rgba(124, 82, 217, 0.09);
+  --glow-mint: rgba(17, 120, 78, 0.09);
+  --shadow-card: 0 1px 2px rgba(40, 20, 10, 0.06);
+  --shadow-soft: 0 1px 2px rgba(40, 20, 10, 0.05);
+  --shadow-pop: 0 12px 32px rgba(40, 20, 10, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Aurora (Aurora UI): northern-lights teal and violet on deep indigo. ------------------------ */
+/* ---- Aurora: northern-lights teal and violet on deep indigo. ------------------------------------ */
 [data-theme='aurora'] {
   color-scheme: dark;
-  --bg: #0a0e1f;
-  --surface-1: #121833;
-  --surface-2: #1a2142;
-  --surface-3: #252d57;
-  --border: rgba(190, 215, 255, 0.1);
-  --border-strong: rgba(190, 215, 255, 0.2);
-  --border-glow: rgba(94, 234, 212, 0.4);
+  --bg: #0b0f1e;
+  --surface-1: #12172c;
+  --surface-2: #1a213b;
+  --surface-3: #242d4f;
+  --border: rgba(190, 215, 255, 0.08);
+  --border-strong: rgba(190, 215, 255, 0.16);
+  --border-glow: rgba(94, 234, 212, 0.42);
   --text: #eef3ff;
   --text-2: #c3cdee;
   --text-3: #9faad6;
@@ -122,26 +118,26 @@
   --danger: #ff8a9b;
   --info: #93c5fd;
 
-  --glow-peach: rgba(94, 234, 212, 0.16);
-  --glow-blush: rgba(192, 132, 252, 0.16);
-  --glow-lavender: rgba(125, 211, 252, 0.15);
-  --glow-mint: rgba(110, 231, 183, 0.14);
-  --shadow-card: 0 10px 30px rgba(2, 4, 16, 0.5), inset 0 1px 0 rgba(220, 235, 255, 0.07);
-  --shadow-soft: 0 4px 14px rgba(2, 4, 16, 0.34), inset 0 1px 0 rgba(220, 235, 255, 0.05);
-  --shadow-pop: 0 18px 48px rgba(2, 4, 14, 0.66), inset 0 1px 0 rgba(220, 235, 255, 0.1);
-  --title-shadow: 0 0 22px rgba(94, 234, 212, 0.35);
+  --glow-peach: rgba(94, 234, 212, 0.11);
+  --glow-blush: rgba(192, 132, 252, 0.1);
+  --glow-lavender: rgba(125, 211, 252, 0.1);
+  --glow-mint: rgba(110, 231, 183, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.22);
+  --shadow-pop: 0 14px 36px rgba(2, 4, 14, 0.56);
+  --title-shadow: none;
 }
 
-/* ---- Synthwave (Retro-Futurism): neon pink and cyan on dark violet, with scanlines. ------------- */
+/* ---- Synthwave: neon pink and cyan on dark violet. ---------------------------------------------- */
 [data-theme='synthwave'] {
   color-scheme: dark;
-  --bg: #12082a;
-  --surface-1: #1c0f3d;
-  --surface-2: #281552;
-  --surface-3: #361c6b;
-  --border: rgba(255, 160, 230, 0.13);
-  --border-strong: rgba(255, 160, 230, 0.26);
-  --border-glow: rgba(255, 79, 176, 0.55);
+  --bg: #130b26;
+  --surface-1: #1b1136;
+  --surface-2: #251748;
+  --surface-3: #321f5e;
+  --border: rgba(255, 175, 235, 0.1);
+  --border-strong: rgba(255, 175, 235, 0.19);
+  --border-glow: rgba(255, 79, 176, 0.48);
   --text: #fdf1ff;
   --text-2: #dcc5f2;
   --text-3: #b9a0de;
@@ -156,26 +152,26 @@
   --danger: #ff7a90;
   --info: #7cc4ff;
 
-  --glow-peach: rgba(255, 79, 176, 0.2);
-  --glow-blush: rgba(34, 211, 238, 0.16);
-  --glow-lavender: rgba(167, 139, 250, 0.18);
-  --glow-mint: rgba(93, 242, 176, 0.14);
-  --shadow-card: 0 10px 30px rgba(8, 2, 22, 0.55), 0 0 0 1px rgba(255, 79, 176, 0.06), inset 0 1px 0 rgba(255, 220, 250, 0.08);
-  --shadow-soft: 0 4px 16px rgba(8, 2, 22, 0.4), inset 0 1px 0 rgba(255, 220, 250, 0.05);
-  --shadow-pop: 0 18px 50px rgba(6, 1, 18, 0.7), 0 0 28px rgba(255, 79, 176, 0.18), inset 0 1px 0 rgba(255, 220, 250, 0.1);
-  --title-shadow: 0 0 14px rgba(255, 79, 176, 0.65), 0 0 34px rgba(34, 211, 238, 0.35);
+  --glow-peach: rgba(255, 79, 176, 0.13);
+  --glow-blush: rgba(34, 211, 238, 0.11);
+  --glow-lavender: rgba(167, 139, 250, 0.12);
+  --glow-mint: rgba(93, 242, 176, 0.1);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(6, 1, 18, 0.6);
+  --title-shadow: none;
 }
 
-/* ---- Sakura (soft pastel, light): cherry-blossom pink and peach on cream. ----------------------- */
+/* ---- Sakura: cherry-blossom pink on soft cream. ------------------------------------------------- */
 [data-theme='sakura'] {
   color-scheme: light;
-  --bg: #fff3f6;
-  --surface-1: #fffafb;
-  --surface-2: #ffe8ef;
-  --surface-3: #ffd9e5;
-  --border: rgba(120, 40, 70, 0.1);
-  --border-strong: rgba(120, 40, 70, 0.2);
-  --border-glow: rgba(240, 98, 146, 0.4);
+  --bg: #fcf4f7;
+  --surface-1: #ffffff;
+  --surface-2: #f8e8ee;
+  --surface-3: #f0d7e0;
+  --border: rgba(120, 40, 70, 0.09);
+  --border-strong: rgba(120, 40, 70, 0.16);
+  --border-glow: rgba(240, 98, 146, 0.42);
   --text: #3a1f2b;
   --text-2: #6b4455;
   --text-3: #7d5565;
@@ -190,25 +186,25 @@
   --danger: #c3283f;
   --info: #2a5fc0;
 
-  --glow-peach: rgba(240, 98, 146, 0.16);
-  --glow-blush: rgba(255, 154, 118, 0.16);
-  --glow-lavender: rgba(155, 106, 217, 0.12);
-  --glow-mint: rgba(18, 121, 79, 0.1);
-  --shadow-card: 0 10px 26px rgba(140, 50, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --shadow-soft: 0 4px 12px rgba(140, 50, 90, 0.08);
-  --shadow-pop: 0 18px 42px rgba(140, 50, 90, 0.2);
+  --glow-peach: rgba(240, 98, 146, 0.12);
+  --glow-blush: rgba(255, 154, 118, 0.11);
+  --glow-lavender: rgba(155, 106, 217, 0.09);
+  --glow-mint: rgba(18, 121, 79, 0.08);
+  --shadow-card: 0 1px 2px rgba(120, 40, 70, 0.06);
+  --shadow-soft: 0 1px 2px rgba(120, 40, 70, 0.05);
+  --shadow-pop: 0 12px 32px rgba(120, 40, 70, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Deep Ocean (OLED midnight blue): sky blue and teal on near-black navy. --------------------- */
+/* ---- Deep Ocean: sky blue and teal on midnight navy. -------------------------------------------- */
 [data-theme='ocean'] {
   color-scheme: dark;
-  --bg: #040b1a;
-  --surface-1: #0a1630;
-  --surface-2: #10203f;
-  --surface-3: #19305a;
-  --border: rgba(140, 200, 255, 0.1);
-  --border-strong: rgba(140, 200, 255, 0.2);
+  --bg: #060d1c;
+  --surface-1: #0c172e;
+  --surface-2: #132240;
+  --surface-3: #1c3159;
+  --border: rgba(140, 200, 255, 0.09);
+  --border-strong: rgba(140, 200, 255, 0.16);
   --border-glow: rgba(56, 189, 248, 0.42);
   --text: #e8f4ff;
   --text-2: #b7d0ea;
@@ -224,26 +220,26 @@
   --danger: #ff8497;
   --info: #93c5fd;
 
-  --glow-peach: rgba(56, 189, 248, 0.16);
-  --glow-blush: rgba(45, 212, 191, 0.14);
-  --glow-lavender: rgba(129, 140, 248, 0.15);
-  --glow-mint: rgba(94, 234, 212, 0.13);
-  --shadow-card: 0 10px 30px rgba(0, 4, 14, 0.58), inset 0 1px 0 rgba(200, 230, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(0, 4, 14, 0.4), inset 0 1px 0 rgba(200, 230, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(0, 3, 12, 0.72), inset 0 1px 0 rgba(200, 230, 255, 0.09);
-  --title-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+  --glow-peach: rgba(56, 189, 248, 0.11);
+  --glow-blush: rgba(45, 212, 191, 0.1);
+  --glow-lavender: rgba(129, 140, 248, 0.1);
+  --glow-mint: rgba(94, 234, 212, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(0, 3, 12, 0.6);
+  --title-shadow: none;
 }
 
 /* ---- Fireflies Forest: moss green and firefly amber on dark pine. ------------------------------- */
 [data-theme='forest'] {
   color-scheme: dark;
-  --bg: #06120d;
-  --surface-1: #0d1f17;
-  --surface-2: #142b20;
-  --surface-3: #1d3b2d;
-  --border: rgba(170, 240, 190, 0.1);
-  --border-strong: rgba(170, 240, 190, 0.2);
-  --border-glow: rgba(251, 191, 36, 0.4);
+  --bg: #08130e;
+  --surface-1: #0f1e17;
+  --surface-2: #162a21;
+  --surface-3: #203a2e;
+  --border: rgba(170, 240, 190, 0.09);
+  --border-strong: rgba(170, 240, 190, 0.16);
+  --border-glow: rgba(251, 191, 36, 0.42);
   --text: #effaf1;
   --text-2: #bcd6c3;
   --text-3: #94b59f;
@@ -258,25 +254,25 @@
   --danger: #ff8a80;
   --info: #7dd3fc;
 
-  --glow-peach: rgba(251, 191, 36, 0.14);
-  --glow-blush: rgba(134, 239, 172, 0.13);
-  --glow-lavender: rgba(94, 234, 212, 0.12);
-  --glow-mint: rgba(134, 239, 172, 0.13);
-  --shadow-card: 0 10px 30px rgba(0, 8, 4, 0.55), inset 0 1px 0 rgba(210, 255, 220, 0.06);
-  --shadow-soft: 0 4px 14px rgba(0, 8, 4, 0.38), inset 0 1px 0 rgba(210, 255, 220, 0.04);
-  --shadow-pop: 0 18px 48px rgba(0, 6, 3, 0.7), inset 0 1px 0 rgba(210, 255, 220, 0.09);
+  --glow-peach: rgba(251, 191, 36, 0.1);
+  --glow-blush: rgba(134, 239, 172, 0.09);
+  --glow-lavender: rgba(94, 234, 212, 0.09);
+  --glow-mint: rgba(134, 239, 172, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(0, 6, 3, 0.6);
   --title-shadow: none;
 }
 
-/* ---- Nebula (cosmic purple). ---- */
+/* ---- Nebula (cosmic purple). -------------------------------------------------------------------- */
 [data-theme='nebula'] {
   color-scheme: dark;
-  --bg: #0b0817;
-  --surface-1: #151029;
-  --surface-2: #1f1840;
-  --surface-3: #2c2358;
-  --border: rgba(241, 236, 255, 0.1);
-  --border-strong: rgba(241, 236, 255, 0.2);
+  --bg: #0c0918;
+  --surface-1: #151128;
+  --surface-2: #1f193c;
+  --surface-3: #2b2352;
+  --border: rgba(241, 236, 255, 0.09);
+  --border-strong: rgba(241, 236, 255, 0.16);
   --border-glow: rgba(179, 136, 255, 0.42);
   --text: #f1ecff;
   --text-2: #cdc4ef;
@@ -291,25 +287,25 @@
   --ok: #7be8bc;
   --danger: #ff8296;
   --info: #8ec5ff;
-  --glow-peach: rgba(179, 136, 255, 0.16);
-  --glow-blush: rgba(255, 126, 182, 0.15);
-  --glow-lavender: rgba(122, 215, 255, 0.15);
-  --glow-mint: rgba(123, 232, 188, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --title-shadow: 0 0 22px rgba(179, 136, 255, 0.4);
+  --glow-peach: rgba(179, 136, 255, 0.11);
+  --glow-blush: rgba(255, 126, 182, 0.1);
+  --glow-lavender: rgba(122, 215, 255, 0.1);
+  --glow-mint: rgba(123, 232, 188, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(2, 2, 8, 0.6);
+  --title-shadow: none;
 }
 
-/* ---- Sunset (dusk orange and magenta). ---- */
+/* ---- Sunset (dusk orange and magenta). ---------------------------------------------------------- */
 [data-theme='sunset'] {
   color-scheme: dark;
-  --bg: #190c18;
-  --surface-1: #25121f;
-  --surface-2: #331a2a;
-  --surface-3: #452438;
-  --border: rgba(255, 241, 234, 0.1);
-  --border-strong: rgba(255, 241, 234, 0.2);
+  --bg: #180d17;
+  --surface-1: #231420;
+  --surface-2: #301c2b;
+  --surface-3: #40263a;
+  --border: rgba(255, 241, 234, 0.09);
+  --border-strong: rgba(255, 241, 234, 0.16);
   --border-glow: rgba(255, 122, 69, 0.42);
   --text: #fff1ea;
   --text-2: #e8cbbd;
@@ -324,26 +320,26 @@
   --ok: #8be9a8;
   --danger: #ff8a8a;
   --info: #8fc0ff;
-  --glow-peach: rgba(255, 122, 69, 0.16);
-  --glow-blush: rgba(255, 79, 129, 0.15);
-  --glow-lavender: rgba(255, 200, 87, 0.15);
-  --glow-mint: rgba(139, 233, 168, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --title-shadow: 0 0 20px rgba(255, 122, 69, 0.3);
+  --glow-peach: rgba(255, 122, 69, 0.11);
+  --glow-blush: rgba(255, 79, 129, 0.1);
+  --glow-lavender: rgba(255, 200, 87, 0.1);
+  --glow-mint: rgba(139, 233, 168, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(2, 2, 8, 0.6);
+  --title-shadow: none;
 }
 
-/* ---- Matcha (soft green, light). ---- */
+/* ---- Matcha (soft green, light). ---------------------------------------------------------------- */
 [data-theme='matcha'] {
   color-scheme: light;
-  --bg: #f3f7ec;
-  --surface-1: #fbfdf7;
-  --surface-2: #e6efd9;
-  --surface-3: #d6e5c3;
-  --border: rgba(31, 42, 26, 0.1);
-  --border-strong: rgba(31, 42, 26, 0.2);
-  --border-glow: rgba(139, 195, 74, 0.42);
+  --bg: #f4f7ef;
+  --surface-1: #ffffff;
+  --surface-2: #e9f0df;
+  --surface-3: #dce7cd;
+  --border: rgba(31, 42, 26, 0.09);
+  --border-strong: rgba(31, 42, 26, 0.16);
+  --border-glow: rgba(110, 162, 52, 0.42);
   --text: #1f2a1a;
   --text-2: #46583c;
   --text-3: #4d6043;
@@ -357,26 +353,26 @@
   --ok: #1b7a46;
   --danger: #c0392b;
   --info: #2a64b8;
-  --glow-peach: rgba(139, 195, 74, 0.16);
-  --glow-blush: rgba(231, 176, 74, 0.15);
-  --glow-lavender: rgba(125, 140, 217, 0.15);
-  --glow-mint: rgba(27, 122, 70, 0.13);
-  --shadow-card: 0 10px 26px rgba(31, 42, 26, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --shadow-soft: 0 4px 12px rgba(31, 42, 26, 0.08);
-  --shadow-pop: 0 18px 42px rgba(31, 42, 26, 0.2);
+  --glow-peach: rgba(139, 195, 74, 0.12);
+  --glow-blush: rgba(231, 176, 74, 0.1);
+  --glow-lavender: rgba(125, 140, 217, 0.1);
+  --glow-mint: rgba(27, 122, 70, 0.09);
+  --shadow-card: 0 1px 2px rgba(31, 42, 26, 0.06);
+  --shadow-soft: 0 1px 2px rgba(31, 42, 26, 0.05);
+  --shadow-pop: 0 12px 32px rgba(31, 42, 26, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Lavender (light violet). ---- */
+/* ---- Lavender (light violet). ------------------------------------------------------------------- */
 [data-theme='lavender'] {
   color-scheme: light;
-  --bg: #f6f2ff;
-  --surface-1: #fcfaff;
-  --surface-2: #ece4fb;
-  --surface-3: #ddd0f5;
-  --border: rgba(37, 26, 58, 0.1);
-  --border-strong: rgba(37, 26, 58, 0.2);
-  --border-glow: rgba(155, 123, 240, 0.42);
+  --bg: #f7f4fc;
+  --surface-1: #ffffff;
+  --surface-2: #eee8fa;
+  --surface-3: #e1d7f4;
+  --border: rgba(37, 26, 58, 0.09);
+  --border-strong: rgba(37, 26, 58, 0.16);
+  --border-glow: rgba(138, 104, 232, 0.42);
   --text: #251a3a;
   --text-2: #54457a;
   --text-3: #65568a;
@@ -390,25 +386,25 @@
   --ok: #14794f;
   --danger: #c3283f;
   --info: #2a5fc0;
-  --glow-peach: rgba(155, 123, 240, 0.16);
-  --glow-blush: rgba(242, 127, 183, 0.15);
-  --glow-lavender: rgba(90, 169, 230, 0.15);
-  --glow-mint: rgba(20, 121, 79, 0.13);
-  --shadow-card: 0 10px 26px rgba(37, 26, 58, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --shadow-soft: 0 4px 12px rgba(37, 26, 58, 0.08);
-  --shadow-pop: 0 18px 42px rgba(37, 26, 58, 0.2);
+  --glow-peach: rgba(155, 123, 240, 0.12);
+  --glow-blush: rgba(242, 127, 183, 0.1);
+  --glow-lavender: rgba(90, 169, 230, 0.1);
+  --glow-mint: rgba(20, 121, 79, 0.09);
+  --shadow-card: 0 1px 2px rgba(37, 26, 58, 0.06);
+  --shadow-soft: 0 1px 2px rgba(37, 26, 58, 0.05);
+  --shadow-pop: 0 12px 32px rgba(37, 26, 58, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Ember (charcoal and fire). ---- */
+/* ---- Ember (charcoal and fire). ----------------------------------------------------------------- */
 [data-theme='ember'] {
   color-scheme: dark;
-  --bg: #120a08;
-  --surface-1: #1e100c;
-  --surface-2: #2b1812;
-  --surface-3: #3b2118;
-  --border: rgba(255, 240, 232, 0.1);
-  --border-strong: rgba(255, 240, 232, 0.2);
+  --bg: #130c0a;
+  --surface-1: #1d120f;
+  --surface-2: #291a15;
+  --surface-3: #37231c;
+  --border: rgba(255, 240, 232, 0.09);
+  --border-strong: rgba(255, 240, 232, 0.16);
   --border-glow: rgba(255, 106, 61, 0.42);
   --text: #fff0e8;
   --text-2: #e0c2b4;
@@ -423,25 +419,25 @@
   --ok: #86e6a3;
   --danger: #ff8a80;
   --info: #8fc3ff;
-  --glow-peach: rgba(255, 106, 61, 0.16);
-  --glow-blush: rgba(255, 176, 46, 0.15);
-  --glow-lavender: rgba(255, 107, 129, 0.15);
-  --glow-mint: rgba(134, 230, 163, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --title-shadow: 0 0 18px rgba(255, 106, 61, 0.35);
+  --glow-peach: rgba(255, 106, 61, 0.11);
+  --glow-blush: rgba(255, 176, 46, 0.1);
+  --glow-lavender: rgba(255, 107, 129, 0.1);
+  --glow-mint: rgba(134, 230, 163, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(2, 2, 8, 0.6);
+  --title-shadow: none;
 }
 
-/* ---- Frost (icy blue, light). ---- */
+/* ---- Frost (icy blue, light). ------------------------------------------------------------------- */
 [data-theme='frost'] {
   color-scheme: light;
-  --bg: #eef6fb;
-  --surface-1: #f9fcfe;
-  --surface-2: #dcecf6;
-  --surface-3: #c9e0ee;
-  --border: rgba(17, 40, 58, 0.1);
-  --border-strong: rgba(17, 40, 58, 0.2);
+  --bg: #f1f7fb;
+  --surface-1: #ffffff;
+  --surface-2: #e2eff7;
+  --surface-3: #d2e5f1;
+  --border: rgba(17, 40, 58, 0.09);
+  --border-strong: rgba(17, 40, 58, 0.16);
   --border-glow: rgba(74, 163, 223, 0.42);
   --text: #11283a;
   --text-2: #3b5568;
@@ -456,25 +452,25 @@
   --ok: #0f7a52;
   --danger: #c0304a;
   --info: #2563b5;
-  --glow-peach: rgba(74, 163, 223, 0.16);
-  --glow-blush: rgba(127, 214, 232, 0.15);
-  --glow-lavender: rgba(141, 155, 240, 0.15);
-  --glow-mint: rgba(15, 122, 82, 0.13);
-  --shadow-card: 0 10px 26px rgba(17, 40, 58, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --shadow-soft: 0 4px 12px rgba(17, 40, 58, 0.08);
-  --shadow-pop: 0 18px 42px rgba(17, 40, 58, 0.2);
+  --glow-peach: rgba(74, 163, 223, 0.12);
+  --glow-blush: rgba(127, 214, 232, 0.1);
+  --glow-lavender: rgba(141, 155, 240, 0.1);
+  --glow-mint: rgba(15, 122, 82, 0.09);
+  --shadow-card: 0 1px 2px rgba(17, 40, 58, 0.06);
+  --shadow-soft: 0 1px 2px rgba(17, 40, 58, 0.05);
+  --shadow-pop: 0 12px 32px rgba(17, 40, 58, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Matrix (green code on black). ---- */
+/* ---- Matrix (green code on black). -------------------------------------------------------------- */
 [data-theme='matrix'] {
   color-scheme: dark;
-  --bg: #020a05;
-  --surface-1: #06150b;
-  --surface-2: #0b2012;
-  --surface-3: #123019;
-  --border: rgba(217, 255, 230, 0.1);
-  --border-strong: rgba(217, 255, 230, 0.2);
+  --bg: #040c07;
+  --surface-1: #09160e;
+  --surface-2: #0f2216;
+  --surface-3: #173220;
+  --border: rgba(217, 255, 230, 0.09);
+  --border-strong: rgba(217, 255, 230, 0.17);
   --border-glow: rgba(0, 255, 127, 0.42);
   --text: #d9ffe6;
   --text-2: #9fe3b4;
@@ -489,27 +485,27 @@
   --ok: #6cff9b;
   --danger: #ff7a7a;
   --info: #69d6ff;
-  --glow-peach: rgba(0, 255, 127, 0.16);
-  --glow-blush: rgba(0, 212, 170, 0.15);
-  --glow-lavender: rgba(124, 255, 107, 0.15);
-  --glow-mint: rgba(108, 255, 155, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --title-shadow: 0 0 14px rgba(0, 255, 127, 0.55);
+  --glow-peach: rgba(0, 255, 127, 0.11);
+  --glow-blush: rgba(0, 212, 170, 0.1);
+  --glow-lavender: rgba(124, 255, 107, 0.1);
+  --glow-mint: rgba(108, 255, 155, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.26);
+  --shadow-pop: 0 14px 36px rgba(0, 0, 0, 0.64);
+  --title-shadow: none;
   --font-display: var(--font-mono);
   --font-ui: var(--font-mono);
 }
 
-/* ---- Cyberpunk (neon yellow and cyan). ---- */
+/* ---- Cyberpunk (neon yellow and cyan). ---------------------------------------------------------- */
 [data-theme='cyberpunk'] {
   color-scheme: dark;
-  --bg: #08080f;
-  --surface-1: #12121f;
-  --surface-2: #1b1b2e;
+  --bg: #0a0a12;
+  --surface-1: #131320;
+  --surface-2: #1c1c2f;
   --surface-3: #272742;
-  --border: rgba(255, 251, 224, 0.1);
-  --border-strong: rgba(255, 251, 224, 0.2);
+  --border: rgba(255, 251, 224, 0.09);
+  --border-strong: rgba(255, 251, 224, 0.17);
   --border-glow: rgba(252, 238, 10, 0.42);
   --text: #fffbe0;
   --text-2: #d9d6b8;
@@ -524,25 +520,25 @@
   --ok: #05ffa1;
   --danger: #ff5c7a;
   --info: #6cc8ff;
-  --glow-peach: rgba(252, 238, 10, 0.16);
-  --glow-blush: rgba(0, 240, 255, 0.15);
-  --glow-lavender: rgba(255, 42, 109, 0.15);
-  --glow-mint: rgba(5, 255, 161, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --title-shadow: 0 0 16px rgba(252, 238, 10, 0.4), 0 0 30px rgba(0, 240, 255, 0.25);
+  --glow-peach: rgba(252, 238, 10, 0.11);
+  --glow-blush: rgba(0, 240, 255, 0.1);
+  --glow-lavender: rgba(255, 42, 109, 0.1);
+  --glow-mint: rgba(5, 255, 161, 0.09);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.26);
+  --shadow-pop: 0 14px 36px rgba(0, 0, 0, 0.64);
+  --title-shadow: none;
 }
 
-/* ---- Candy (bubblegum pop, light). ---- */
+/* ---- Candy (bubblegum pop, light). -------------------------------------------------------------- */
 [data-theme='candy'] {
   color-scheme: light;
-  --bg: #fff0fa;
-  --surface-1: #fff9fd;
-  --surface-2: #ffe0f3;
-  --surface-3: #ffd0ec;
-  --border: rgba(59, 16, 56, 0.1);
-  --border-strong: rgba(59, 16, 56, 0.2);
+  --bg: #fdf3fa;
+  --surface-1: #ffffff;
+  --surface-2: #fae4f3;
+  --surface-3: #f4d4ea;
+  --border: rgba(59, 16, 56, 0.09);
+  --border-strong: rgba(59, 16, 56, 0.16);
   --border-glow: rgba(255, 95, 183, 0.42);
   --text: #3b1038;
   --text-2: #6b3b66;
@@ -557,26 +553,26 @@
   --ok: #11784e;
   --danger: #c4243d;
   --info: #2a5fc0;
-  --glow-peach: rgba(255, 95, 183, 0.16);
-  --glow-blush: rgba(122, 217, 255, 0.15);
-  --glow-lavender: rgba(178, 139, 255, 0.15);
-  --glow-mint: rgba(17, 120, 78, 0.13);
-  --shadow-card: 0 10px 26px rgba(59, 16, 56, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --shadow-soft: 0 4px 12px rgba(59, 16, 56, 0.08);
-  --shadow-pop: 0 18px 42px rgba(59, 16, 56, 0.2);
+  --glow-peach: rgba(255, 95, 183, 0.12);
+  --glow-blush: rgba(122, 217, 255, 0.1);
+  --glow-lavender: rgba(178, 139, 255, 0.1);
+  --glow-mint: rgba(17, 120, 78, 0.09);
+  --shadow-card: 0 1px 2px rgba(59, 16, 56, 0.06);
+  --shadow-soft: 0 1px 2px rgba(59, 16, 56, 0.05);
+  --shadow-pop: 0 12px 32px rgba(59, 16, 56, 0.14);
   --title-shadow: none;
 }
 
-/* ---- Graphite (monochrome noir). ---- */
+/* ---- Graphite (monochrome noir). ---------------------------------------------------------------- */
 [data-theme='graphite'] {
   color-scheme: dark;
-  --bg: #0e0e10;
-  --surface-1: #17171a;
-  --surface-2: #212126;
-  --surface-3: #2d2d34;
-  --border: rgba(242, 242, 245, 0.1);
-  --border-strong: rgba(242, 242, 245, 0.2);
-  --border-glow: rgba(212, 212, 220, 0.42);
+  --bg: #0f0f12;
+  --surface-1: #17171b;
+  --surface-2: #212127;
+  --surface-3: #2c2c34;
+  --border: rgba(242, 242, 245, 0.08);
+  --border-strong: rgba(242, 242, 245, 0.15);
+  --border-glow: rgba(212, 212, 220, 0.36);
   --text: #f2f2f5;
   --text-2: #c6c6ce;
   --text-3: #a1a1ab;
@@ -590,13 +586,13 @@
   --ok: #7be8bc;
   --danger: #ff8296;
   --info: #8ec5ff;
-  --glow-peach: rgba(212, 212, 220, 0.16);
-  --glow-blush: rgba(143, 143, 163, 0.15);
-  --glow-lavender: rgba(110, 123, 255, 0.15);
-  --glow-mint: rgba(123, 232, 188, 0.13);
-  --shadow-card: 0 10px 30px rgba(2, 2, 8, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --shadow-soft: 0 4px 14px rgba(2, 2, 8, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  --shadow-pop: 0 18px 48px rgba(2, 2, 8, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --glow-peach: rgba(212, 212, 220, 0.09);
+  --glow-blush: rgba(143, 143, 163, 0.08);
+  --glow-lavender: rgba(110, 123, 255, 0.09);
+  --glow-mint: rgba(123, 232, 188, 0.08);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-pop: 0 14px 36px rgba(0, 0, 0, 0.6);
   --title-shadow: none;
 }
 

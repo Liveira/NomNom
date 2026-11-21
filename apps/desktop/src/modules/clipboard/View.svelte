@@ -86,7 +86,7 @@
 <style>
   .head h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
   .sub { margin: 0 0 16px; color: var(--text-2); }
-  .card { max-width: 760px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .card { max-width: 760px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 8px 0; }
   .row + .row { border-top: 1px solid var(--border); }
   .label { font-weight: 600; }

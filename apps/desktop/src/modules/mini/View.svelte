@@ -78,7 +78,7 @@
   h2 { font-size: 16px; margin: 0 0 4px; }
   .sub { color: var(--text-3); font-size: 13px; margin: 0; }
   .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; max-width: 760px; }
-  li { display: flex; gap: 14px; padding: 14px 16px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  li { display: flex; gap: 14px; padding: 14px 16px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .ico { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); }
   .body { flex: 1; min-width: 0; display: grid; gap: 6px; }
   p { margin: 0; color: var(--text-2); font-size: 13.5px; }

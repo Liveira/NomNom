@@ -193,7 +193,7 @@
   .seg button.on { background: var(--surface-3); color: var(--text); }
   .n { margin-left: 4px; color: var(--text-3); }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 1000px; }
-  .list li { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .list li { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .body { display: grid; gap: 1px; min-width: 0; }
   .body strong, .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .path { color: var(--text-3); font: 11.5px var(--font-mono); }
@@ -206,7 +206,8 @@
   .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; max-width: 1000px; }
   button.plain, button.primary { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.plain:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 </style>

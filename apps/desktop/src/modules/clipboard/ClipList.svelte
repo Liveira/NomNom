@@ -156,7 +156,7 @@
 
 <style>
   .wrap { display: grid; gap: 10px; min-height: 0; }
-  .wrap.popup { height: 100vh; grid-template-rows: auto 1fr auto; padding: 12px; box-sizing: border-box; background: linear-gradient(165deg, var(--surface-2), var(--surface-1)); }
+  .wrap.popup { height: 100vh; grid-template-rows: auto 1fr auto; padding: 12px; box-sizing: border-box; background: var(--surface-1); }
   .searchbar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text-3); }
   .searchbar input { flex: 1; border: 0; background: none; color: var(--text); font: inherit; outline: none; min-width: 0; }
   .searchbar:focus-within { border-color: var(--accent); }

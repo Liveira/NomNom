@@ -200,16 +200,17 @@
 </section>
 
 <style>
-  .goals { margin: 0 0 18px; padding: 16px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 90%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .goals { margin: 0 0 14px; padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
   .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-  h2 { margin: 0 0 2px; font-size: 17px; }
-  h3 { margin: 0; font-size: 14px; }
+  h2 { margin: 0 0 2px; font-size: 15.5px; }
+  h3 { margin: 0; font-size: 13.5px; }
   .sub, .empty { margin: 0; color: var(--text-3); font-size: 12.5px; }
   .empty { padding: 10px 0 4px; }
   .err { color: var(--danger); margin: 8px 0 0; }
-  button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
+  button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; font-size: 13px; }
   button.plain:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  button.primary:hover { background: var(--accent-hover); }
   .editor { margin: 14px 0 6px; padding: 14px; border-radius: var(--radius-m); background: var(--surface-2); border: 1px solid var(--border); display: grid; gap: 12px; }
   .kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .kinds button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-1); color: inherit; cursor: pointer; }
@@ -251,7 +252,7 @@
   .delta.up { color: var(--ok); }
   .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 76px; align-items: end; }
   .day { display: grid; grid-template-rows: 1fr auto; gap: 4px; height: 100%; text-align: center; color: var(--text-3); font-size: 11px; }
-  .day i { align-self: end; width: 100%; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, var(--accent), var(--blush)); opacity: 0.85; }
+  .day i { align-self: end; width: 100%; border-radius: 5px 5px 2px 2px; background: var(--accent); opacity: 0.85; }
   .tops, .results { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
   .tops li { display: flex; justify-content: space-between; color: var(--text-2); }
   .results li { display: flex; align-items: center; gap: 7px; color: var(--text-3); }

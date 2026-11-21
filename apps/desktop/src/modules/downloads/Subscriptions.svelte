@@ -121,7 +121,7 @@
 </section>
 
 <style>
-  .subs { margin: 16px 0; padding: 14px 16px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 90%, transparent); border: 1px solid var(--border-strong); }
+  .subs { margin: 16px 0; max-width: 760px; padding: 14px 16px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); }
   .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
   .hint { color: var(--text-3); font-size: 12.5px; margin: 8px 0 0; }
@@ -140,7 +140,8 @@
   button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
   button.small { padding: 4px 10px; font-size: 12.5px; }
   button.plain:hover:not(:disabled) { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   .x { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 6px; border-radius: 8px; display: grid; }
   .x:hover { background: var(--surface-3); color: var(--text); }

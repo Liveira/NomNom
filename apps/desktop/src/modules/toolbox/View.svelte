@@ -233,7 +233,7 @@
   .out { margin: 0; padding: 10px 12px; border-radius: var(--radius-xs); background: var(--surface-2); font: 13px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 380px; overflow: auto; }
   .diff .add { color: var(--ok); }
   .diff .del { color: var(--danger); }
-  .line { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); flex-wrap: wrap; }
+  .line { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius-xs); background: var(--surface-1); border: 1px solid var(--border); flex-wrap: wrap; }
   .line strong { min-width: 96px; font-size: 13px; }
   .line code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 12.5px; }
   .chip { padding: 2px 9px; border-radius: 99px; background: var(--surface-3); font: 12px var(--font-mono); }

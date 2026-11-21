@@ -39,6 +39,7 @@
   .card { display: grid; gap: 12px; justify-items: start; max-width: 640px; padding: 16px 20px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); }
   ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--text-2); font-size: 14px; }
   kbd { font: 600 12px var(--font-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border-strong); color: var(--text); }
-  .primary { display: inline-flex; padding: 8px 18px; border-radius: var(--radius-s); border: 0; background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); cursor: pointer; font: inherit; font-weight: 700; }
+  .primary { display: inline-flex; padding: 8px 16px; border-radius: var(--radius-s); border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; font: inherit; font-weight: 600; }
+  .primary:hover:not(:disabled) { background: var(--accent-hover); }
   .primary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 </style>

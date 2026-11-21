@@ -17,19 +17,18 @@
 
 <style>
   .bar {
-    height: 6px;
+    height: 4px;
     border-radius: var(--radius-pill);
     background: var(--surface-3);
     overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   .fill {
     height: 100%;
     width: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--blush));
+    background: var(--accent);
     border-radius: var(--radius-pill);
     transform-origin: left;
-    transition: transform var(--dur-3) var(--ease-out);
+    transition: transform var(--dur-2) var(--ease-out);
   }
   .unknown .fill { width: 35%; animation: sweep 1.4s var(--ease-out) infinite; }
   @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(300%); } }

@@ -172,7 +172,7 @@
 <style>
   .head h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
   .sub { margin: 0 0 16px; color: var(--text-2); max-width: 640px; }
-  .card { max-width: 760px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .card { max-width: 760px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
   h2 { margin: 0 0 8px; font-size: 16px; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 8px 0; }
   .row + .row { border-top: 1px solid var(--border); }
@@ -188,7 +188,8 @@
   textarea { width: 100%; box-sizing: border-box; resize: vertical; }
   .actions { display: flex; justify-content: flex-end; margin-top: 8px; }
   button.plain, button.primary { padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   kbd { font: inherit; padding: 1px 6px; border-radius: 5px; background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); }
   .result { margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); }

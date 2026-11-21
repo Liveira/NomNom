@@ -131,49 +131,49 @@
 <style>
   .lead { margin: 0 0 14px; color: var(--text-2); font-size: 13px; }
   .gallery { display: grid; gap: 10px; }
-  .gtitle { margin: 8px 0 0; font-family: var(--font-ui); font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+  .gtitle { margin: 10px 0 0; font-family: var(--font-ui); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(186px, 1fr)); gap: 10px; }
   .card-theme {
-    position: relative; display: grid; gap: 10px; padding: 10px; text-align: left; cursor: pointer;
-    border-radius: var(--radius-m); border: 1px solid var(--border-strong); background: var(--surface-2);
-    animation: rise var(--dur-4) var(--ease-out) backwards; animation-delay: calc(var(--i) * 55ms);
+    position: relative; display: grid; gap: 9px; padding: 9px; text-align: left; cursor: pointer;
+    border-radius: var(--radius-m); border: 1px solid var(--border); background: var(--surface-2);
+    transition: border-color var(--dur-1), background var(--dur-1);
   }
-  .card-theme:hover { transform: translateY(-3px); border-color: var(--border-glow); box-shadow: var(--shadow-card); }
-  .card-theme.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 26px var(--glow-peach); }
+  .card-theme:hover { border-color: var(--border-strong); background: var(--surface-3); }
+  .card-theme.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
   .mini {
-    position: relative; display: block; height: 104px; border-radius: var(--radius-s); overflow: hidden;
-    background: var(--bg); border: 1px solid var(--border-strong); isolation: isolate;
+    position: relative; display: block; height: 92px; border-radius: var(--radius-xs); overflow: hidden;
+    background: var(--bg); border: 1px solid var(--border); isolation: isolate;
   }
   .half { position: absolute; inset: 0; background: var(--bg); clip-path: polygon(100% 0, 100% 100%, 0 100%); z-index: 0; }
-  .mock { position: absolute; inset: 8px; display: flex; gap: 6px; z-index: 2; }
-  .mside { width: 18%; border-radius: 7px; background: var(--surface-1); border: 1px solid var(--border); padding: 6px 4px; display: grid; gap: 4px; align-content: start; }
-  .mside i { height: 5px; border-radius: 3px; background: var(--surface-3); }
+  .mock { position: absolute; inset: 7px; display: flex; gap: 5px; z-index: 2; }
+  .mside { width: 18%; border-radius: 5px; background: var(--surface-1); border: 1px solid var(--border); padding: 5px 4px; display: grid; gap: 4px; align-content: start; }
+  .mside i { height: 4px; border-radius: 2px; background: var(--surface-3); }
   .mside i:first-child { background: var(--accent); }
-  .mbody { flex: 1; display: grid; gap: 6px; align-content: start; }
-  .mcard { display: grid; gap: 4px; padding: 7px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-strong); }
-  .mcard b { height: 6px; width: 55%; border-radius: 3px; background: var(--text); }
-  .mcard u { height: 4px; width: 80%; border-radius: 3px; background: var(--text-3); }
-  .mbtn { height: 14px; width: 42%; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--blush)); }
+  .mbody { flex: 1; display: grid; gap: 5px; align-content: start; }
+  .mcard { display: grid; gap: 4px; padding: 6px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); }
+  .mcard b { height: 5px; width: 55%; border-radius: 2px; background: var(--text); }
+  .mcard u { height: 4px; width: 80%; border-radius: 2px; background: var(--text-3); }
+  .mbtn { height: 12px; width: 40%; border-radius: 5px; background: var(--accent); }
 
   .meta { display: grid; gap: 2px; padding: 0 2px 2px; }
-  .name { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+  .name { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13.5px; }
   .tag { font-size: 12px; color: var(--text-3); line-height: 1.35; }
   .check {
-    position: absolute; top: 16px; right: 16px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
-    background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 10px var(--glow-peach);
-    animation: pop var(--dur-3) var(--ease-spring);
+    position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; z-index: 3;
+    background: var(--accent); color: var(--on-accent);
   }
 
-  .motions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .motions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
   .mo {
-    position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; cursor: pointer;
-    border-radius: var(--radius-m); border: 1px solid var(--border-strong); background: var(--surface-2);
+    position: relative; display: flex; align-items: center; gap: 11px; padding: 11px 13px; text-align: left; cursor: pointer;
+    border-radius: var(--radius-m); border: 1px solid var(--border); background: var(--surface-2);
+    transition: border-color var(--dur-1), background var(--dur-1);
   }
-  .mo:hover { border-color: var(--border-glow); }
+  .mo:hover { border-color: var(--border-strong); background: var(--surface-3); }
   .mo.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-  .mo-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); flex: none; }
-  .mo.on .mo-ico { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); }
+  .mo-ico { width: 32px; height: 32px; border-radius: var(--radius-s); display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); flex: none; }
+  .mo.on .mo-ico { background: var(--accent); color: var(--on-accent); }
   .mo-text { display: grid; gap: 1px; }
   .mo-text span { font-size: 12px; color: var(--text-3); }
   .mo .check { top: 10px; right: 10px; }

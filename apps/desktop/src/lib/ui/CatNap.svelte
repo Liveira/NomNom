@@ -1,34 +1,20 @@
 <script lang="ts">
-  let { width = 116 }: { width?: number } = $props();
+  let { width = 76 }: { width?: number } = $props();
+  const w = $derived(Math.min(width, 80));
 </script>
 
-<!-- Sleeping studio cat curled up on a soft cushion with floating stars. Decorative, hidden from screen readers. -->
-<svg {width} height={Math.round(width * 0.64)} viewBox="0 0 124 80" aria-hidden="true" class="nap">
-  <ellipse cx="64" cy="64" rx="50" ry="11" fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="1" />
-  <g fill="var(--surface-3)">
-    <ellipse cx="66" cy="54" rx="39" ry="16.5" />
-    <circle cx="31" cy="49" r="15" />
-    <path
-      d="M18.5 39 19.8 25.5 29.5 33.5Z M43.5 39 42.2 25.5 32.5 33.5Z"
-      stroke="var(--surface-3)"
-      stroke-width="3"
-      stroke-linejoin="round"
-    />
-  </g>
-  <path d="M21.4 35.6 22 30.2 26.8 34Z M40.6 35.6 40 30.2 35.2 34Z" fill="var(--blush)" opacity="0.55" />
-  <path d="M102 56q13-3 8-18" stroke="var(--surface-3)" stroke-width="7.5" stroke-linecap="round" fill="none" />
-  <circle cx="110" cy="38" r="3.6" fill="var(--accent)" opacity="0.7" />
-  <ellipse cx="23" cy="53" rx="2.5" ry="1.5" fill="var(--blush)" opacity="0.5" />
-  <ellipse cx="39" cy="53" rx="2.5" ry="1.5" fill="var(--blush)" opacity="0.5" />
-  <path d="M24 48.5q2.6 2.8 5.2 0M32.8 48.5q2.6 2.8 5.2 0" stroke="var(--text-2)" stroke-width="1.7" stroke-linecap="round" fill="none" />
-  <ellipse cx="31" cy="52.6" rx="1.5" ry="1.1" fill="var(--blush)" />
-  <g fill="var(--lavender)" font-family="var(--font-display)" font-weight="700">
-    <text x="50" y="29" font-size="11.5">z</text>
-    <text x="61" y="19" font-size="9">z</text>
-  </g>
-  <path d="M77 14l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2 1.2-3Z" fill="var(--accent)" opacity="0.85" />
+<!-- Minimal sleeping cat mark for empty states. Decorative, hidden from screen readers. -->
+<svg width={w} height={Math.round(w * 0.62)} viewBox="0 0 88 54" aria-hidden="true" class="nap">
+  <ellipse cx="46" cy="40" rx="28" ry="11" fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="1.2" />
+  <circle cx="24" cy="36" r="10.5" fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="1.2" />
+  <path d="M16 29 17 20.5 23.5 26M32 29 31 20.5 24.5 26" fill="var(--surface-2)" stroke="var(--border-strong)" stroke-width="1.2" stroke-linejoin="round" />
+  <path d="M72 41q9-2 6-11" stroke="var(--border-strong)" stroke-width="4" stroke-linecap="round" fill="none" />
+  <path d="M19.5 36.2q1.8 2 3.6 0M25.4 36.2q1.8 2 3.6 0" stroke="var(--text-3)" stroke-width="1.4" stroke-linecap="round" fill="none" />
+  <circle cx="24.2" cy="39" r="1" fill="var(--accent)" />
+  <text x="41" y="20" font-size="9.5" fill="var(--text-3)" font-family="var(--font-ui)" font-weight="700">z</text>
+  <text x="49" y="13" font-size="7.5" fill="var(--text-3)" font-family="var(--font-ui)" font-weight="700">z</text>
 </svg>
 
 <style>
-  .nap { display: block; flex: none; }
+  .nap { display: block; flex: none; opacity: 0.9; }
 </style>

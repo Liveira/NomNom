@@ -137,7 +137,8 @@
   button.primary, button.ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.ghost:hover { background: var(--surface-3); }
   button.ghost[aria-pressed='true'] { background: var(--glow-peach); color: var(--accent-text); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 4px 10px; font-size: 12.5px; }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -150,7 +151,7 @@
   .find { display: flex; align-items: center; gap: 8px; max-width: 360px; margin: 18px 0 12px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-s); background: var(--surface-1); color: var(--text-3); }
   .find input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; padding: 9px 0; outline: none; }
   .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; max-width: 1000px; }
-  li { display: grid; gap: 8px; align-content: space-between; padding: 12px 14px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  li { display: grid; gap: 8px; align-content: space-between; padding: 12px 14px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   li.pinned { border-color: var(--border-glow); }
   .text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
   .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }

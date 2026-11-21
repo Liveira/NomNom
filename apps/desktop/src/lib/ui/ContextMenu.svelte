@@ -66,12 +66,12 @@
 
 <style>
   .menu {
-    position: fixed; z-index: 60; min-width: 224px; background: var(--surface-2);
-    border: 1px solid var(--border-strong); border-radius: var(--radius-m); padding: 6px;
+    position: fixed; z-index: 60; min-width: 216px; background: var(--surface-1);
+    border: 1px solid var(--border-strong); border-radius: var(--radius-s); padding: 4px;
     box-shadow: var(--shadow-pop); outline: none; display: grid; max-height: calc(100vh - 8px); overflow-y: auto;
   }
-  button { display: flex; justify-content: space-between; gap: 24px; border: 0; background: none; color: inherit; text-align: left; padding: 7px 11px; border-radius: var(--radius-xs); cursor: pointer; }
-  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-3); color: var(--accent-text); }
+  button { display: flex; justify-content: space-between; gap: 20px; border: 0; background: none; color: inherit; text-align: left; padding: 7px 10px; border-radius: var(--radius-xs); cursor: pointer; font-size: 13px; }
+  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-2); color: var(--text-1); }
   button:disabled { color: var(--text-3); cursor: default; }
   .hint { color: var(--text-3); font-size: 12px; }
   .sep { height: 1px; background: var(--border); margin: 4px 2px; }

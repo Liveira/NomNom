@@ -1,11 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #app { height: 100%; margin: 0; }
 body {
-  background:
-    radial-gradient(680px 440px at 88% -6%, var(--glow-lavender), transparent 65%),
-    radial-gradient(560px 380px at 14% 106%, var(--glow-blush), transparent 65%),
-    radial-gradient(480px 340px at 48% -12%, var(--glow-peach), transparent 68%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   font: 450 13.5px/1.5 var(--font-ui);
   -webkit-font-smoothing: antialiased;
@@ -17,11 +13,11 @@ h1, h2, h3 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
-h1 { font-size: 27px; line-height: 1.2; }
-h2 { font-size: 18.5px; line-height: 1.28; }
-h3 { font-size: 14.5px; line-height: 1.35; }
+h1 { font-size: 24px; line-height: 1.25; }
+h2 { font-size: 16.5px; line-height: 1.3; }
+h3 { font-size: 14px; line-height: 1.35; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 
@@ -31,7 +27,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--radius-xs);
 }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--surface-3);
@@ -47,98 +43,61 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Shared cozy studio page header & pills */
+/* Minimal, calm page header (used across Home, Playtime, System Monitor, Backup) */
 .studio-hero {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 18px;
-  padding: 18px 22px;
-  margin-bottom: 18px;
-  border-radius: var(--radius-l);
-  background:
-    radial-gradient(320px 180px at 96% 18%, var(--glow-peach), transparent 72%),
-    radial-gradient(260px 180px at 78% 110%, var(--glow-blush), transparent 72%),
-    linear-gradient(155deg, var(--surface-2) 0%, var(--surface-1) 100%);
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-card);
-  position: relative;
-  overflow: hidden;
+  gap: 20px;
+  padding: 0 0 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 .studio-hero .eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-3);
-  border: 1px solid var(--border-strong);
+  padding: 0;
+  background: none;
+  border: 0;
   color: var(--accent-text);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
 }
 .studio-hero p {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: var(--text-2);
   font-size: 13.5px;
-  max-width: 58ch;
+  max-width: 60ch;
 }
 
 /* ======================================================================================
-   Motion. Everything that moves in the interface is defined here, so one switch
-   (Settings > Appearance > Motion) can calm or stop all of it.
+   Calm motion. Subtle and immediate, respecting Settings > Appearance > Motion.
    ====================================================================================== */
 
-/* Theme change: the new theme spreads from where the person clicked (see state.svelte.ts). */
+/* Theme change ripple from the clicked card (see state.svelte.ts). */
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 ::view-transition-old(root) { z-index: 1; }
 ::view-transition-new(root) { z-index: 2; }
 
-/* The page fades in; its blocks rise one after another. */
-.view > * { animation: rise var(--dur-4) var(--ease-out) backwards; }
-.view > *:nth-child(1) { animation-delay: 0ms; }
-.view > *:nth-child(2) { animation-delay: 60ms; }
-.view > *:nth-child(3) { animation-delay: 120ms; }
-.view > *:nth-child(4) { animation-delay: 180ms; }
-.view > *:nth-child(5) { animation-delay: 240ms; }
-.view > *:nth-child(n + 6) { animation-delay: 300ms; }
-@keyframes rise { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
-
-/* Cards lift and glow when the pointer is over them. */
-.panel, .group, .kpi-card, .tool-card, .card {
-  transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), border-color var(--dur-2);
-}
-.panel:hover, .group:hover, .kpi-card:hover, .tool-card:hover, .card:hover {
-  transform: translateY(-2px);
-  border-color: var(--border-glow);
-  box-shadow: var(--shadow-card), 0 0 24px var(--glow-peach);
+button:not(:disabled) {
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), opacity var(--dur-1);
 }
 
-/* Buttons press down and light up. */
-button:not(:disabled) { transition: transform var(--dur-1) var(--ease-out), background var(--dur-2), border-color var(--dur-2), box-shadow var(--dur-2), filter var(--dur-2); }
-button:not(:disabled):hover { filter: brightness(1.08); }
-button:not(:disabled):active { transform: scale(0.96); }
+/* Pop-ups settle cleanly. */
+[role='dialog'], [role='menu'], ul[role='listbox'] { animation: pop var(--dur-2) var(--ease-out); }
+@keyframes pop { from { opacity: 0; transform: translateY(4px) scale(0.985); } to { opacity: 1; transform: none; } }
 
-/* Headings glow in themes that ask for it (Synthwave, Aurora, Deep Ocean). */
-h1 { text-shadow: var(--title-shadow); }
-
-/* Bars and meters grow in. */
-.t-bar, .c-bar, .mini-fill, .fill { transform-origin: bottom; animation: grow-up var(--dur-4) var(--ease-out) backwards; }
-@keyframes grow-up { from { transform: scaleY(0); } }
-.mini-fill { transform-origin: left; animation-name: grow-right; }
-@keyframes grow-right { from { transform: scaleX(0); } }
-
-/* Pop-ups bounce in. */
-[role='dialog'], [role='menu'], ul[role='listbox'] { animation: pop var(--dur-3) var(--ease-spring); }
-@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.94); } to { opacity: 1; transform: none; } }
-
-/* Hidden window: nothing needs to move. */
+/* Hidden window: pause any ambient animation. */
 html[data-hidden='true'] *, html[data-hidden='true'] *::before, html[data-hidden='true'] *::after { animation-play-state: paused !important; }
 
-/* Motion: Off stops every animation and transition. Calm keeps the small ones. */
+/* Motion: Off stops every animation and transition. */
 html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='off'] *::after {
   animation: none !important;
   transition: none !important;
@@ -146,10 +105,4 @@ html[data-motion='off'] *, html[data-motion='off'] *::before, html[data-motion='
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-}
-
-/* Cards are a little see-through, so the moving background of the theme shows through them. */
-main .view :is(.bento-card, .kpi-card, .panel, .tool-card) {
-  /* No blur behind the cards: blurring a moving background again on every frame is very costly. */
-  background-color: color-mix(in srgb, var(--surface-1) 90%, transparent);
 }

@@ -294,7 +294,8 @@
 <style>
   button.primary, button.ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.ghost:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 5px 11px; font-size: 12.5px; }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -306,7 +307,7 @@
   .empty h2 { font-size: 18px; }
   .empty p { color: var(--text-2); margin: 0; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 860px; }
-  li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .ico { flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); }
   .body { flex: 1; min-width: 0; display: grid; gap: 3px; }
   .r1 { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }

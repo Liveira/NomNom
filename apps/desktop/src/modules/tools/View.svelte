@@ -49,22 +49,22 @@
   .sub { margin: 0; color: var(--text-2); max-width: 560px; }
   .actions { display: flex; gap: 8px; flex: none; }
   .count { color: var(--text-3); font-size: 12.5px; margin: 6px 0 14px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(244px, 1fr)); gap: 10px; }
   .tool {
-    display: flex; flex-direction: column; gap: 6px; padding: 16px 18px;
-    background: radial-gradient(260px 120px at 100% 0%, var(--tile-glow), transparent 75%), color-mix(in srgb, var(--surface-1) 92%, transparent);
-    border: 1px solid var(--border-strong); border-radius: var(--radius-m); box-shadow: var(--shadow-card);
-    transition: opacity var(--dur-2), border-color var(--dur-2);
+    display: flex; flex-direction: column; gap: 6px; padding: 14px 16px;
+    background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-card);
+    transition: opacity var(--dur-1), border-color var(--dur-1), background var(--dur-1);
   }
-  .tool.off { opacity: 0.72; border-style: dashed; }
-  .tool:hover { border-color: var(--border-glow); }
+  .tool.off { opacity: 0.68; border-style: dashed; background: transparent; }
+  .tool:hover { border-color: var(--border-strong); background: var(--surface-2); }
   .top { display: flex; justify-content: space-between; align-items: center; }
-  .tile-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--radius-s); background: var(--surface-3); color: var(--accent-text); }
-  h3 { margin: 6px 0 0; font-size: 15px; }
-  .desc { margin: 0; color: var(--text-2); font-size: 13px; flex: 1; }
+  .tile-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); color: var(--accent-text); }
+  h3 { margin: 6px 0 0; font-size: 14.5px; }
+  .desc { margin: 0; color: var(--text-3); font-size: 12.5px; flex: 1; line-height: 1.45; }
   .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
   .state { color: var(--text-3); font-size: 12px; }
-  .open { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--accent-text); font-weight: 700; cursor: pointer; padding: 4px 2px; }
+  .open { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; color: var(--accent-text); font-weight: 600; font-size: 13px; cursor: pointer; padding: 3px 2px; }
   .open:hover { text-decoration: underline; }
   button.plain { padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
   button.plain:hover { background: var(--surface-3); }

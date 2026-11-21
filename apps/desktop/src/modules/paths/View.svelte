@@ -166,7 +166,7 @@
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; max-width: 860px; }
   .row { display: flex; gap: 8px; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; max-width: 860px; }
-  .list li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .list li { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--surface-1); border: 1px solid var(--border); }
   .list li.issue { border-color: var(--border-glow); }
   .body { flex: 1; min-width: 0; display: grid; }
   .path { font: 12.5px var(--font-mono); overflow-wrap: anywhere; }
@@ -176,7 +176,8 @@
   .foot { display: flex; justify-content: space-between; margin-top: 14px; max-width: 860px; }
   button.plain, button.primary { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.plain:hover:not(:disabled) { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 4px 8px; font-size: 12.5px; }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

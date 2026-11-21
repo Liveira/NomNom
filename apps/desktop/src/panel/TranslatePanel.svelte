@@ -62,7 +62,7 @@
 
 <style>
   :global(html), :global(body) { background: var(--surface-1); overflow: hidden; }
-  .card { height: 100vh; box-sizing: border-box; display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 12px 14px; background: linear-gradient(165deg, var(--surface-2), var(--surface-1)); border: 1px solid var(--border-glow); }
+  .card { height: 100vh; box-sizing: border-box; display: grid; grid-template-rows: auto auto 1fr auto; gap: 10px; padding: 12px 14px; background: var(--surface-1); border: 1px solid var(--border-strong); }
   header { display: flex; align-items: center; gap: 8px; color: var(--accent-text); }
   .title { font-family: var(--font-display); font-weight: 700; color: var(--text); font-size: 14px; }
   .langs { margin-left: auto; font-size: 11.5px; color: var(--text-3); font-family: var(--font-mono); }
@@ -74,6 +74,7 @@
   .err { color: var(--danger); }
   footer { display: flex; justify-content: flex-end; gap: 8px; }
   button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
 </style>

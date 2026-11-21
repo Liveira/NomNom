@@ -89,29 +89,30 @@
 
 <style>
   .card {
-    background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface-1) 100%);
-    border: 1px solid var(--border-glow);
-    border-radius: var(--radius-l);
-    padding: 18px 22px;
+    background: var(--surface-1);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-m);
+    padding: 18px 20px;
     margin-bottom: 18px;
     box-shadow: var(--shadow-card);
   }
-  h3 { margin-bottom: 4px; font-size: 16px; }
-  .intro { margin: 0 0 10px; color: var(--text-2); }
+  h3 { margin-bottom: 4px; font-size: 15px; }
+  .intro { margin: 0 0 10px; color: var(--text-2); font-size: 13px; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 9px 0; }
   .picks { padding: 6px 0 12px; border-bottom: 1px solid var(--border); }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface-2); cursor: pointer; font-weight: 600; font-size: 13px; }
-  .chip.on { background: var(--surface-3); border-color: var(--border-glow); color: var(--accent-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); cursor: pointer; font-weight: 600; font-size: 12.5px; transition: background var(--dur-1), border-color var(--dur-1); }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
   .chip input { position: absolute; opacity: 0; width: 0; height: 0; }
   .chip:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
   .row + .row { border-top: 1px solid var(--border); }
-  .label { font-weight: 600; }
+  .label { font-weight: 600; font-size: 13.5px; }
   .hint { color: var(--text-3); font-size: 12.5px; margin-top: 2px; }
   .error { color: var(--danger); margin: 8px 0 0; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-  button { padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  button { padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; font-size: 13px; }
   button:hover:not(:disabled) { background: var(--surface-3); }
   button:disabled { opacity: 0.5; cursor: default; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
 </style>

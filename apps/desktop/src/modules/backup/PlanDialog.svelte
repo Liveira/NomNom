@@ -110,7 +110,8 @@
   .pick { display: flex; gap: 10px; align-items: center; }
   .path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 12px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px dashed var(--border-strong); color: var(--text-2); }
   button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; width: fit-content; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.55; cursor: default; }
   .error { color: var(--danger); margin: 0; }
 </style>

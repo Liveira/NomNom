@@ -370,5 +370,6 @@
   .typer { position: absolute; transform: translateY(-50%); min-width: 160px; padding: 4px 8px; font: 700 18px system-ui, sans-serif; background: rgba(0, 0, 0, 0.6); border: 1px solid #fff; border-radius: 6px; }
   .foot { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 8px 12px; background: var(--surface-1, #1a1424); border-top: 1px solid var(--border, #333); }
   .note { margin-right: auto; color: var(--ok, #7be8bc); font-size: 13px; }
-  .primary { background: linear-gradient(135deg, var(--accent, #ffa970), var(--blush, #ff8fb8)); color: var(--on-accent, #220f05); border-color: transparent; font-weight: 700; }
+  .primary { background: var(--accent, #ffa970); color: var(--on-accent, #220f05); border-color: transparent; font-weight: 600; }
+  .primary:hover:not(:disabled) { background: var(--accent-hover, #ffbb8c); }
 </style>

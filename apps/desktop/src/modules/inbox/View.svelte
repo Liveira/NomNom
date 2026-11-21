@@ -72,7 +72,7 @@
   .sub, .hint { color: var(--text-3); font-size: 13px; margin: 0; max-width: 620px; }
   .bad { color: var(--danger); font-size: 13px; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 860px; }
-  li { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  li { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .ico { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); }
   li.success .ico { color: var(--ok); }
   li.warning .ico, li.error .ico { color: var(--danger); }

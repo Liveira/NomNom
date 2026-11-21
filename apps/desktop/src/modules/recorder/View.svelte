@@ -96,6 +96,7 @@
   kbd { font: 600 12px var(--font-mono); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border-strong); color: var(--text); }
   button.plain, button.primary { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.plain:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 </style>

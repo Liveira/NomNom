@@ -129,27 +129,27 @@
 </div>
 
 <style>
-  .chev { display: inline-grid; color: var(--text-3); transition: transform var(--dur-2) var(--ease-out); }
+  .chev { display: inline-grid; color: var(--text-3); transition: transform var(--dur-1) var(--ease-out); }
   .chev.open { transform: rotate(180deg); }
   .wrap { position: relative; }
   .trigger {
     width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    padding: 8px 12px; border-radius: var(--radius-s); border: 1px solid var(--border-strong);
-    background: var(--surface-2); box-shadow: var(--shadow-soft); cursor: pointer; text-align: left;
+    padding: 7px 11px; border-radius: var(--radius-s); border: 1px solid var(--border-strong);
+    background: var(--surface-2); cursor: pointer; text-align: left;
     transition: background var(--dur-1), border-color var(--dur-1);
   }
   .trigger:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-glow); }
   .trigger:disabled { opacity: 0.55; cursor: default; }
   .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   ul {
-    position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 5px); margin: 0; padding: 5px;
-    list-style: none; max-height: 176px; overflow: auto; overscroll-behavior: contain; background: var(--surface-2);
+    position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px;
+    list-style: none; max-height: 176px; overflow: auto; overscroll-behavior: contain; background: var(--surface-1);
     border: 1px solid var(--border-strong); border-radius: var(--radius-s);
     box-shadow: var(--shadow-pop); animation: pop var(--dur-1) var(--ease-out);
   }
-  ul.up { top: auto; bottom: calc(100% + 5px); }
+  ul.up { top: auto; bottom: calc(100% + 4px); }
   li { padding: 7px 10px; border-radius: var(--radius-xs); cursor: pointer; }
-  li.active { background: var(--surface-3); }
+  li.active { background: var(--surface-2); }
   li[aria-selected='true'] { color: var(--accent-text); font-weight: 600; }
-  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
 </style>

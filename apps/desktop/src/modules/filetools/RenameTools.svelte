@@ -203,7 +203,8 @@
   .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
   button.plain, button.primary { padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
   button.plain:hover:not(:disabled) { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   .done { color: var(--ok); margin: 10px 0 0; }
   .error { color: var(--danger); margin: 10px 0 0; white-space: pre-line; }

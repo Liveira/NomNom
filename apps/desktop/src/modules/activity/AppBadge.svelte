@@ -37,16 +37,14 @@
     flex: none;
     display: grid;
     place-items: center;
-    border-radius: 30%;
+    border-radius: 24%;
     background: var(--cat-tint);
-    border: 1px solid var(--border-strong);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 3px 8px rgba(0, 0, 0, 0.24);
+    border: 1px solid var(--border);
     overflow: hidden;
   }
   img {
     display: block;
     object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   }
   span {
     font-family: var(--font-display);

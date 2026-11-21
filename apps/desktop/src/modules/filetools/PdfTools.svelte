@@ -125,7 +125,8 @@
   .hint { color: var(--text-2); margin: 8px 0 12px; font-size: 13px; }
   .row { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
   button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   .list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
   .list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto auto auto; gap: 8px; align-items: center; padding: 8px 12px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); }

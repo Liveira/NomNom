@@ -111,7 +111,7 @@
 
 <style>
   .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-top: 14px; }
-  .card { padding: 16px 18px; border-radius: var(--radius-l); background: color-mix(in srgb, var(--surface-1) 88%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-soft); }
+  .card { padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
   .disks-card { margin-top: 14px; }
   h2 { display: flex; align-items: center; gap: 7px; font-size: 15px; margin: 0 0 6px; }
   .name { margin: 0 0 8px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

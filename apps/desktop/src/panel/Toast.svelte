@@ -96,11 +96,11 @@
   .stack { display: flex; flex-direction: column; gap: 10px; padding: 6px; }
   .card {
     --tone: var(--accent);
-    position: relative; display: flex; align-items: flex-start; gap: 12px; overflow: hidden;
-    padding: 13px 14px 15px 14px; border-radius: 16px;
-    background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
+    position: relative; display: flex; align-items: flex-start; gap: 11px; overflow: hidden;
+    padding: 12px 13px 14px 13px; border-radius: var(--radius-m);
+    background: var(--surface-1);
     border: 1px solid var(--border-strong); box-shadow: var(--shadow-pop);
-    animation: in 320ms var(--ease-spring);
+    animation: in 220ms var(--ease-out);
   }
   .card.success { --tone: var(--ok); }
   .card.error { --tone: var(--danger); }

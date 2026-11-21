@@ -13,7 +13,6 @@
   $effect(() => {
     const item = app.nav.find((n) => n.id === app.current);
     if (!item) return;
-    // A new page starts at the top.
     if (main) main.scrollTop = 0;
     let stale = false;
     item.view().then(
@@ -65,7 +64,6 @@
   .shell {
     display: flex;
     height: calc(100% - var(--titlebar-h));
-    gap: 4px;
     position: relative;
     z-index: 1;
   }
@@ -75,13 +73,13 @@
     overflow: auto;
   }
   .view {
-    padding: 22px 28px 34px;
-    max-width: 1280px;
-    animation: enter var(--dur-3) var(--ease-out);
+    padding: 24px 32px 40px;
+    max-width: 1140px;
+    animation: enter var(--dur-2) var(--ease-out);
   }
   .error { color: var(--danger); }
   @keyframes enter {
-    from { opacity: 0; transform: translateY(7px); }
+    from { opacity: 0; transform: translateY(3px); }
     to { opacity: 1; transform: none; }
   }
 </style>

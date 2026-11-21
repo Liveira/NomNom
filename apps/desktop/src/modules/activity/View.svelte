@@ -3,7 +3,6 @@
   import { app } from '../../app/state.svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import CatNap from '../../lib/ui/CatNap.svelte';
-  import HeroEmblem from '../../lib/ui/HeroEmblem.svelte';
   import Switch from '../../lib/ui/Switch.svelte';
   import {
     actIpc,
@@ -76,10 +75,6 @@
 
 <header class="studio-hero">
   <div>
-    <div class="eyebrow">
-      <Icon name="playtime" size={14} />
-      <span>Active focus & game time</span>
-    </div>
     <h1>Playtime</h1>
     <p>
       Counts only the app or game you have actively focused while using your computer. Background
@@ -107,7 +102,6 @@
       </div>
     </div>
   </div>
-  <HeroEmblem icon="playtime" orbit={["flame", "clock", "star"]} size={104} />
 </header>
 
 <FocusCard />
@@ -420,26 +414,25 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 12px;
-    border-radius: var(--radius-pill);
+    padding: 4px 10px;
+    border-radius: var(--radius-s);
     background: var(--surface-1);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border);
     font-size: 12.5px;
     color: var(--text-2);
   }
   .live-pill.active {
-    border-color: rgba(123, 232, 188, 0.4);
+    border-color: var(--border-strong);
     color: var(--text);
   }
   .live-pill.paused { color: var(--text-3); }
   .pulse {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--ok);
-    box-shadow: 0 0 10px var(--ok);
   }
-  .pulse.calm { background: var(--accent); box-shadow: none; }
+  .pulse.calm { background: var(--accent); }
   .toggle-wrap {
     display: inline-flex;
     align-items: center;
@@ -454,31 +447,30 @@
     justify-content: space-between;
     gap: 14px;
     flex-wrap: wrap;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .range-tabs {
     display: inline-flex;
-    padding: 4px;
+    padding: 3px;
     gap: 2px;
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-s);
     background: var(--surface-1);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border);
   }
   .range-tabs button {
     border: 0;
     background: transparent;
     color: var(--text-2);
-    padding: 6px 14px;
-    border-radius: var(--radius-pill);
+    padding: 5px 12px;
+    border-radius: var(--radius-xs);
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12.5px;
     cursor: pointer;
     transition: background var(--dur-1), color var(--dur-1);
   }
   .range-tabs button:hover { color: var(--text); }
   .range-tabs button.on {
-    background: linear-gradient(135deg, var(--accent), var(--blush));
+    background: var(--accent);
     color: var(--on-accent);
   }
   .period-strip {
@@ -488,39 +480,36 @@
     font-size: 12.5px;
     color: var(--text-3);
   }
-  .period-strip strong { color: var(--text); font-weight: 700; }
+  .period-strip strong { color: var(--text); font-weight: 600; }
 
   .bento-kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 14px;
   }
   .kpi-card {
     background: var(--surface-1);
     border: 1px solid var(--border);
     border-radius: var(--radius-m);
-    padding: 14px 16px;
+    padding: 13px 15px;
     box-shadow: var(--shadow-card);
     display: grid;
-    gap: 6px;
+    gap: 5px;
   }
   .kpi-card.highlight {
-    background:
-      radial-gradient(180px 120px at 100% 0%, var(--glow-peach), transparent 75%),
-      var(--surface-1);
     border-color: var(--border-strong);
   }
   .k-head { display: flex; justify-content: space-between; align-items: center; color: var(--text-3); }
-  .k-title { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
-  .k-val { font-family: var(--font-display); font-size: 25px; font-weight: 700; line-height: 1.15; }
-  .k-val.peak { font-size: 20px; }
+  .k-title { font-size: 12px; font-weight: 600; }
+  .k-val { font-size: 22px; font-weight: 700; line-height: 1.15; letter-spacing: -0.02em; }
+  .k-val.peak { font-size: 18px; }
   .muted-val { color: var(--text-3); }
-  .unit { font-size: 13px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
+  .unit { font-size: 12.5px; color: var(--text-3); font-weight: 500; margin-left: 2px; }
   .k-sub { font-size: 12px; color: var(--text-3); }
   .top-mini { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .top-text { min-width: 0; }
-  .top-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .top-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .charts-grid {
     display: grid;
@@ -534,7 +523,7 @@
   .panel {
     background: var(--surface-1);
     border: 1px solid var(--border);
-    border-radius: var(--radius-l);
+    border-radius: var(--radius-m);
     padding: 16px 18px;
     box-shadow: var(--shadow-card);
   }
@@ -542,7 +531,7 @@
   .sub { margin: 2px 0 0; color: var(--text-3); font-size: 12.5px; }
 
   .timeline-bars {
-    height: 168px;
+    height: 160px;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
@@ -554,7 +543,7 @@
   .t-track {
     flex: 1;
     width: 100%;
-    border-radius: 8px;
+    border-radius: 5px;
     background: var(--surface-2);
     display: flex;
     align-items: flex-end;
@@ -562,11 +551,11 @@
   }
   .t-bar {
     width: 100%;
-    border-radius: 8px 8px 3px 3px;
-    background: linear-gradient(180deg, var(--accent) 0%, var(--blush) 100%);
-    transition: height var(--dur-3) var(--ease-out);
+    border-radius: 5px 5px 2px 2px;
+    background: var(--accent);
+    transition: height var(--dur-2) var(--ease-out);
   }
-  .t-col:hover .t-bar { filter: brightness(1.12); }
+  .t-col:hover .t-bar { background: var(--accent-hover); }
   .t-label { font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
 
   .side-panel { display: grid; gap: 16px; align-content: space-between; }
@@ -575,37 +564,37 @@
   .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
   .cat-name { font-weight: 600; }
   .cat-val { margin-left: auto; color: var(--text-2); }
-  .mini-track { height: 5px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; }
+  .mini-track { height: 4px; border-radius: var(--radius-pill); background: var(--surface-2); overflow: hidden; }
   .mini-fill { height: 100%; border-radius: var(--radius-pill); }
 
   .clock-block h3 { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
-  .clock-bars { height: 56px; display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; align-items: end; }
+  .clock-bars { height: 52px; display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; align-items: end; }
   .c-col { height: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-  .c-track { flex: 1; width: 100%; background: var(--surface-2); border-radius: 4px; display: flex; align-items: flex-end; overflow: hidden; }
-  .c-bar { width: 100%; background: var(--lavender); border-radius: 4px; }
+  .c-track { flex: 1; width: 100%; background: var(--surface-2); border-radius: 3px; display: flex; align-items: flex-end; overflow: hidden; }
+  .c-bar { width: 100%; background: var(--accent); opacity: 0.72; border-radius: 3px; }
   .c-col span { font-size: 9.5px; color: var(--text-3); }
 
   .heatmap-panel { margin-bottom: 14px; }
   .heat-grid {
     display: grid;
-    grid-template-rows: repeat(7, 12px);
+    grid-template-rows: repeat(7, 11px);
     grid-auto-flow: column;
-    grid-auto-columns: 12px;
-    gap: 4px;
+    grid-auto-columns: 11px;
+    gap: 3px;
     overflow-x: auto;
     padding-bottom: 4px;
   }
   .heat-cell, .legend i {
-    width: 12px;
-    height: 12px;
-    border-radius: 3.5px;
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
     display: inline-block;
   }
   .lv-0 { background: var(--surface-2); }
-  .lv-1 { background: rgba(192, 163, 255, 0.28); }
-  .lv-2 { background: rgba(255, 143, 184, 0.48); }
-  .lv-3 { background: rgba(255, 169, 112, 0.72); }
-  .lv-4 { background: var(--accent); box-shadow: 0 0 8px var(--glow-peach); }
+  .lv-1 { background: color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
+  .lv-2 { background: color-mix(in srgb, var(--accent) 45%, var(--surface-2)); }
+  .lv-3 { background: color-mix(in srgb, var(--accent) 72%, var(--surface-2)); }
+  .lv-4 { background: var(--accent); }
   .legend { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-3); }
 
   .bottom-grid {

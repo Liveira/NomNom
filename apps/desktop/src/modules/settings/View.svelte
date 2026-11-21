@@ -137,74 +137,65 @@
 </div>
 
 <style>
-  .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
-  .sub { margin: 4px 0 0; color: var(--text-2); }
+  .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .sub { margin: 4px 0 0; color: var(--text-2); font-size: 13.5px; }
   .find {
-    display: flex; align-items: center; gap: 8px; width: min(300px, 100%); padding: 8px 12px;
-    border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-3);
-    transition: border-color var(--dur-2), box-shadow var(--dur-2), width var(--dur-3) var(--ease-out);
+    display: flex; align-items: center; gap: 8px; width: min(280px, 100%); padding: 7px 12px;
+    border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-3);
+    transition: border-color var(--dur-1), background var(--dur-1);
   }
-  .find:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow-peach); color: var(--accent-text); width: min(360px, 100%); }
-  .find input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); user-select: text; }
+  .find:focus-within { border-color: var(--accent); background: var(--surface-2); color: var(--text); }
+  .find input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); user-select: text; font-size: 13px; }
   .find input::placeholder { color: var(--text-3); }
-  .clear { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--surface-3); color: var(--text-2); cursor: pointer; }
+  .clear { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--surface-3); color: var(--text-2); cursor: pointer; }
 
-  .layout { display: grid; grid-template-columns: 214px minmax(0, 1fr); gap: 22px; align-items: start; }
+  .layout { display: grid; grid-template-columns: 204px minmax(0, 1fr); gap: 24px; align-items: start; }
   @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
 
   .snav { position: sticky; top: 0; }
   .tabs {
-    position: relative; display: grid; gap: 4px; padding: 8px; border-radius: var(--radius-l);
-    background: var(--surface-1); border: 1px solid var(--border-strong); box-shadow: var(--shadow-soft);
+    position: relative; display: grid; gap: 2px;
   }
   .pill {
-    position: absolute; left: 8px; right: 8px; top: 8px; height: 42px; border-radius: var(--radius-s);
-    background: linear-gradient(135deg, var(--surface-3), var(--surface-2)); border: 1px solid var(--border-glow);
-    box-shadow: 0 0 20px var(--glow-peach);
-    transform: translateY(calc(var(--i) * 46px));
-    transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2);
+    position: absolute; left: 0; right: 0; top: 0; height: 36px; border-radius: var(--radius-s);
+    background: var(--surface-2); border: 1px solid var(--border);
+    transform: translateY(calc(var(--i) * 38px));
+    transition: transform var(--dur-2) var(--ease-out), opacity var(--dur-1);
   }
   .pill.hide { opacity: 0; }
   .tab {
-    position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; height: 42px; padding: 0 10px;
-    border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text-2); cursor: pointer; text-align: left; font-weight: 600;
+    position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px;
+    border: 0; border-radius: var(--radius-s); background: transparent; color: var(--text-2); cursor: pointer; text-align: left; font-weight: 500; font-size: 13.5px;
+    transition: color var(--dur-1);
   }
   .tab:hover { color: var(--text); }
-  .tab[aria-selected='true'] { color: var(--text); }
-  .ico { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 9px; transition: transform var(--dur-2) var(--ease-spring), background var(--dur-2); }
-  .tab:hover .ico { transform: scale(1.12) rotate(-6deg); }
-  .tab[aria-selected='true'] .ico { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); }
+  .tab[aria-selected='true'] { color: var(--text); font-weight: 600; }
+  .ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: var(--text-3); transition: color var(--dur-1); }
+  .tab:hover .ico { color: var(--text-2); }
+  .tab[aria-selected='true'] .ico { color: var(--accent-text); }
   .none { margin: 10px 4px; color: var(--text-3); font-size: 12.5px; }
 
   .pane { min-width: 0; }
-  .pane-in { animation: pane-in var(--dur-4) var(--ease-out); }
-  @keyframes pane-in { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
-  .sec + .sec { margin-top: 30px; }
-  .phead { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-  .phead h2 { font-size: 21px; }
+  .pane-in { animation: pane-in var(--dur-2) var(--ease-out); }
+  @keyframes pane-in { from { opacity: 0; } to { opacity: 1; } }
+  .sec + .sec { margin-top: 28px; }
+  .phead { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .phead h2 { font-size: 18px; }
   .phead p { margin: 2px 0 0; color: var(--text-2); font-size: 13px; }
   .pico {
-    display: grid; place-items: center; width: 46px; height: 46px; border-radius: 16px; flex: none;
-    color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--blush));
-    box-shadow: 0 6px 20px var(--glow-peach), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    animation: bob 5s ease-in-out infinite;
+    display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-s); flex: none;
+    color: var(--accent-text); background: var(--surface-2); border: 1px solid var(--border);
   }
-  @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
   .empty { color: var(--text-2); }
 
   /* One look for every settings card, whichever section it comes from. */
   .pane :global(section.group) {
-    max-width: none; margin: 0 0 16px; padding: 20px 22px; border-radius: var(--radius-l);
-    background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-soft);
-    animation: rise var(--dur-4) var(--ease-out) backwards;
+    max-width: none; margin: 0 0 14px; padding: 18px 20px; border-radius: var(--radius-m);
+    background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-card);
   }
-  .pane :global(section.group:nth-of-type(2)) { animation-delay: 70ms; }
-  .pane :global(section.group:nth-of-type(3)) { animation-delay: 140ms; }
-  .pane :global(section.group:nth-of-type(n + 4)) { animation-delay: 200ms; }
-  .pane :global(section.group > h3) { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; font-size: 15.5px; }
-  .pane :global(section.group > h3)::before { content: ''; width: 4px; height: 16px; border-radius: 3px; background: linear-gradient(180deg, var(--accent), var(--blush)); }
-  .pane :global(section.group .row) { margin-inline: -10px; padding: 11px 10px; border-radius: var(--radius-s); transition: background var(--dur-2); }
-  .pane :global(section.group .row:hover) { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
-  .pane :global(section.group .label) { font-weight: 700; }
+  .pane :global(section.group > h3) { margin-bottom: 12px; font-size: 14.5px; font-weight: 600; }
+  .pane :global(section.group .row) { margin-inline: -8px; padding: 10px 8px; border-radius: var(--radius-s); transition: background var(--dur-1); }
+  .pane :global(section.group .row:hover) { background: var(--surface-2); }
+  .pane :global(section.group .label) { font-weight: 600; font-size: 13.5px; }
   .pane :global(section.group .hint) { line-height: 1.45; }
 </style>

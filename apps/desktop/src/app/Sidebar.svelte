@@ -10,7 +10,6 @@
   const collapsed = $derived(app.settings?.appearance.sidebar_collapsed ?? false);
   const main = $derived(app.sidebarNav.filter((n) => !FOOTER_MODULES.has(n.id)));
   const footer = $derived(app.sidebarNav.filter((n) => FOOTER_MODULES.has(n.id)));
-  const playActive = $derived(app.settings?.activity.enabled ?? true);
 
   let updating = $state(false);
   let updatePct = $state<number | null>(null);
@@ -43,18 +42,8 @@
 
 <nav class="sidebar" class:collapsed aria-label="Main">
   <button class="brand" onclick={() => app.go('home')} title="NomNom Home">
-    <div class="logo-orb">
-      <Logo size={28} />
-    </div>
-    {#if !collapsed}
-      <div class="brand-text">
-        <span class="wordmark">NomNom</span>
-        <span class="submark">
-          <span class="status-dot" class:on={playActive}></span>
-          {playActive ? 'tracking active' : 'studio hub'}
-        </span>
-      </div>
-    {/if}
+    <Logo size={24} />
+    {#if !collapsed}<span class="wordmark">NomNom</span>{/if}
   </button>
 
   <ul class="nav-list">
@@ -67,7 +56,7 @@
           title={collapsed ? item.name : undefined}
           onclick={() => app.go(item.id)}
         >
-          <span class="icon-wrap"><Icon name={item.icon} size={19} /></span>
+          <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
           {#if !collapsed}<span class="label">{item.name}</span>{/if}
         </button>
       </li>
@@ -79,7 +68,7 @@
   {#if app.newVersion && !collapsed}
     <div class="update-card" role="status">
       <div class="u-top">
-        <Icon name="update" size={15} />
+        <Icon name="update" size={14} />
         <strong>NomNom {app.newVersion.version}</strong>
       </div>
       {#if updating}
@@ -102,7 +91,7 @@
           title={collapsed ? item.name : undefined}
           onclick={() => app.go(item.id)}
         >
-          <span class="icon-wrap"><Icon name={item.icon} size={19} /></span>
+          <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
           {#if !collapsed}<span class="label">{item.name}</span>{/if}
           {#if item.id === 'settings' && app.newVersion}
             <span class="dot" role="img" aria-label="Update available" title="Update available"></span>
@@ -117,7 +106,7 @@
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         onclick={() => app.toggleSidebar()}
       >
-        <span class="icon-wrap"><Icon name="panel" size={19} /></span>
+        <span class="icon-wrap"><Icon name="panel" size={18} /></span>
         {#if !collapsed}<span class="label">Collapse</span>{/if}
       </button>
     </li>
@@ -126,34 +115,29 @@
 
 <style>
   .sidebar {
-    width: 224px;
+    width: 214px;
     flex: none;
     display: flex;
     flex-direction: column;
-    margin: 12px 0 12px 12px;
-    padding: 14px 11px;
-    /* Slightly see-through, so the animated background of the theme glows behind the menu. */
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-1) 94%, transparent), color-mix(in srgb, var(--surface-1) 86%, transparent));
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-l);
-    box-shadow: var(--shadow-card);
-    transition: width var(--dur-3) var(--ease-out);
+    padding: 12px 10px 10px;
+    background: var(--surface-1);
+    border-right: 1px solid var(--border);
+    transition: width var(--dur-2) var(--ease-out);
     position: relative;
     z-index: 2;
   }
   .sidebar.collapsed {
-    width: 68px;
-    padding-inline: 9px;
+    width: 56px;
+    padding-inline: 8px;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 6px 7px 14px;
-    margin-bottom: 6px;
+    gap: 10px;
+    padding: 4px 8px 14px;
+    margin-bottom: 4px;
     border: 0;
-    border-bottom: 1px solid var(--border);
     background: none;
     cursor: pointer;
     text-align: left;
@@ -162,181 +146,117 @@
     justify-content: center;
     padding-inline: 0;
   }
-  .logo-orb {
-    width: 38px;
-    height: 38px;
-    border-radius: 13px;
-    display: grid;
-    place-items: center;
-    background: var(--surface-2);
-    border: 1px solid var(--border-strong);
-    box-shadow: var(--shadow-soft);
-    flex: none;
-  }
-  .brand-text {
-    display: grid;
-    gap: 1px;
-    min-width: 0;
-  }
   .wordmark {
     font-family: var(--font-display);
     font-weight: 700;
-    letter-spacing: 0.01em;
-    font-size: 17px;
-    line-height: 1.1;
+    letter-spacing: -0.01em;
+    font-size: 16px;
+    line-height: 1;
   }
-  .submark {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: var(--text-3);
-    white-space: nowrap;
-  }
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--text-3);
-  }
-  .status-dot.on {
-    background: var(--ok);
-    box-shadow: 0 0 7px var(--ok);
-    animation: beat 2.4s ease-in-out infinite;
-  }
-  @keyframes beat { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.6; } }
 
   .nav-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 4px;
+    gap: 2px;
   }
   .footer-list {
     padding-top: 8px;
     border-top: 1px solid var(--border);
     flex: none;
   }
-  /* A short window can't hold every tool: the list scrolls, while the logo and the footer stay put. */
   .nav-list:not(.footer-list) {
     flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    margin: 0 -5px;
-    padding: 0 5px;
     scrollbar-width: thin;
     scrollbar-color: var(--border-strong) transparent;
     overscroll-behavior: contain;
   }
-  .nav-list:not(.footer-list)::-webkit-scrollbar { width: 5px; }
+  .nav-list:not(.footer-list)::-webkit-scrollbar { width: 4px; }
   .nav-list:not(.footer-list)::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-  @media (max-height: 820px) {
-    .nav-list { gap: 2px; }
-    .item { padding: 6px 10px; }
-    .brand { padding-bottom: 8px; margin-bottom: 4px; }
-  }
-  @media (max-height: 640px) {
-    .item { padding: 4px 9px; gap: 9px; }
-    .icon-wrap { width: 22px; height: 22px; }
-    .footer-list { padding-top: 4px; }
-  }
-  .spacer { flex: 1; min-height: 0; }
+
+  .spacer { flex: 1; min-height: 8px; }
 
   .item {
     position: relative;
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 8px 11px;
-    border: 1px solid transparent;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 0;
     border-radius: var(--radius-s);
     background: transparent;
     color: var(--text-2);
     cursor: pointer;
     text-align: left;
     white-space: nowrap;
+    font-size: 13px;
     font-weight: 500;
-    transition: background var(--dur-1), color var(--dur-1), border-color var(--dur-1);
   }
   .icon-wrap {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: grid;
     place-items: center;
-    border-radius: 8px;
     flex: none;
-    transition: transform var(--dur-2) var(--ease-spring);
+  }
+  .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .item:hover {
     background: var(--surface-2);
     color: var(--text);
   }
-  .item:hover .icon-wrap {
-    transform: scale(1.12) rotate(-6deg);
-  }
-  .item:active .icon-wrap { transform: scale(0.9); }
-  /* Menu items glide in one after another when the app opens. */
-  .nav-list li { animation: slide-in var(--dur-4) var(--ease-out) backwards; }
-  .nav-list li:nth-child(1) { animation-delay: 40ms; }
-  .nav-list li:nth-child(2) { animation-delay: 90ms; }
-  .nav-list li:nth-child(3) { animation-delay: 140ms; }
-  .nav-list li:nth-child(4) { animation-delay: 190ms; }
-  .nav-list li:nth-child(5) { animation-delay: 240ms; }
-  .nav-list li:nth-child(6) { animation-delay: 290ms; }
-  @keyframes slide-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
   .item.active {
-    background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
-    border-color: var(--border-strong);
+    background: var(--surface-2);
     color: var(--text);
     font-weight: 700;
-    box-shadow: var(--shadow-soft);
   }
   .item.active :global(svg) {
     color: var(--accent);
-    filter: drop-shadow(0 0 6px var(--glow-peach));
   }
   .item.active::before {
     content: '';
     position: absolute;
-    left: -3px;
+    left: 0;
     top: 22%;
     bottom: 22%;
-    width: 3px;
-    border-radius: 3px;
-    background: linear-gradient(180deg, var(--accent), var(--blush));
-    animation: grow var(--dur-3) var(--ease-spring);
+    width: 2.5px;
+    border-radius: 2px;
+    background: var(--accent);
   }
-  @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
   .collapsed .item {
     justify-content: center;
     padding-inline: 0;
   }
+  .collapsed .item.active::before {
+    display: none;
+  }
   .dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--accent);
     margin-left: auto;
-    animation: beat 1.8s ease-in-out infinite;
   }
   .collapsed .dot {
     position: absolute;
     top: 6px;
-    right: 10px;
+    right: 8px;
     margin: 0;
   }
 
   .update-card {
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    border-radius: var(--radius-m);
-    background:
-      radial-gradient(120px 80px at 100% 0%, var(--glow-peach), transparent 75%),
-      var(--surface-2);
-    border: 1px solid var(--border-glow);
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: var(--radius-s);
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
     display: grid;
     gap: 7px;
   }
@@ -344,21 +264,19 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--accent-text);
   }
   .u-btn {
     border: 0;
     padding: 6px 10px;
     border-radius: var(--radius-xs);
-    background: linear-gradient(135deg, var(--accent), var(--blush));
+    background: var(--accent);
     color: var(--on-accent);
     font-weight: 700;
-    font-size: 12.5px;
+    font-size: 12px;
     cursor: pointer;
   }
-  .u-sub {
-    font-size: 11px;
-    color: var(--text-3);
-  }
+  .u-btn:hover { background: var(--accent-hover); }
+  .u-sub { font-size: 11px; color: var(--text-3); }
 </style>

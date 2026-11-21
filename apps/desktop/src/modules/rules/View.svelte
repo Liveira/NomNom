@@ -280,7 +280,8 @@
 <style>
   button.primary, button.ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.ghost:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 5px 11px; font-size: 12.5px; }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -297,14 +298,14 @@
   .empty p { margin: 0; color: var(--text-2); font-size: 13.5px; }
   .presets { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; justify-items: start; }
   .rules, .log, .files { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 900px; }
-  .rules li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .rules li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .rules li.off { opacity: 0.65; }
   .body { flex: 1; min-width: 0; display: grid; gap: 3px; }
   .desc { color: var(--text-2); font-size: 13px; }
   .path { color: var(--text-3); font: 12px var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .btns { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
   .log { gap: 4px; margin-top: 6px; }
-  .log li { display: flex; gap: 12px; align-items: center; padding: 6px 10px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--surface-1) 90%, transparent); border: 1px solid var(--border); font-size: 13px; }
+  .log li { display: flex; gap: 12px; align-items: center; padding: 6px 10px; border-radius: var(--radius-xs); background: var(--surface-1); border: 1px solid var(--border); font-size: 13px; }
   .log li.fail .what { color: var(--danger); }
   .log li.undone { opacity: 0.55; }
   .arrow { color: var(--text-3); margin: 0 4px; }

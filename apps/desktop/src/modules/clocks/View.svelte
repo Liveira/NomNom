@@ -172,7 +172,7 @@
   .tabs button.on { background: var(--surface-3); color: var(--text); }
   .pane { display: grid; gap: 12px; max-width: 760px; }
   .zones { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-  .zones li { display: grid; grid-template-columns: 1fr auto 34px; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .zones li { display: grid; grid-template-columns: 1fr auto 34px; gap: 12px; align-items: center; padding: 10px 14px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .where, .when { display: grid; gap: 2px; }
   .when { text-align: right; }
   .big { font: 600 22px var(--font-display); }
@@ -185,12 +185,13 @@
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   button.plain, button.primary { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.plain:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 5px 8px; }
   button:disabled { opacity: 0.5; cursor: default; }
   .chip { border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-2); border-radius: 99px; padding: 4px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
   .chip:hover { background: var(--surface-3); color: var(--text); }
   .dial { font: 700 56px/1.1 var(--font-display); padding: 18px 0 6px; letter-spacing: 0.02em; }
   .laps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-width: 420px; }
-  .laps li { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 6px 12px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .laps li { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 6px 12px; border-radius: var(--radius-xs); background: var(--surface-1); border: 1px solid var(--border); }
 </style>

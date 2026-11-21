@@ -58,7 +58,6 @@
 
 <header class="studio-hero">
   <div>
-    <div class="eyebrow"><Icon name="backup" size={14} /><span>Versions you can go back to</span></div>
     <h1>Backup</h1>
     <p>Copy your important folders somewhere safe, on a schedule. Each backup is a dated version, and files that didn't change take no extra space.</p>
     <button class="primary" onclick={() => (editing = newPlan())}><Icon name="plus" size={16} /> New backup</button>
@@ -175,29 +174,31 @@
   .empty { display: flex; gap: 16px; align-items: center; padding: 18px 20px; border-radius: var(--radius-l); background: var(--surface-1); border: 1px dashed var(--border-strong); }
   .big { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 0; }
   .hint { color: var(--text-2); margin: 4px 0 0; }
-  .plans { display: grid; gap: 14px; }
-  .plan { padding: 16px 18px; border-radius: var(--radius-l); background: color-mix(in srgb, var(--surface-1) 88%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-soft); display: grid; gap: 12px; animation: rise var(--dur-4) var(--ease-out) backwards; animation-delay: calc(var(--i) * 70ms); }
-  .plan.running { border-color: var(--border-glow); box-shadow: var(--shadow-card), 0 0 28px var(--glow-peach); }
-  .top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
-  .ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 15px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--blush)); }
-  h2 { font-size: 17px; }
+  .plans { display: grid; gap: 12px; }
+  .plan { padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-card); display: grid; gap: 12px; }
+  .plan.running { border-color: var(--accent); }
+  .top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+  .ico { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--radius-s); color: var(--accent-text); background: var(--surface-2); border: 1px solid var(--border); }
+  h2 { font-size: 16px; }
   .srcs { margin: 2px 0 0; color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .badge { padding: 4px 12px; border-radius: var(--radius-pill); background: var(--surface-3); border: 1px solid var(--border-strong); color: var(--accent-text); font-size: 12px; font-weight: 700; }
+  .badge { padding: 3px 10px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); font-size: 12px; font-weight: 600; }
   .badge.off { color: var(--text-3); }
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-  .facts > div { display: grid; gap: 1px; padding: 10px 12px; border-radius: var(--radius-m); background: var(--surface-2); border: 1px solid var(--border); min-width: 0; }
-  .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-3); font-weight: 700; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .facts > div { display: grid; gap: 1px; padding: 9px 12px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); min-width: 0; }
+  .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); font-weight: 600; }
   .sub { color: var(--text-3); font-size: 12px; }
   .bad { color: var(--danger); }
   .dest { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 40%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--blush)); animation: slide 1.4s ease-in-out infinite; }
+  .bar { height: 4px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 40%; border-radius: 3px; background: var(--accent); animation: slide 1.4s ease-in-out infinite; }
   @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
   .warn { color: var(--danger); margin: 0; font-size: 13px; }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .sure { color: var(--text-2); font-size: 13px; }
-  button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; font-size: 13px; }
+  button.plain:hover:not(:disabled) { background: var(--surface-3); }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button:disabled { opacity: 0.5; cursor: default; }
   .error { color: var(--danger); }
 

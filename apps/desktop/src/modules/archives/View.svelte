@@ -159,14 +159,15 @@
   .pane { display: grid; gap: 12px; max-width: 760px; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-  .list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 6px 10px; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); font-size: 13px; }
+  .list li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 6px 10px; border-radius: var(--radius-xs); background: var(--surface-1); border: 1px solid var(--border); font-size: 13px; }
   .list li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .files { max-height: 320px; overflow: auto; }
   .prog { display: flex; gap: 12px; align-items: center; }
   .prog :global(.progress), .prog :global([role='progressbar']) { flex: 1; }
   button.plain, button.primary { display: inline-flex; align-items: center; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.plain:hover:not(:disabled) { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 3px 10px; font-size: 12.5px; }
   button:disabled { opacity: 0.5; cursor: default; }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

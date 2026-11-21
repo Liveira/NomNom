@@ -79,13 +79,13 @@
 </section>
 
 <style>
-  .glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 22px; }
-  .tile { display: grid; align-content: start; gap: 6px; padding: 14px 16px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); box-shadow: var(--shadow-soft); text-align: left; color: inherit; font: inherit; }
+  .glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .tile { display: grid; align-content: start; gap: 6px; padding: 13px 15px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border); text-align: left; color: inherit; font: inherit; transition: border-color var(--dur-1), background var(--dur-1); }
   .click { cursor: pointer; }
-  .click:hover { border-color: var(--border-glow); }
+  .click:hover { background: var(--surface-2); border-color: var(--border-strong); }
   .click:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .lbl { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 12.5px; font-weight: 700; }
-  strong { font-size: 19px; }
-  strong.one { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sub { color: var(--text-3); font-size: 12.5px; }
+  .lbl { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 12px; font-weight: 600; }
+  strong { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  strong.one { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { color: var(--text-3); font-size: 12px; }
 </style>

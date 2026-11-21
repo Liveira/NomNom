@@ -120,7 +120,8 @@
 <style>
   button.primary, button.ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font: inherit; font-weight: 600; }
   button.ghost:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.small { padding: 5px 11px; font-size: 12.5px; }
   button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .head { display: grid; gap: 8px; margin-bottom: 16px; max-width: 760px; justify-items: start; }
@@ -138,7 +139,7 @@
   .out { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--radius-xs); background: var(--surface-2); font: 13px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
   .row { display: flex; gap: 8px; justify-content: flex-end; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 860px; }
-  .list li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  .list li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   .body { flex: 1; min-width: 0; display: grid; gap: 2px; }
   .text { color: var(--text-3); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .btns { display: flex; gap: 6px; align-items: center; }

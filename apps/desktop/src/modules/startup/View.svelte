@@ -96,7 +96,7 @@
 <style>
   .head h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
   .sub { margin: 0 0 16px; color: var(--text-2); max-width: 680px; }
-  .card { max-width: 860px; margin-bottom: 14px; padding: 14px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .card { max-width: 860px; margin-bottom: 14px; padding: 14px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
   .summary { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
   .stat { display: grid; }
   .stat strong { font-family: var(--font-display); font-size: 24px; }
@@ -106,7 +106,7 @@
   .seg button.on { background: var(--surface-3); color: var(--text); }
   .hint { color: var(--text-3); font-size: 12.5px; max-width: 760px; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-width: 860px; }
-  li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border); }
+  li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--surface-1); border: 1px solid var(--border); }
   li.off { opacity: 0.6; }
   .ico { flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); overflow: hidden; }
   .ico img { width: 26px; height: 26px; object-fit: contain; }

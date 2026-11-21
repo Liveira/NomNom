@@ -155,7 +155,7 @@
 <style>
   .head h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
   .sub { margin: 0 0 16px; color: var(--text-2); max-width: 640px; }
-  .card { max-width: 860px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: color-mix(in srgb, var(--surface-1) 92%, transparent); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
+  .card { max-width: 860px; margin-bottom: 16px; padding: 16px 18px; border-radius: var(--radius-m); background: var(--surface-1); border: 1px solid var(--border-strong); box-shadow: var(--shadow-card); }
   h2 { margin: 0 0 8px; font-size: 16px; }
   ol { margin: 0 0 14px; padding-left: 20px; color: var(--text-2); display: grid; gap: 4px; }
   .how { padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
@@ -179,7 +179,8 @@
   select { padding: 6px 10px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; }
   button.plain, button.primary { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; font-weight: 600; }
   button.plain:hover { background: var(--surface-3); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--blush)); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+  button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); }
   button.danger { color: var(--danger); border-color: var(--danger); }
   button:disabled { opacity: 0.5; cursor: default; }
   .icon { border: 0; background: none; color: var(--text-3); cursor: pointer; padding: 5px; border-radius: 8px; display: grid; }

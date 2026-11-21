@@ -84,8 +84,7 @@
 </div>
 
 <style>
-  .item { display: grid; gap: 8px; padding: 10px 12px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); animation: in var(--dur-2) var(--ease-spring); }
-  @keyframes in { from { opacity: 0; transform: translateY(4px) scale(0.99); } to { opacity: 1; transform: none; } }
+  .item { display: grid; gap: 8px; padding: 10px 12px; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-m); }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .actions { display: flex; gap: 6px; flex: none; }
