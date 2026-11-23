@@ -19,6 +19,7 @@
   } = $props();
 
   const serial = $derived(device?.state === 'device' ? device.serial : null);
+  const isWifi = $derived(device?.transport === 'wifi');
 
   let displays = $state<MobileDisplayInfo[]>([]);
   let loadingDisplays = $state(false);
@@ -30,6 +31,7 @@
   let videoCodec = $state<'h264' | 'h265' | 'av1'>('h265');
   let maxFps = $state(60);
   let bitRateMbps = $state(12);
+  let videoBufferMs = $state(0);
   let audio = $state(true);
   let turnScreenOff = $state(false);
   let keepAliveOnClose = $state(true);
@@ -82,9 +84,11 @@
         gamepadUhid,
         borderless,
         alwaysOnTop,
+        videoBufferMs: videoBufferMs > 0 ? videoBufferMs : undefined,
+        audioBufferMs: audio && videoBufferMs > 0 ? Math.max(40, videoBufferMs) : undefined,
       };
       await mobileIpc.mirror(serial, opts);
-      onNotice(`Launched virtual display (${vdSize} @ ${vdDpi} dpi)`);
+      onNotice(`Launched virtual display over ${isWifi ? 'Wi-Fi' : 'USB'} (${vdSize} @ ${vdDpi} dpi)`);
     } catch (e) {
       onError(String(e));
     }
@@ -104,8 +108,10 @@
         keyboardUhid: true,
         mouseUhid: true,
         gamepadUhid: true,
+        videoBufferMs: videoBufferMs > 0 ? videoBufferMs : undefined,
+        audioBufferMs: videoBufferMs > 0 ? Math.max(40, videoBufferMs) : undefined,
       });
-      onNotice('Started PC Gaming mode with UHID Keyboard, Mouse & Gamepad');
+      onNotice(`Started PC Gaming mode over ${isWifi ? 'Wi-Fi' : 'USB'} with UHID Keyboard, Mouse & Gamepad`);
     } catch (e) {
       onError(String(e));
     }
@@ -200,6 +206,14 @@
           <option value={12}>12 Mbps</option>
           <option value={20}>20 Mbps</option>
           <option value={32}>32 Mbps</option>
+        </select>
+      </label>
+      <label>
+        <span>Wi-Fi smoothing buffer</span>
+        <select bind:value={videoBufferMs}>
+          <option value={0}>0 ms (Lowest latency)</option>
+          <option value={30}>30 ms (Balanced Wi-Fi)</option>
+          <option value={60}>60 ms (Smooth Wi-Fi)</option>
         </select>
       </label>
     </div>

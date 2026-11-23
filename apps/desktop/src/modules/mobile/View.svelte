@@ -87,14 +87,25 @@
     error = msg;
   }
 
+  let autoTried = false;
+
   async function refreshAll(silent = false) {
     if (!silent) refreshing = true;
     try {
-      const [t, devs, tl] = await Promise.all([
+      let [t, devs, tl] = await Promise.all([
         mobileIpc.toolsStatus(),
         mobileIpc.devices().catch(() => []),
         mobileIpc.timeline(40).catch(() => []),
       ]);
+      // On first load, if tools are ready and no phone is connected yet, quietly auto-reconnect known/mDNS Wi-Fi phones.
+      if (!autoTried && t.adb_found && devs.filter((d) => d.state === 'device').length === 0) {
+        autoTried = true;
+        const found = await mobileIpc.wifiAutoconnect().catch(() => []);
+        if (found.length > 0) {
+          devs = await mobileIpc.devices().catch(() => devs);
+          showNotice(`Auto-connected over Wi-Fi (${found[0]})`);
+        }
+      }
       tools = t;
       devices = devs;
       timeline = tl;
@@ -498,6 +509,27 @@
       </div>
 
       <div class="tb-right">
+        {#if activeDevice?.state === 'device' && activeDevice.transport === 'usb'}
+          <button
+            class="tb-btn"
+            title="Enable wireless ADB and unplug USB"
+            onclick={async () => {
+              try {
+                const ep = await mobileIpc.enableWifi(activeDevice.serial);
+                showNotice(`Switched to Wi-Fi at ${ep} — you can unplug USB now.`);
+                await refreshAll();
+              } catch (e) {
+                showError(String(e));
+              }
+            }}
+          >
+            <Icon name="wifi" size={14} /> Go Wireless
+          </button>
+        {:else}
+          <button class="tb-btn" onclick={() => (modal = 'pair')}>
+            <Icon name="wifi" size={14} /> {activeDevice?.transport === 'wifi' ? 'Wi-Fi Connected' : 'Connect Wi-Fi (QR)'}
+          </button>
+        {/if}
         <button class="tb-btn" onclick={() => (modal = 'commands')}>
           <Icon name="search" size={14} /> Commands
         </button>
@@ -581,6 +613,17 @@
         device={activeDevice}
         webcamActive={snapshot?.controls.webcam_active ?? false}
         onRefresh={() => void refreshAll(true)}
+        onOpenPair={() => (modal = 'pair')}
+        onGoWireless={async () => {
+          if (!activeDevice) return;
+          try {
+            const ep = await mobileIpc.enableWifi(activeDevice.serial);
+            showNotice(`Switched to Wi-Fi at ${ep} — you can unplug USB now.`);
+            await refreshAll();
+          } catch (e) {
+            showError(String(e));
+          }
+        }}
         onNotice={showNotice}
         onError={showError}
       />
@@ -640,6 +683,10 @@
     const ep = await mobileIpc.enableWifi(s);
     await refreshAll();
     return ep;
+  }}
+  onWifiConnected={(msg) => {
+    if (msg) showNotice(msg);
+    void refreshAll();
   }}
   onApplySoundDisplay={applySoundDisplay}
   onClearTimeline={() => {

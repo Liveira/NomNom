@@ -1,13 +1,18 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import Icon from '../../lib/icons/Icon.svelte';
   import Dialog from '../../lib/ui/Dialog.svelte';
   import Switch from '../../lib/ui/Switch.svelte';
-  import type {
-    MobileCapturedImage,
-    MobileDevice,
-    MobileSoundDisplay,
-    MobileSoundDisplayPatch,
-    MobileTimelineEntry,
+  import {
+    mobileIpc,
+    onMobileWifiPair,
+    type MobileCapturedImage,
+    type MobileDevice,
+    type MobileSoundDisplay,
+    type MobileSoundDisplayPatch,
+    type MobileTimelineEntry,
+    type MobileWifiDiscovery,
+    type MobileWifiQrSession,
   } from '../../lib/ipc';
   import { relativeSecs, timelineIcon } from './logic';
 
@@ -22,6 +27,7 @@
     onPairWifi,
     onConnectWifi,
     onEnableWifi,
+    onWifiConnected,
     onApplySoundDisplay,
     onClearTimeline,
     onRunCommand,
@@ -37,6 +43,7 @@
     onPairWifi: (addr: string, code: string) => Promise<string>;
     onConnectWifi: (addr: string) => Promise<string>;
     onEnableWifi: (serial: string) => Promise<string>;
+    onWifiConnected: (msg?: string) => void;
     onApplySoundDisplay: (patch: MobileSoundDisplayPatch) => Promise<void>;
     onClearTimeline: () => void;
     onRunCommand: (id: string) => void;
@@ -51,6 +58,14 @@
   let pairBusy = $state(false);
   let cmdQuery = $state('');
 
+  // Wireless QR + mDNS discovery state
+  let qrSession = $state<MobileWifiQrSession | null>(null);
+  let qrStatus = $state('');
+  let qrLoading = $state(false);
+  let discovery = $state<MobileWifiDiscovery | null>(null);
+  let scanning = $state(false);
+  let unsubWifiPair: (() => void) | null = null;
+
   const usbDevices = $derived(devices.filter((d) => d.transport === 'usb' && d.state === 'device'));
   const filteredCmds = $derived(
     commands.filter((c) => {
@@ -59,6 +74,70 @@
     }),
   );
 
+  async function scanWifi() {
+    scanning = true;
+    try {
+      discovery = await mobileIpc.wifiDiscover();
+    } catch {
+      discovery = { services: [], saved: [] };
+    } finally {
+      scanning = false;
+    }
+  }
+
+  async function startQr() {
+    qrLoading = true;
+    pairErr = '';
+    qrStatus = 'Waiting for phone to scan…';
+    try {
+      qrSession = await mobileIpc.wifiQrStart();
+    } catch (e) {
+      qrSession = null;
+      qrStatus = '';
+      pairErr = String(e);
+    } finally {
+      qrLoading = false;
+    }
+  }
+
+  async function stopQr() {
+    qrSession = null;
+    qrStatus = '';
+    await mobileIpc.wifiQrStop().catch(() => {});
+  }
+
+  $effect(() => {
+    if (modal === 'pair') {
+      void scanWifi();
+      void startQr();
+      void onMobileWifiPair((ev) => {
+        if (ev.status === 'error') {
+          pairErr = ev.message;
+          qrStatus = '';
+        } else if (ev.status === 'connected') {
+          pairMsg = ev.message;
+          qrStatus = ev.message;
+          onWifiConnected(ev.message);
+          void scanWifi();
+        } else {
+          qrStatus = ev.message;
+        }
+      }).then((u) => {
+        unsubWifiPair?.();
+        unsubWifiPair = u;
+      });
+    } else {
+      unsubWifiPair?.();
+      unsubWifiPair = null;
+      void stopQr();
+    }
+  });
+
+  onDestroy(() => {
+    unsubWifiPair?.();
+    void mobileIpc.wifiQrStop().catch(() => {});
+  });
+
   async function doPair() {
     pairBusy = true;
     pairErr = '';
@@ -66,6 +145,7 @@
     try {
       pairMsg = await onPairWifi(pairAddr, pairCode);
       pairCode = '';
+      void scanWifi();
     } catch (e) {
       pairErr = String(e);
     } finally {
@@ -73,17 +153,44 @@
     }
   }
 
-  async function doConnect() {
+  async function doConnect(target = connAddr) {
     pairBusy = true;
     pairErr = '';
     pairMsg = '';
     try {
-      pairMsg = await onConnectWifi(connAddr);
+      pairMsg = await onConnectWifi(target);
+      onWifiConnected(pairMsg);
+      void scanWifi();
     } catch (e) {
       pairErr = String(e);
     } finally {
       pairBusy = false;
     }
+  }
+
+  async function doAutoconnect() {
+    pairBusy = true;
+    pairErr = '';
+    pairMsg = '';
+    try {
+      const list = await mobileIpc.wifiAutoconnect();
+      if (list.length > 0) {
+        pairMsg = `Connected ${list.length} phone${list.length === 1 ? '' : 's'} over Wi-Fi (${list.join(', ')})`;
+        onWifiConnected(pairMsg);
+      } else {
+        pairMsg = 'No nearby paired phones found yet. Enable Wireless debugging on your phone or scan the QR code.';
+      }
+      void scanWifi();
+    } catch (e) {
+      pairErr = String(e);
+    } finally {
+      pairBusy = false;
+    }
+  }
+
+  async function doForget(endpoint: string) {
+    await mobileIpc.wifiForget(endpoint).catch(() => {});
+    void scanWifi();
   }
 
   async function doSwitchWifi(serial: string) {
@@ -93,6 +200,8 @@
     try {
       const ep = await onEnableWifi(serial);
       pairMsg = `Connected at ${ep}. You can unplug the USB cable now.`;
+      onWifiConnected(pairMsg);
+      void scanWifi();
     } catch (e) {
       pairErr = String(e);
     } finally {
@@ -102,37 +211,104 @@
 </script>
 
 {#if modal === 'pair'}
-  <Dialog title="Connect or pair an Android phone" onclose={onClose}>
+  <Dialog title="Connect or pair over Wi-Fi" onclose={onClose}>
     <div class="stack">
+      <!-- 1. Instant QR Code Pairing (Android 11+, zero typing) -->
       <div class="box">
-        <h4>Pair over Wi-Fi (Android 11+)</h4>
-        <p class="hint">
-          On your phone open Settings → Developer options → Wireless debugging → Pair device with pairing code.
-        </p>
-        <div class="row2">
-          <label>
-            <span>Pairing IP:Port</span>
-            <input type="text" placeholder="192.168.1.45:37123" bind:value={pairAddr} />
-          </label>
-          <label>
-            <span>6-digit code</span>
-            <input type="text" placeholder="482910" bind:value={pairCode} />
-          </label>
+        <div class="box-head">
+          <h4>Scan QR code (Android 11+, no cable)</h4>
+          <button class="plain sm" disabled={qrLoading} onclick={() => void startQr()}>
+            <Icon name="refresh" size={13} /> New QR
+          </button>
         </div>
-        <button class="primary" disabled={pairBusy || !pairAddr.trim() || !pairCode.trim()} onclick={doPair}>
-          Pair device
-        </button>
+        <div class="qr-row">
+          {#if qrSession?.qr_svg}
+            <div class="qr-frame" aria-label="Android wireless debugging pairing QR code">
+              {@html qrSession.qr_svg}
+            </div>
+          {:else}
+            <div class="qr-frame qr-empty">
+              <span>{qrLoading ? 'Generating…' : 'QR unavailable'}</span>
+            </div>
+          {/if}
+          <div class="qr-copy">
+            <p class="hint">
+              On your phone open <strong>Settings → Developer options → Wireless debugging → Pair device with QR code</strong> and scan this code.
+            </p>
+            <p class="hint">
+              NomNom pairs and connects automatically over Wi-Fi — no IP or port typing needed. Webcam Studio, Display and Gaming all run wirelessly.
+            </p>
+            {#if qrStatus}
+              <p class="qr-status" role="status">{qrStatus}</p>
+            {/if}
+          </div>
+        </div>
       </div>
 
+      <!-- 2. Nearby mDNS & Saved Wi-Fi devices -->
       <div class="box">
-        <h4>Connect to an already paired phone</h4>
-        <p class="hint">Enter the main IP address & Port shown at the top of Wireless debugging.</p>
-        <div class="row-inline">
-          <input type="text" placeholder="192.168.1.45:41235" bind:value={connAddr} />
-          <button class="plain" disabled={pairBusy || !connAddr.trim()} onclick={doConnect}>Connect</button>
+        <div class="box-head">
+          <h4>Nearby &amp; saved Wi-Fi phones</h4>
+          <div class="head-acts">
+            <button class="plain sm" disabled={scanning} onclick={() => void scanWifi()}>
+              <Icon name="refresh" size={13} /> {scanning ? 'Scanning…' : 'Scan'}
+            </button>
+            <button class="primary sm" disabled={pairBusy} onclick={() => void doAutoconnect()}>
+              <Icon name="wifi" size={13} /> Auto-connect
+            </button>
+          </div>
         </div>
+
+        {#if (discovery?.services.length ?? 0) > 0}
+          <div class="sub-list">
+            {#each discovery?.services ?? [] as svc (svc.kind + svc.endpoint)}
+              <div class="usb-row">
+                <div class="dev-meta">
+                  <strong translate="no">{svc.endpoint}</strong>
+                  <span class="hint" translate="no">
+                    {svc.kind === 'connect' ? 'Ready to connect (mDNS)' : 'Waiting for pairing code'} · {svc.name}
+                  </span>
+                </div>
+                {#if svc.kind === 'connect'}
+                  <button class="primary sm" disabled={pairBusy} onclick={() => void doConnect(svc.endpoint)}>
+                    Connect
+                  </button>
+                {:else}
+                  <button class="plain sm" onclick={() => (pairAddr = svc.endpoint)}>
+                    Use IP:Port
+                  </button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="hint">No phones advertising Wireless debugging on this Wi-Fi right now.</p>
+        {/if}
+
+        {#if (discovery?.saved.length ?? 0) > 0}
+          <hr />
+          <div class="sub-list">
+            {#each discovery?.saved ?? [] as s (s.endpoint)}
+              <div class="usb-row">
+                <div class="dev-meta">
+                  <strong translate="no">{s.name}</strong>
+                  <span class="hint" translate="no">Saved · {s.endpoint}</span>
+                </div>
+                <div class="head-acts">
+                  <button class="plain sm" disabled={pairBusy} onclick={() => void doConnect(s.endpoint)}>
+                    Reconnect
+                  </button>
+                  <button class="plain sm" title="Forget saved phone" onclick={() => void doForget(s.endpoint)}>
+                    <Icon name="x" size={12} />
+                  </button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
 
+      <!-- 3. Switch USB to Wi-Fi -->
       {#if usbDevices.length > 0}
         <div class="box">
           <h4>Switch USB phone to Wi-Fi</h4>
@@ -140,13 +316,40 @@
           {#each usbDevices as d (d.serial)}
             <div class="usb-row">
               <span translate="no"><strong>{d.model}</strong> ({d.serial})</span>
-              <button class="plain" disabled={pairBusy} onclick={() => doSwitchWifi(d.serial)}>
-                Switch to Wi-Fi
+              <button class="primary sm" disabled={pairBusy} onclick={() => doSwitchWifi(d.serial)}>
+                <Icon name="wifi" size={13} /> Go Wireless
               </button>
             </div>
           {/each}
         </div>
       {/if}
+
+      <!-- 4. Manual 6-digit code & IP:Port fallback -->
+      <details class="manual-box">
+        <summary>Manual pairing code or IP:Port</summary>
+        <div class="stack" style="margin-top: 10px">
+          <div class="row2">
+            <label>
+              <span>Pairing IP:Port</span>
+              <input type="text" placeholder="192.168.1.45:37123" bind:value={pairAddr} />
+            </label>
+            <label>
+              <span>6-digit code</span>
+              <input type="text" placeholder="482910" bind:value={pairCode} />
+            </label>
+          </div>
+          <button class="plain" disabled={pairBusy || !pairAddr.trim() || !pairCode.trim()} onclick={doPair}>
+            Pair with 6-digit code
+          </button>
+
+          <hr />
+
+          <div class="row-inline">
+            <input type="text" placeholder="Connect IP:Port (e.g. 192.168.1.45:41235)" bind:value={connAddr} />
+            <button class="plain" disabled={pairBusy || !connAddr.trim()} onclick={() => void doConnect(connAddr)}>Connect</button>
+          </div>
+        </div>
+      </details>
 
       {#if pairMsg}<p class="ok" role="status">{pairMsg}</p>{/if}
       {#if pairErr}<p class="err" role="alert">{pairErr}</p>{/if}
@@ -325,10 +528,23 @@
   hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
   .ok { color: var(--ok); margin: 0; font-size: 13px; }
   .err { color: var(--danger); margin: 0; font-size: 13px; }
-  .plain, .primary { padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .plain, .primary { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .plain.sm, .primary.sm { padding: 5px 10px; font-size: 12px; }
   .plain:hover:not(:disabled) { background: var(--surface-3); }
   .primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
   .primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .box-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .head-acts { display: flex; align-items: center; gap: 6px; }
+  .qr-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .qr-frame { width: 152px; height: 152px; flex: none; border-radius: 10px; overflow: hidden; background: #fff; padding: 4px; border: 1px solid var(--border); }
+  .qr-frame :global(svg) { width: 100%; height: 100%; display: block; }
+  .qr-empty { display: grid; place-items: center; background: var(--surface-1); color: var(--text-3); font-size: 12px; }
+  .qr-copy { flex: 1; min-width: 190px; display: grid; gap: 6px; }
+  .qr-status { margin: 2px 0 0; font-size: 12.5px; font-weight: 600; color: var(--accent-text); }
+  .sub-list { display: grid; gap: 8px; }
+  .dev-meta { display: grid; gap: 1px; min-width: 0; }
+  .manual-box { padding: 10px 14px; border-radius: var(--radius-m); background: var(--surface-2); border: 1px solid var(--border); }
+  .manual-box summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2); }
   button:disabled { opacity: 0.45; cursor: default; }
   .tl-full, .cmd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow: auto; }
   .tl-full li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius-s); background: var(--surface-2); }

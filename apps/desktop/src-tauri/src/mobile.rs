@@ -37,6 +37,7 @@ pub struct MobileState {
     mic_proc: Mutex<Option<(String, Child)>>,
     webcam_proc: Mutex<Option<(String, Child)>>,
     rec_proc: Mutex<Option<(String, PathBuf, Child)>>,
+    qr_cancel: Mutex<Option<Arc<AtomicBool>>>,
     torch_state: Mutex<HashMap<String, bool>>,
     /// Locally dismissed notification keys (some Android versions disallow shell cancel).
     dismissed_keys: Mutex<HashSet<String>>,
@@ -44,6 +45,11 @@ pub struct MobileState {
 
 impl MobileState {
     pub fn shutdown(&self) {
+        if let Ok(mut g) = self.qr_cancel.lock() {
+            if let Some(flag) = g.take() {
+                flag.store(true, Ordering::SeqCst);
+            }
+        }
         for slot in [&self.audio_proc, &self.mic_proc, &self.webcam_proc] {
             if let Ok(mut g) = slot.lock() {
                 if let Some((_, mut c)) = g.take() {
@@ -211,6 +217,8 @@ pub struct MirrorOptions {
     pub gamepad_uhid: Option<bool>,
     pub borderless: Option<bool>,
     pub always_on_top: Option<bool>,
+    pub video_buffer_ms: Option<u32>,
+    pub audio_buffer_ms: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -250,8 +258,43 @@ pub struct WebcamProOptions {
     pub borderless: Option<bool>,
     pub always_on_top: Option<bool>,
     pub record: Option<bool>,
+    pub video_buffer_ms: Option<u32>,
+    pub audio_buffer_ms: Option<u32>,
     #[allow(dead_code)]
     pub v4l2_sink: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MdnsService {
+    pub name: String,
+    pub service_type: String,
+    pub endpoint: String,
+    pub ip: String,
+    pub port: u16,
+    /// `"connect"` for `_adb-tls-connect._tcp`, `"pair"` for `_adb-tls-pairing._tcp`.
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SavedWifiDevice {
+    pub endpoint: String,
+    pub name: String,
+    pub ip: String,
+    pub last_seen: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WifiDiscovery {
+    pub services: Vec<MdnsService>,
+    pub saved: Vec<SavedWifiDevice>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WifiQrSession {
+    pub service: String,
+    pub password: String,
+    pub payload: String,
+    pub qr_svg: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1208,17 +1251,23 @@ pub async fn mob_connect_wifi(
         return Err("Enter the IP:port shown in Wireless debugging.".into());
     }
     let addr_for_adb = addr.clone();
-    let out = tokio::task::spawn_blocking(move || run_adb(&adb, &["connect", &addr_for_adb], 12))
-        .await
-        .map_err(|e| e.to_string())??;
-    if out.to_lowercase().contains("cannot connect") || out.to_lowercase().contains("failed") {
-        return Err(out.trim().to_string());
-    }
+    let adb_for_name = adb.clone();
+    let (out, dev_name) = tokio::task::spawn_blocking(move || -> CmdResult<(String, String)> {
+        let out = run_adb(&adb, &["connect", &addr_for_adb], 12)?;
+        if out.to_lowercase().contains("cannot connect") || out.to_lowercase().contains("failed") {
+            return Err(out.trim().to_string());
+        }
+        let name = device_display_name(&adb_for_name, &addr_for_adb);
+        Ok((out, name))
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    save_wifi_device(&state, &addr, &dev_name);
     record_timeline(
         &state,
         &app,
         &addr,
-        &addr,
+        &dev_name,
         "connect",
         "Connected over Wi-Fi",
         &addr,
@@ -1246,7 +1295,8 @@ pub async fn mob_enable_wifi(
 ) -> CmdResult<String> {
     let adb = locate_adb(&state)?;
     let s = serial.clone();
-    let target = tokio::task::spawn_blocking(move || -> CmdResult<String> {
+    let (target, dev_name) = tokio::task::spawn_blocking(move || -> CmdResult<(String, String)> {
+        let name = device_display_name(&adb, &s);
         let ip_raw = adb_shell(
             &adb,
             &s,
@@ -1264,16 +1314,17 @@ pub async fn mob_enable_wifi(
         if res.to_lowercase().contains("cannot connect") || res.to_lowercase().contains("failed") {
             return Err(res.trim().to_string());
         }
-        Ok(endpoint)
+        Ok((endpoint, name))
     })
     .await
     .map_err(|e| e.to_string())??;
 
+    save_wifi_device(&state, &target, &dev_name);
     record_timeline(
         &state,
         &app,
         &target,
-        &serial,
+        &dev_name,
         "connect",
         "Switched to Wi-Fi",
         &format!("Connected at {target} — you can unplug USB"),
@@ -1720,6 +1771,12 @@ pub async fn mob_mirror(
     }
     if opts.always_on_top.unwrap_or(false) {
         cmd.arg("--always-on-top");
+    }
+    if let Some(buf) = opts.video_buffer_ms.filter(|&b| b > 0 && b <= 500) {
+        cmd.arg(format!("--video-buffer={buf}"));
+    }
+    if let Some(buf) = opts.audio_buffer_ms.filter(|&b| b > 0 && b <= 500) {
+        cmd.arg(format!("--audio-buffer={buf}"));
     }
     if let Some(did) = opts.display_id {
         cmd.arg(format!("--display-id={did}"));
@@ -4390,6 +4447,12 @@ pub async fn mob_webcam_pro(
     if opts.always_on_top.unwrap_or(false) {
         cmd.arg("--always-on-top");
     }
+    if let Some(buf) = opts.video_buffer_ms.filter(|&b| b > 0 && b <= 500) {
+        cmd.arg(format!("--video-buffer={buf}"));
+    }
+    if let Some(buf) = opts.audio_buffer_ms.filter(|&b| b > 0 && b <= 500) {
+        cmd.arg(format!("--audio-buffer={buf}"));
+    }
     if opts.record.unwrap_or(false) {
         let dest = phone_save_dir(&state);
         let _ = std::fs::create_dir_all(&dest);
@@ -4564,6 +4627,374 @@ pub async fn mob_export_contacts(
     Ok(path_str)
 }
 
+fn save_wifi_device(state: &AppState, endpoint: &str, name: &str) {
+    let ep = endpoint.trim();
+    if ep.is_empty() {
+        return;
+    }
+    let ip = ep.split(':').next().unwrap_or(ep).to_string();
+    let label = if name.trim().is_empty() { ep } else { name.trim() };
+    let _ = state.db.with(|c| {
+        c.execute(
+            "INSERT INTO mobile_wifi_devices(endpoint, name, ip, last_seen)
+             VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(endpoint) DO UPDATE SET name=excluded.name, ip=excluded.ip, last_seen=excluded.last_seen",
+            rusqlite::params![ep, label, ip, now()],
+        )
+    });
+}
+
+fn list_saved_wifi_devices(state: &AppState) -> Vec<SavedWifiDevice> {
+    state
+        .db
+        .with(|c| {
+            let mut st = c.prepare(
+                "SELECT endpoint, name, ip, last_seen FROM mobile_wifi_devices ORDER BY last_seen DESC LIMIT 12",
+            )?;
+            let rows = st.query_map([], |r| {
+                Ok(SavedWifiDevice {
+                    endpoint: r.get(0)?,
+                    name: r.get(1)?,
+                    ip: r.get(2)?,
+                    last_seen: r.get(3)?,
+                })
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_mdns_services(raw: &str) -> Vec<MdnsService> {
+    let mut out = Vec::new();
+    let mut seen = HashSet::new();
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty()
+            || trimmed.starts_with("List of")
+            || trimmed.starts_with('*')
+            || trimmed.starts_with("adb:")
+        {
+            continue;
+        }
+        let cols: Vec<&str> = trimmed.split_whitespace().collect();
+        if cols.len() < 3 {
+            continue;
+        }
+        let name = cols[0].to_string();
+        let stype = cols[1].trim_end_matches('.').to_string();
+        let endpoint = cols[2].to_string();
+        let kind = if stype.contains("adb-tls-connect") {
+            "connect"
+        } else if stype.contains("adb-tls-pairing") {
+            "pair"
+        } else {
+            continue;
+        };
+        let Some((ip, port_str)) = endpoint.rsplit_once(':') else {
+            continue;
+        };
+        let Ok(port) = port_str.parse::<u16>() else {
+            continue;
+        };
+        let ip_clean = ip.trim_matches(|c| c == '[' || c == ']').to_string();
+        if !seen.insert(format!("{kind}:{endpoint}")) {
+            continue;
+        }
+        out.push(MdnsService {
+            name,
+            service_type: stype,
+            endpoint,
+            ip: ip_clean,
+            port,
+            kind: kind.to_string(),
+        });
+    }
+    out
+}
+
+fn build_wifi_qr_payload(service: &str, password: &str) -> String {
+    format!("WIFI:T:ADB;S:{service};P:{password};;")
+}
+
+fn render_qr_svg(payload: &str) -> CmdResult<String> {
+    let code = qrcode::QrCode::new(payload.as_bytes())
+        .map_err(|e| format!("Couldn't build QR code: {e}"))?;
+    Ok(code
+        .render::<qrcode::render::svg::Color>()
+        .min_dimensions(220, 220)
+        .quiet_zone(true)
+        .dark_color(qrcode::render::svg::Color("#000000"))
+        .light_color(qrcode::render::svg::Color("#ffffff"))
+        .build())
+}
+
+fn generate_qr_credentials() -> (String, String) {
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let n = SEQ.fetch_add(1, Ordering::Relaxed);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let seed = format!("nomnom-adb-{}-{}-{}", std::process::id(), nanos, n);
+    let hash = blake3::hash(seed.as_bytes());
+    let hex = hash.to_hex();
+    let service = format!("ADB_WIFI_nomnom_{}", &hex[..8]);
+    let password = hex[8..16].to_string();
+    (service, password)
+}
+
+#[tauri::command]
+pub async fn mob_wifi_discover(state: State<'_, AppState>) -> CmdResult<WifiDiscovery> {
+    let saved = list_saved_wifi_devices(&state);
+    let Some(adb) = state.tools.locate(Tool::Adb) else {
+        return Ok(WifiDiscovery {
+            services: Vec::new(),
+            saved,
+        });
+    };
+    let services = tokio::task::spawn_blocking(move || {
+        run_adb(&adb, &["mdns", "services"], 6)
+            .map(|out| parse_mdns_services(&out))
+            .unwrap_or_default()
+    })
+    .await
+    .unwrap_or_default();
+    Ok(WifiDiscovery { services, saved })
+}
+
+#[tauri::command]
+pub async fn mob_wifi_forget(state: State<'_, AppState>, endpoint: String) -> CmdResult<()> {
+    let _ = state.db.with(|c| {
+        c.execute(
+            "DELETE FROM mobile_wifi_devices WHERE endpoint = ?1",
+            rusqlite::params![endpoint.trim()],
+        )
+    });
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mob_wifi_autoconnect(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<String>> {
+    let Some(adb) = state.tools.locate(Tool::Adb) else {
+        return Ok(Vec::new());
+    };
+    let saved = list_saved_wifi_devices(&state);
+    let connected = tokio::task::spawn_blocking(move || -> Vec<(String, String)> {
+        let mut results = Vec::new();
+        let mut tried = HashSet::new();
+        // 1. Discover any already-paired Android 11+ phones broadcasting `_adb-tls-connect._tcp`.
+        if let Ok(mdns_raw) = run_adb(&adb, &["mdns", "services"], 5) {
+            for svc in parse_mdns_services(&mdns_raw) {
+                if svc.kind != "connect" || !tried.insert(svc.endpoint.clone()) {
+                    continue;
+                }
+                if let Ok(out) = run_adb(&adb, &["connect", &svc.endpoint], 5) {
+                    let low = out.to_lowercase();
+                    if low.contains("connected to") && !low.contains("cannot connect") {
+                        let name = device_display_name(&adb, &svc.endpoint);
+                        results.push((svc.endpoint, name));
+                    }
+                }
+            }
+        }
+        // 2. Try saved Wi-Fi endpoints (with quick 450ms TCP reachability check so offline phones never stall).
+        for dev in saved {
+            if !tried.insert(dev.endpoint.clone()) {
+                continue;
+            }
+            let reachable = dev
+                .endpoint
+                .parse::<SocketAddr>()
+                .ok()
+                .and_then(|sa| TcpStream::connect_timeout(&sa, Duration::from_millis(450)).ok())
+                .is_some();
+            if !reachable {
+                continue;
+            }
+            if let Ok(out) = run_adb(&adb, &["connect", &dev.endpoint], 5) {
+                let low = out.to_lowercase();
+                if low.contains("connected to") && !low.contains("cannot connect") {
+                    let name = device_display_name(&adb, &dev.endpoint);
+                    results.push((dev.endpoint, name));
+                }
+            }
+        }
+        results
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let mut endpoints = Vec::new();
+    for (ep, name) in connected {
+        save_wifi_device(&state, &ep, &name);
+        record_timeline(
+            &state,
+            &app,
+            &ep,
+            &name,
+            "connect",
+            "Auto-connected over Wi-Fi",
+            &ep,
+        );
+        endpoints.push(ep);
+    }
+    Ok(endpoints)
+}
+
+#[tauri::command]
+pub async fn mob_wifi_qr_stop(state: State<'_, AppState>) -> CmdResult<()> {
+    if let Ok(mut g) = state.mobile.qr_cancel.lock() {
+        if let Some(flag) = g.take() {
+            flag.store(true, Ordering::SeqCst);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn mob_wifi_qr_start(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<WifiQrSession> {
+    let adb = locate_adb(&state)?;
+    // Cancel any previous QR listener.
+    if let Ok(mut g) = state.mobile.qr_cancel.lock() {
+        if let Some(old) = g.take() {
+            old.store(true, Ordering::SeqCst);
+        }
+    }
+    let cancel = Arc::new(AtomicBool::new(false));
+    if let Ok(mut g) = state.mobile.qr_cancel.lock() {
+        *g = Some(cancel.clone());
+    }
+
+    let (service, password) = generate_qr_credentials();
+    let payload = build_wifi_qr_payload(&service, &password);
+    let qr_svg = render_qr_svg(&payload)?;
+
+    let svc_watch = service.clone();
+    let pass_watch = password.clone();
+    let app_watch = app.clone();
+
+    std::thread::spawn(move || {
+        // Ensure the ADB server is up so mDNS discovery is active.
+        let _ = run_adb(&adb, &["start-server"], 6);
+        let started = Instant::now();
+        let mut paired_ip: Option<String> = None;
+
+        while !cancel.load(Ordering::Relaxed) && started.elapsed() < Duration::from_secs(120) {
+            if let Ok(raw) = run_adb(&adb, &["mdns", "services"], 4) {
+                let services = parse_mdns_services(&raw);
+                if paired_ip.is_none() {
+                    if let Some(target) = services
+                        .iter()
+                        .find(|s| s.kind == "pair" && s.name.contains(&svc_watch))
+                    {
+                        let _ = app_watch.emit(
+                            "mobile://wifi-pair",
+                            serde_json::json!({
+                                "status": "pairing",
+                                "endpoint": target.endpoint,
+                                "message": format!("Phone scanned QR ({}) — pairing…", target.endpoint),
+                            }),
+                        );
+                        match run_adb(&adb, &["pair", &target.endpoint, &pass_watch], 15) {
+                            Ok(out) if !out.to_lowercase().contains("failed") => {
+                                paired_ip = Some(target.ip.clone());
+                                let _ = app_watch.emit(
+                                    "mobile://wifi-pair",
+                                    serde_json::json!({
+                                        "status": "paired",
+                                        "endpoint": target.endpoint,
+                                        "message": "Paired! Waiting for wireless debug port…",
+                                    }),
+                                );
+                            }
+                            Ok(out) => {
+                                let _ = app_watch.emit(
+                                    "mobile://wifi-pair",
+                                    serde_json::json!({
+                                        "status": "error",
+                                        "endpoint": target.endpoint,
+                                        "message": out.trim(),
+                                    }),
+                                );
+                                return;
+                            }
+                            Err(e) => {
+                                let _ = app_watch.emit(
+                                    "mobile://wifi-pair",
+                                    serde_json::json!({
+                                        "status": "error",
+                                        "endpoint": target.endpoint,
+                                        "message": e,
+                                    }),
+                                );
+                                return;
+                            }
+                        }
+                    }
+                } else if let Some(ref ip) = paired_ip {
+                    if let Some(conn) = services
+                        .iter()
+                        .find(|s| s.kind == "connect" && s.ip == *ip)
+                    {
+                        if let Ok(out) = run_adb(&adb, &["connect", &conn.endpoint], 10) {
+                            let low = out.to_lowercase();
+                            if low.contains("connected to") && !low.contains("cannot connect") {
+                                let name = device_display_name(&adb, &conn.endpoint);
+                                if let Some(st) = app_watch.try_state::<AppState>() {
+                                    save_wifi_device(&st, &conn.endpoint, &name);
+                                    record_timeline(
+                                        &st,
+                                        &app_watch,
+                                        &conn.endpoint,
+                                        &name,
+                                        "pair",
+                                        "Paired & connected via QR",
+                                        &conn.endpoint,
+                                    );
+                                }
+                                let _ = app_watch.emit(
+                                    "mobile://wifi-pair",
+                                    serde_json::json!({
+                                        "status": "connected",
+                                        "endpoint": conn.endpoint,
+                                        "name": name,
+                                        "message": format!("Connected to {name} over Wi-Fi!"),
+                                    }),
+                                );
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            std::thread::sleep(Duration::from_millis(1100));
+        }
+
+        if !cancel.load(Ordering::Relaxed) {
+            let _ = app_watch.emit(
+                "mobile://wifi-pair",
+                serde_json::json!({
+                    "status": "timeout",
+                    "message": "QR code expired — generate a fresh code to try again.",
+                }),
+            );
+        }
+    });
+
+    Ok(WifiQrSession {
+        service,
+        password,
+        payload,
+        qr_svg,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4671,5 +5102,25 @@ NotificationRecord(0x2 pkg=android user=UserHandle{0} id=2 tag=null key=0|androi
 
         let vcf = build_vcard(&[PhoneContact { name: "Ada".into(), number: "+5511999".into() }]);
         assert!(vcf.contains("FN:Ada") && vcf.contains("TEL;TYPE=CELL:+5511999"));
+    }
+
+    #[test]
+    fn parses_mdns_services_and_builds_adb_qr() {
+        let mdns = "\
+List of discovered mdns services\n\
+adb-R5CX1234ABC-xYz123\t_adb-tls-connect._tcp.\t192.168.1.45:41235\n\
+ADB_WIFI_nomnom_a1b2c3d4\t_adb-tls-pairing._tcp\t192.168.1.45:37123\n";
+        let svcs = parse_mdns_services(mdns);
+        assert_eq!(svcs.len(), 2);
+        assert_eq!(svcs[0].kind, "connect");
+        assert_eq!(svcs[0].ip, "192.168.1.45");
+        assert_eq!(svcs[0].port, 41235);
+        assert_eq!(svcs[1].kind, "pair");
+        assert_eq!(svcs[1].name, "ADB_WIFI_nomnom_a1b2c3d4");
+
+        let payload = build_wifi_qr_payload("ADB_WIFI_nomnom_1234", "abcd5678");
+        assert_eq!(payload, "WIFI:T:ADB;S:ADB_WIFI_nomnom_1234;P:abcd5678;;");
+        let svg = render_qr_svg(&payload).expect("qr svg");
+        assert!(svg.contains("<svg") && svg.contains("</svg>"));
     }
 }

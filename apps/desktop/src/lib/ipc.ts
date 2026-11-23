@@ -1767,6 +1767,8 @@ export interface MobileMirrorOptions {
   gamepadUhid?: boolean;
   borderless?: boolean;
   alwaysOnTop?: boolean;
+  videoBufferMs?: number;
+  audioBufferMs?: number;
 }
 export interface MobileCameraInfo {
   id: string;
@@ -1799,7 +1801,39 @@ export interface MobileWebcamProOptions {
   borderless?: boolean;
   alwaysOnTop?: boolean;
   record?: boolean;
+  videoBufferMs?: number;
+  audioBufferMs?: number;
   v4l2Sink?: string;
+}
+export interface MobileMdnsService {
+  name: string;
+  service_type: string;
+  endpoint: string;
+  ip: string;
+  port: number;
+  kind: 'connect' | 'pair' | string;
+}
+export interface MobileSavedWifiDevice {
+  endpoint: string;
+  name: string;
+  ip: string;
+  last_seen: number;
+}
+export interface MobileWifiDiscovery {
+  services: MobileMdnsService[];
+  saved: MobileSavedWifiDevice[];
+}
+export interface MobileWifiQrSession {
+  service: string;
+  password: string;
+  payload: string;
+  qr_svg: string;
+}
+export interface MobileWifiPairEvent {
+  status: 'pairing' | 'paired' | 'connected' | 'error' | 'timeout' | string;
+  endpoint?: string;
+  name?: string;
+  message: string;
 }
 export interface MobileDisplayInfo {
   id: number;
@@ -1927,6 +1961,11 @@ export const mobileIpc = {
   connectWifi: (address: string) => invoke<string>('mob_connect_wifi', { address }),
   disconnectWifi: (serial: string) => invoke<string>('mob_disconnect_wifi', { serial }),
   enableWifi: (serial: string) => invoke<string>('mob_enable_wifi', { serial }),
+  wifiDiscover: () => invoke<MobileWifiDiscovery>('mob_wifi_discover'),
+  wifiAutoconnect: () => invoke<string[]>('mob_wifi_autoconnect'),
+  wifiForget: (endpoint: string) => invoke<void>('mob_wifi_forget', { endpoint }),
+  wifiQrStart: () => invoke<MobileWifiQrSession>('mob_wifi_qr_start'),
+  wifiQrStop: () => invoke<void>('mob_wifi_qr_stop'),
   snapshot: (serial: string) => invoke<MobileSnapshot>('mob_snapshot', { serial }),
   mediaAction: (serial: string, action: 'play_pause' | 'next' | 'prev' | 'stop' | 'vol_up' | 'vol_down') =>
     invoke<void>('mob_media_action', { serial, action }),
@@ -2055,4 +2094,9 @@ export function onMobileInstallProgress(
 }
 export function onMobileTimeline(handler: () => void): Promise<UnlistenFn> {
   return listen('mobile://timeline', () => handler());
+}
+export function onMobileWifiPair(
+  handler: (ev: MobileWifiPairEvent) => void,
+): Promise<UnlistenFn> {
+  return listen<MobileWifiPairEvent>('mobile://wifi-pair', (e) => handler(e.payload));
 }

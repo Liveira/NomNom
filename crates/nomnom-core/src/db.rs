@@ -213,6 +213,12 @@ const MIGRATIONS: &[&str] = &[
      CREATE TABLE mobile_muted(
         package_name TEXT PRIMARY KEY,
         muted_at INTEGER NOT NULL) WITHOUT ROWID;",
+    // v18: Saved Wi-Fi ADB devices for 1-click and automatic wireless reconnect.
+    "CREATE TABLE mobile_wifi_devices(
+        endpoint TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        last_seen INTEGER NOT NULL) WITHOUT ROWID;",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

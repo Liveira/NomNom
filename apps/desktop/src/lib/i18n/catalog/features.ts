@@ -172,4 +172,9 @@ export const FEATURES: Entry[] = [
   ['Virtual Display & Gaming', 'Monitor Virtual e Jogos', 'Pantalla Virtual y Juegos'],
   ['Contacts', 'Contatos', 'Contactos'],
   ['Export .vcf', 'Exportar .vcf', 'Exportar .vcf'],
+  ['Go Wireless', 'Usar sem fio', 'Usar inalámbrico'],
+  ['Connect Wi-Fi (QR)', 'Conectar Wi-Fi (QR)', 'Conectar Wi-Fi (QR)'],
+  ['Wi-Fi Connected', 'Wi-Fi Conectado', 'Wi-Fi Conectado'],
+  ['Auto-connect', 'Reconectar', 'Autoconectar'],
+  ['Wi-Fi smoothing buffer', 'Buffer de suavização Wi-Fi', 'Búfer de suavizado Wi-Fi'],
 ];

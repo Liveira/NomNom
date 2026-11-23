@@ -13,17 +13,22 @@
     device,
     webcamActive,
     onRefresh,
+    onOpenPair,
+    onGoWireless,
     onNotice,
     onError,
   }: {
     device: MobileDevice | null;
     webcamActive: boolean;
     onRefresh: () => void;
+    onOpenPair: () => void;
+    onGoWireless: () => Promise<void>;
     onNotice: (msg: string) => void;
     onError: (msg: string) => void;
   } = $props();
 
   const serial = $derived(device?.state === 'device' ? device.serial : null);
+  const isWifi = $derived(device?.transport === 'wifi');
 
   let catalog = $state<MobileCameraCatalog | null>(null);
   let probing = $state(false);
@@ -45,6 +50,7 @@
   let borderless = $state(true);
   let alwaysOnTop = $state(false);
   let record = $state(false);
+  let videoBufferMs = $state(0);
   let v4l2Sink = $state('');
 
   const selectedCamera = $derived(
@@ -82,14 +88,25 @@
     if (serial) void probeCameras();
   });
 
-  function applyPreset(name: 'stream' | '4k' | 'calls' | 'vertical' | 'highspeed') {
-    if (name === 'stream') {
+  function applyPreset(name: 'wifi' | 'stream' | '4k' | 'calls' | 'vertical' | 'highspeed') {
+    if (name === 'wifi') {
+      size = '1920x1080';
+      aspectRatio = '16:9';
+      fps = 60;
+      highSpeed = false;
+      videoCodec = 'h265';
+      bitRateMbps = 10;
+      videoBufferMs = 30;
+      orientation = 0;
+      borderless = true;
+    } else if (name === 'stream') {
       size = '1920x1080';
       aspectRatio = '16:9';
       fps = 60;
       highSpeed = false;
       videoCodec = 'h265';
       bitRateMbps = 16;
+      videoBufferMs = isWifi ? 30 : 0;
       orientation = 0;
       borderless = true;
     } else if (name === '4k') {
@@ -99,6 +116,7 @@
       highSpeed = false;
       videoCodec = 'h265';
       bitRateMbps = 28;
+      videoBufferMs = isWifi ? 50 : 0;
       orientation = 0;
       borderless = true;
     } else if (name === 'calls') {
@@ -108,6 +126,7 @@
       highSpeed = false;
       videoCodec = 'h264';
       bitRateMbps = 6;
+      videoBufferMs = isWifi ? 20 : 0;
       orientation = 0;
       flip = true;
     } else if (name === 'vertical') {
@@ -117,6 +136,7 @@
       highSpeed = false;
       videoCodec = 'h265';
       bitRateMbps = 14;
+      videoBufferMs = isWifi ? 30 : 0;
       orientation = 90;
     } else if (name === 'highspeed') {
       size = '1920x1080';
@@ -125,6 +145,7 @@
       highSpeed = true;
       videoCodec = 'h265';
       bitRateMbps = 24;
+      videoBufferMs = isWifi ? 40 : 0;
     }
     onNotice(`Applied ${name.toUpperCase()} camera profile`);
   }
@@ -149,11 +170,13 @@
         borderless,
         alwaysOnTop,
         record,
+        videoBufferMs: videoBufferMs > 0 ? videoBufferMs : undefined,
+        audioBufferMs: audioMic && videoBufferMs > 0 ? Math.max(40, videoBufferMs) : undefined,
         v4l2Sink: isLinux && v4l2Sink ? v4l2Sink : undefined,
       };
       await mobileIpc.webcamPro(serial, opts, false);
       onNotice(
-        `Webcam Studio running (${size || aspectRatio} · ${fps}fps · ${videoCodec.toUpperCase()})`,
+        `Webcam Studio running over ${isWifi ? 'Wi-Fi' : 'USB'} (${size || aspectRatio} · ${fps}fps · ${videoCodec.toUpperCase()})`,
       );
       onRefresh();
     } catch (e) {
@@ -202,12 +225,31 @@
   <section class="panel-box">
     <div class="bar">
       <div>
-        <h3>Webcam Studio</h3>
+        <div class="title-row">
+          <h3>Webcam Studio</h3>
+          {#if serial}
+            <span class="pill" class:ok={isWifi}>
+              <Icon name={isWifi ? 'wifi' : 'usb'} size={12} />
+              {isWifi
+                ? `Wireless${device?.latency_ms != null ? ` · ${device.latency_ms} ms` : ''}`
+                : 'USB Cable'}
+            </span>
+          {/if}
+        </div>
         <p class="sub">
-          Full sensor access up to 4K, 60/120 FPS, H.265/AV1, multi-lens switching and zero watermarks (Android 12+).
+          Full sensor access over Wi-Fi or USB up to 4K, 60/120 FPS, H.265/AV1, multi-lens switching and zero watermarks (Android 12+).
         </p>
       </div>
       <div class="bar-acts">
+        {#if !serial}
+          <button class="primary" onclick={onOpenPair}>
+            <Icon name="wifi" size={14} /> Connect Wi-Fi (QR)
+          </button>
+        {:else if !isWifi}
+          <button class="plain" disabled={busy} onclick={() => void onGoWireless()}>
+            <Icon name="wifi" size={14} /> Go Wireless
+          </button>
+        {/if}
         <button class="plain" disabled={!serial || probing} onclick={() => void probeCameras()}>
           <Icon name="refresh" size={14} /> {probing ? 'Detecting lenses…' : 'Detect lenses'}
         </button>
@@ -228,6 +270,10 @@
 
     <!-- 1-click Pro Presets -->
     <div class="preset-row">
+      <button class="preset" onclick={() => applyPreset('wifi')}>
+        <strong>Wi-Fi 1080p60</strong>
+        <span>Wireless · H.265 · 30ms smooth</span>
+      </button>
       <button class="preset" onclick={() => applyPreset('stream')}>
         <strong>Streaming 1080p60</strong>
         <span>H.265 · 16 Mbps · Borderless</span>
@@ -327,6 +373,16 @@
           <option value={270}>270° counter-clockwise</option>
         </select>
       </label>
+
+      <label>
+        <span>Wi-Fi smoothing buffer</span>
+        <select bind:value={videoBufferMs}>
+          <option value={0}>0 ms (Ultra-low latency)</option>
+          <option value={30}>30 ms (Balanced Wi-Fi)</option>
+          <option value={60}>60 ms (Smooth Wi-Fi)</option>
+          <option value={100}>100 ms (Weak Wi-Fi signal)</option>
+        </select>
+      </label>
     </div>
 
     <div class="slider-block">
@@ -376,9 +432,12 @@
 
       {#if isLinux}
         <div class="bridge-card">
-          <strong>Linux Virtual Webcam (v4l2loopback)</strong>
+          <div class="bhead">
+            <strong>Linux Virtual Webcam (v4l2loopback)</strong>
+            <span class="pill ok">Works over Wi-Fi &amp; USB</span>
+          </div>
           <p class="sub">
-            Feed your phone directly into a real <code>/dev/video*</code> webcam device so Discord, Zoom and browsers pick it up natively.
+            Feed your phone wirelessly or by USB directly into a real <code>/dev/video*</code> webcam device so Discord, Zoom and browsers pick it up natively.
           </p>
           <label>
             <span>Virtual device sink</span>
@@ -394,11 +453,28 @@
       {:else}
         <div class="bridge-card">
           <div class="bhead">
-            <strong>Option 1 · Native Android 14+ USB Webcam</strong>
+            <strong>{isWifi ? 'Option 1 (Recommended) · Wireless Virtual Camera via OBS' : 'Option 1 · OBS Virtual Camera (Wi-Fi or USB)'}</strong>
+            <span class="pill ok">{catalog?.obs_path ? 'OBS detected · Wi-Fi ready' : '100% Wireless'}</span>
+          </div>
+          <ol class="mini-steps">
+            <li>Connect your phone via <strong>Wi-Fi QR Code</strong> (or USB) and click <strong>Start Webcam</strong> (window <code>NomNom Webcam</code>).</li>
+            <li>In OBS Studio, add <strong>Window Capture</strong> → pick <code>NomNom Webcam</code>.</li>
+            <li>Click <strong>Start Virtual Camera</strong> in OBS and choose <strong>OBS Virtual Camera</strong> in Discord, Zoom or Meet.</li>
+          </ol>
+          {#if catalog?.obs_path}
+            <button class="plain" onclick={openObs}>
+              <Icon name="external" size={14} /> Launch OBS Studio
+            </button>
+          {/if}
+        </div>
+
+        <div class="bridge-card">
+          <div class="bhead">
+            <strong>Option 2 · Native Android 14+ USB Webcam</strong>
             {#if catalog?.supports_usb_uvc}
               <span class="pill ok">Supported (API {catalog.sdk_level})</span>
             {:else}
-              <span class="pill">Android 14+</span>
+              <span class="pill">Android 14+ · USB only</span>
             {/if}
           </div>
           <p class="sub">
@@ -412,26 +488,7 @@
             <Icon name="usb" size={14} /> Enable Hardware USB Webcam
           </button>
           {#if serial && device?.transport !== 'usb'}
-            <p class="sub">Plug in a USB cable to use hardware UVC mode.</p>
-          {/if}
-        </div>
-
-        <div class="bridge-card">
-          <div class="bhead">
-            <strong>Option 2 · OBS Virtual Camera (Any Android 12+, USB or Wi-Fi)</strong>
-            {#if catalog?.obs_path}
-              <span class="pill ok">OBS detected</span>
-            {/if}
-          </div>
-          <ol class="mini-steps">
-            <li>Click <strong>Start Webcam</strong> (borderless window titled <code>NomNom Webcam</code>).</li>
-            <li>In OBS Studio, add <strong>Window Capture</strong> → pick <code>NomNom Webcam</code>.</li>
-            <li>Click <strong>Start Virtual Camera</strong> in OBS and select <strong>OBS Virtual Camera</strong> in Discord, Zoom or Meet.</li>
-          </ol>
-          {#if catalog?.obs_path}
-            <button class="plain" onclick={openObs}>
-              <Icon name="external" size={14} /> Launch OBS Studio
-            </button>
+            <p class="sub">Hardware UVC requires a USB cable — use Option 1 above for full wireless webcam.</p>
           {/if}
         </div>
       {/if}
@@ -472,9 +529,11 @@
     align-content: start;
   }
   .bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .bar-acts { display: flex; gap: 8px; flex-wrap: wrap; }
   h3 { margin: 0; font-size: 15px; }
   .sub { margin: 2px 0 0; font-size: 12.5px; color: var(--text-3); line-height: 1.45; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-xs); background: var(--surface-3); color: var(--text-2); font-size: 11px; font-weight: 600; }
 
   .preset-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 8px; }
   .preset {
