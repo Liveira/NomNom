@@ -49,7 +49,7 @@
     onInstallTools: () => void;
     onOpenPair: () => void;
     onUnmuteApp: (pkg: string) => void;
-    onMirrorApp: (pkg: string) => void;
+    onMirrorApp: (pkg: string, displaySize?: string) => void;
     onScreenshot: () => void;
   } = $props();
 
@@ -93,6 +93,9 @@
   let apps = $state<MobileApp[]>([]);
   let appsLoading = $state(false);
   let appQuery = $state('');
+  let appFilter = $state<'user' | 'system' | 'disabled' | 'all'>('user');
+  let appDisplaySize = $state<'880x1920' | '1600x1000' | '1080x1080'>('880x1920');
+  let pullingAllPhotos = $state(false);
   const filteredApps = $derived(
     apps.filter((a) => {
       const q = appQuery.trim().toLowerCase();
@@ -168,11 +171,40 @@
     if (!serial) return;
     appsLoading = true;
     try {
-      apps = await mobileIpc.apps(serial);
+      apps = await mobileIpc.apps(serial, appFilter);
     } catch (e) {
       onError(String(e));
     } finally {
       appsLoading = false;
+    }
+  }
+
+  async function pullAllShownPhotos() {
+    if (!serial || filteredPhotos.length === 0) return;
+    pullingAllPhotos = true;
+    try {
+      const n = await mobileIpc.pullPhotos(
+        serial,
+        filteredPhotos.map((p) => p.path),
+      );
+      onNotice(`Backed up ${n} ${n === 1 ? 'photo' : 'photos'} to From phone folder`);
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      pullingAllPhotos = false;
+    }
+  }
+
+  async function runAppAction(
+    a: MobileApp,
+    action: 'force_stop' | 'clear_data' | 'disable' | 'enable' | 'app_info' | 'pull_apk',
+  ) {
+    if (!serial) return;
+    try {
+      onNotice(await mobileIpc.appAction(serial, a.package, action));
+      if (action === 'disable' || action === 'enable') await loadApps();
+    } catch (e) {
+      onError(String(e));
     }
   }
 
@@ -482,6 +514,14 @@
         <p class="sub">Browse recent photos from your phone and save them straight to your computer.</p>
       </div>
       <div class="bar-acts">
+        <button
+          class="primary"
+          disabled={!serial || filteredPhotos.length === 0 || pullingAllPhotos}
+          onclick={pullAllShownPhotos}
+        >
+          <Icon name="download" size={14} />
+          {pullingAllPhotos ? 'Downloading…' : `Backup all (${filteredPhotos.length})`}
+        </button>
         <button class="plain" disabled={!serial} onclick={onScreenshot}>
           <Icon name="camera" size={14} /> Phone screenshot
         </button>
@@ -564,8 +604,8 @@
   <section class="panel-box">
     <div class="bar">
       <div>
-        <h3>Apps</h3>
-        <p class="sub">Open Android apps in their own mirrored desktop window, launch on phone, or install APKs.</p>
+        <h3>Apps &amp; Debloater</h3>
+        <p class="sub">Launch apps in phone or tablet windows, extract APKs, force-stop, clear data or disable bloatware.</p>
       </div>
       <div class="bar-acts">
         <input
@@ -574,6 +614,11 @@
           bind:value={appQuery}
           aria-label="Search apps"
         />
+        <select bind:value={appDisplaySize} aria-label="Mirrored window shape" title="Window aspect ratio">
+          <option value="880x1920">Phone window</option>
+          <option value="1600x1000">Tablet window</option>
+          <option value="1080x1080">Square window</option>
+        </select>
         <button class="primary" disabled={!serial} onclick={installApk}>
           <Icon name="plus" size={14} /> Install APK
         </button>
@@ -583,26 +628,44 @@
       </div>
     </div>
 
+    <div class="filter-pills">
+      {#each [['user', 'User apps'], ['system', 'System apps'], ['disabled', 'Disabled'], ['all', 'All']] as [id, lbl] (id)}
+        <button
+          class:on={appFilter === id}
+          disabled={!serial}
+          onclick={() => {
+            appFilter = id as 'user' | 'system' | 'disabled' | 'all';
+            void loadApps();
+          }}
+        >
+          {lbl}
+        </button>
+      {/each}
+    </div>
+
     {#if !serial}
-      <p class="sub">Connect your Android phone to browse and launch installed apps.</p>
+      <p class="sub">Connect your Android phone to browse and manage installed apps.</p>
     {:else if filteredApps.length === 0}
       <p class="sub">{appsLoading ? 'Loading installed apps…' : 'No matching apps found.'}</p>
     {:else}
       <div class="apps-grid">
         {#each filteredApps as a (a.package)}
-          <div class="app-tile">
+          <div class="app-tile" class:disabled-app={a.disabled}>
             <span class="avatar" style:background={appBadgeColor(a.name)}>
               {a.name.slice(0, 1).toUpperCase()}
             </span>
             <div class="a-info">
-              <strong translate="no">{a.name}</strong>
+              <strong translate="no">
+                {a.name}
+                {#if a.disabled}<em class="tag-sm">disabled</em>{/if}
+              </strong>
               <span class="a-pkg" translate="no" title={a.package}>{a.package}</span>
             </div>
             <div class="a-acts">
               <button
                 class="plain sm"
                 title="Open in mirrored window"
-                onclick={() => onMirrorApp(a.package)}
+                onclick={() => onMirrorApp(a.package, appDisplaySize)}
               >
                 <Icon name="cast" size={13} /> Window
               </button>
@@ -615,12 +678,38 @@
               </button>
               <button
                 class="icon-sm"
-                title="Uninstall"
-                aria-label={`Uninstall ${a.name}`}
-                onclick={() => uninstallApp(a)}
+                title="Backup APK to computer"
+                aria-label={`Backup ${a.name} APK`}
+                onclick={() => void runAppAction(a, 'pull_apk')}
               >
-                <Icon name="trash" size={13} />
+                <Icon name="download" size={13} />
               </button>
+              <button
+                class="icon-sm"
+                title="Force stop"
+                aria-label={`Force stop ${a.name}`}
+                onclick={() => void runAppAction(a, 'force_stop')}
+              >
+                <Icon name="power" size={13} />
+              </button>
+              <button
+                class="icon-sm"
+                title={a.disabled ? 'Re-enable app' : 'Disable app (no root)'}
+                aria-label={a.disabled ? `Enable ${a.name}` : `Disable ${a.name}`}
+                onclick={() => void runAppAction(a, a.disabled ? 'enable' : 'disable')}
+              >
+                <Icon name={a.disabled ? 'eye' : 'eye-off'} size={13} />
+              </button>
+              {#if !a.system}
+                <button
+                  class="icon-sm"
+                  title="Uninstall"
+                  aria-label={`Uninstall ${a.name}`}
+                  onclick={() => uninstallApp(a)}
+                >
+                  <Icon name="trash" size={13} />
+                </button>
+              {/if}
             </div>
           </div>
         {/each}
@@ -951,8 +1040,10 @@
   .lb-img { max-width: 100%; max-height: 70vh; object-fit: contain; margin: 0 auto; border-radius: var(--radius-s); }
 
   /* Apps */
-  .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; max-height: 520px; overflow: auto; }
+  .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; max-height: 520px; overflow: auto; }
   .app-tile { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: var(--radius-s); background: var(--surface-2); border: 1px solid var(--border); }
+  .app-tile.disabled-app { opacity: 0.65; border-style: dashed; }
+  .tag-sm { font-style: normal; font-size: 10.5px; color: var(--text-3); margin-left: 5px; font-weight: 500; }
   .a-info { flex: 1; min-width: 0; display: grid; }
   .a-info strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .a-pkg { font-size: 11px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

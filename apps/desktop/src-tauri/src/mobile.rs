@@ -34,7 +34,9 @@ fn now() -> i64 {
 pub struct MobileState {
     installing: AtomicBool,
     audio_proc: Mutex<Option<(String, Child)>>,
+    mic_proc: Mutex<Option<(String, Child)>>,
     webcam_proc: Mutex<Option<(String, Child)>>,
+    rec_proc: Mutex<Option<(String, PathBuf, Child)>>,
     torch_state: Mutex<HashMap<String, bool>>,
     /// Locally dismissed notification keys (some Android versions disallow shell cancel).
     dismissed_keys: Mutex<HashSet<String>>,
@@ -42,13 +44,15 @@ pub struct MobileState {
 
 impl MobileState {
     pub fn shutdown(&self) {
-        if let Ok(mut g) = self.audio_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
-                let _ = c.kill();
+        for slot in [&self.audio_proc, &self.mic_proc, &self.webcam_proc] {
+            if let Ok(mut g) = slot.lock() {
+                if let Some((_, mut c)) = g.take() {
+                    let _ = c.kill();
+                }
             }
         }
-        if let Ok(mut g) = self.webcam_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
+        if let Ok(mut g) = self.rec_proc.lock() {
+            if let Some((_, _, mut c)) = g.take() {
                 let _ = c.kill();
             }
         }
@@ -93,7 +97,10 @@ pub struct ControlsState {
     pub bluetooth: bool,
     pub hotspot: bool,
     pub audio_forwarding: bool,
+    pub mic_active: bool,
     pub webcam_active: bool,
+    pub recording_active: bool,
+    pub dark_mode: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -193,6 +200,7 @@ pub struct MirrorOptions {
     pub audio: Option<bool>,
     pub start_app: Option<String>,
     pub new_display: Option<bool>,
+    pub display_size: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -248,6 +256,77 @@ pub struct PhonePhoto {
 pub struct PhoneApp {
     pub package: String,
     pub name: String,
+    pub system: bool,
+    pub disabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FsEntry {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub size: u64,
+    pub mtime: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FsListing {
+    pub dir: String,
+    pub entries: Vec<FsEntry>,
+    pub storage_total_kb: u64,
+    pub storage_used_kb: u64,
+    pub storage_avail_kb: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SystemInfo {
+    pub model: String,
+    pub manufacturer: String,
+    pub brand: String,
+    pub device: String,
+    pub android_version: String,
+    pub sdk_level: u32,
+    pub security_patch: String,
+    pub build_id: String,
+    pub kernel: String,
+    pub abi: String,
+    pub hardware: String,
+    pub cpu_cores: u32,
+    pub ram_total_kb: u64,
+    pub ram_avail_kb: u64,
+    pub storage_total_kb: u64,
+    pub storage_used_kb: u64,
+    pub storage_avail_kb: u64,
+    pub battery_level: u8,
+    pub battery_temp_c: f32,
+    pub battery_voltage_mv: u32,
+    pub battery_health: String,
+    pub battery_tech: String,
+    pub battery_charging: bool,
+    pub wifi_ssid: String,
+    pub wifi_ip: String,
+    pub carrier: String,
+    pub airplane_mode: bool,
+    pub screen_size: String,
+    pub screen_density: String,
+    pub dark_mode: bool,
+    pub anim_scale: String,
+    pub show_touches: bool,
+    pub stay_awake_plugged: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ShellOutput {
+    pub stdout: String,
+    pub stderr: String,
+    pub ok: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PortTunnel {
+    pub direction: String,
+    pub local: String,
+    pub remote: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1153,7 +1232,23 @@ pub async fn mob_snapshot(
         .map(|g| g.clone())
         .unwrap_or_default();
     let audio_forwarding = is_child_alive(&state.mobile.audio_proc, &serial);
+    let mic_active = is_child_alive(&state.mobile.mic_proc, &serial);
     let webcam_active = is_child_alive(&state.mobile.webcam_proc, &serial);
+    let recording_active = state
+        .mobile
+        .rec_proc
+        .lock()
+        .ok()
+        .and_then(|mut g| {
+            if let Some((s, _, c)) = g.as_mut() {
+                if matches!(c.try_wait(), Ok(None)) {
+                    return Some(s == &serial);
+                }
+                *g = None;
+            }
+            None
+        })
+        .unwrap_or(false);
     let torch_cached = state
         .mobile
         .torch_state
@@ -1180,6 +1275,7 @@ pub async fn mob_snapshot(
             "echo \"bright=$(settings get system screen_brightness)\"; ",
             "echo \"autobright=$(settings get system screen_brightness_mode)\"; ",
             "echo \"timeout=$(settings get system screen_off_timeout)\"; ",
+            "echo \"night=$(cmd uimode night 2>/dev/null)\"; ",
             "echo \"===AP===\"; ip addr show 2>/dev/null | grep -E 'ap0|swlan0|wlan1' | head -n 2; ",
             "echo \"===BAT===\"; dumpsys battery; ",
             "echo \"===MEDIA===\"; dumpsys media_session; ",
@@ -1245,6 +1341,7 @@ pub async fn mob_snapshot(
         let mut dnd = false;
         let mut wifi = false;
         let mut bluetooth = false;
+        let mut dark_mode = false;
         let mut sd = SoundDisplayState::default();
         for line in section("SET", Some("AP")).lines() {
             if let Some(v) = line.strip_prefix("zen=") {
@@ -1253,6 +1350,8 @@ pub async fn mob_snapshot(
                 wifi = v.trim() == "1" || v.trim() == "2";
             } else if let Some(v) = line.strip_prefix("bt=") {
                 bluetooth = v.trim() == "1";
+            } else if let Some(v) = line.strip_prefix("night=") {
+                dark_mode = v.to_lowercase().contains("yes");
             } else if let Some(v) = line.strip_prefix("bright=") {
                 if let Ok(b) = v.trim().parse::<u8>() {
                     sd.brightness = b;
@@ -1317,7 +1416,10 @@ pub async fn mob_snapshot(
                 bluetooth,
                 hotspot,
                 audio_forwarding,
+                mic_active,
                 webcam_active,
+                recording_active,
+                dark_mode,
             },
             sound_display: sd,
             media,
@@ -1538,7 +1640,12 @@ pub async fn mob_mirror(
     }
     if let Some(ref pkg) = app_pkg {
         if opts.new_display.unwrap_or(true) {
-            cmd.arg("--new-display=880x1920");
+            let dim = opts
+                .display_size
+                .as_deref()
+                .filter(|d| d.contains('x') && d.chars().all(|c| c.is_ascii_digit() || c == 'x'))
+                .unwrap_or("880x1920");
+            cmd.arg(format!("--new-display={dim}"));
         }
         cmd.arg(format!("--start-app={pkg}"));
     }
@@ -2548,17 +2655,69 @@ pub async fn mob_delete_photo(
 }
 
 #[tauri::command]
-pub async fn mob_apps(state: State<'_, AppState>, serial: String) -> CmdResult<Vec<PhoneApp>> {
+pub async fn mob_apps(
+    state: State<'_, AppState>,
+    serial: String,
+    filter: Option<String>,
+) -> CmdResult<Vec<PhoneApp>> {
     let adb = locate_adb(&state)?;
+    let mode = filter.unwrap_or_else(|| "user".into());
     tokio::task::spawn_blocking(move || -> CmdResult<Vec<PhoneApp>> {
-        let out = adb_shell(&adb, &serial, "pm list packages -3", 10)?;
-        let mut apps: Vec<PhoneApp> = out
-            .lines()
-            .filter_map(|l| l.trim().strip_prefix("package:"))
-            .filter(|p| !p.is_empty())
-            .map(|pkg| PhoneApp {
-                package: pkg.to_string(),
-                name: friendly_app_name(pkg),
+        let script = concat!(
+            "echo '===USER==='; pm list packages -3; ",
+            "echo '===DISABLED==='; pm list packages -d; ",
+            "echo '===ALL==='; pm list packages"
+        );
+        let raw = adb_shell(&adb, &serial, script, 12)?;
+        let mut user_set = HashSet::new();
+        let mut disabled_set = HashSet::new();
+        let mut all_pkgs = Vec::new();
+        let mut cur = "";
+        for line in raw.lines() {
+            let l = line.trim();
+            if l == "===USER===" {
+                cur = "user";
+                continue;
+            } else if l == "===DISABLED===" {
+                cur = "disabled";
+                continue;
+            } else if l == "===ALL===" {
+                cur = "all";
+                continue;
+            }
+            if let Some(pkg) = l.strip_prefix("package:") {
+                if pkg.is_empty() {
+                    continue;
+                }
+                match cur {
+                    "user" => {
+                        user_set.insert(pkg.to_string());
+                    }
+                    "disabled" => {
+                        disabled_set.insert(pkg.to_string());
+                    }
+                    "all" => all_pkgs.push(pkg.to_string()),
+                    _ => {}
+                }
+            }
+        }
+        let mut apps: Vec<PhoneApp> = all_pkgs
+            .into_iter()
+            .filter_map(|pkg| {
+                let is_user = user_set.contains(&pkg);
+                let is_disabled = disabled_set.contains(&pkg);
+                let keep = match mode.as_str() {
+                    "system" => !is_user,
+                    "disabled" => is_disabled,
+                    "all" => true,
+                    _ => is_user,
+                };
+                keep.then(|| PhoneApp {
+                    name: friendly_app_name(&pkg),
+                    package: pkg,
+                    system: !is_user,
+                    disabled: is_disabled,
+                })
             })
             .collect();
         apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
@@ -2853,6 +3012,970 @@ pub async fn mob_deck_run(
     }
 }
 
+#[tauri::command]
+pub async fn mob_mic_toggle(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    enabled: bool,
+) -> CmdResult<bool> {
+    if !enabled {
+        if let Ok(mut g) = state.mobile.mic_proc.lock() {
+            if let Some((_, mut c)) = g.take() {
+                let _ = c.kill();
+            }
+        }
+        return Ok(false);
+    }
+    if is_child_alive(&state.mobile.mic_proc, &serial) {
+        return Ok(true);
+    }
+    let scrcpy = locate_scrcpy(&state)?;
+    let adb = locate_adb(&state)?;
+    let mut cmd = hidden_cmd(&scrcpy);
+    if let Some(parent) = scrcpy.parent() {
+        cmd.current_dir(parent);
+    }
+    cmd.env("ADB", &adb)
+        .arg("-s")
+        .arg(&serial)
+        .arg("--no-video")
+        .arg("--no-control")
+        .arg("--audio-source=mic")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Couldn't start phone microphone stream (Android 11+): {e}"))?;
+    *state.mobile.mic_proc.lock().unwrap() = Some((serial.clone(), child));
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "audio",
+        "Phone as microphone",
+        "Streaming phone mic audio to this computer",
+    );
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn mob_record_toggle(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    enabled: bool,
+) -> CmdResult<Option<String>> {
+    if !enabled {
+        let saved = if let Ok(mut g) = state.mobile.rec_proc.lock() {
+            if let Some((_, path, mut c)) = g.take() {
+                let _ = c.kill();
+                let _ = c.wait();
+                Some(path)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if let Some(p) = saved {
+            let p_str = p.to_string_lossy().into_owned();
+            let fname = p
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "recording.mkv".into());
+            record_timeline(
+                &state,
+                &app,
+                &serial,
+                &serial,
+                "mirror",
+                "Screen recording saved",
+                &fname,
+            );
+            return Ok(Some(p_str));
+        }
+        return Ok(None);
+    }
+
+    let scrcpy = locate_scrcpy(&state)?;
+    let adb = locate_adb(&state)?;
+    let dest_dir = phone_save_dir(&state);
+    let _ = std::fs::create_dir_all(&dest_dir);
+    let out_path = dest_dir.join(format!("phone-recording-{}.mkv", now()));
+
+    let mut cmd = hidden_cmd(&scrcpy);
+    if let Some(parent) = scrcpy.parent() {
+        cmd.current_dir(parent);
+    }
+    cmd.env("ADB", &adb)
+        .arg("-s")
+        .arg(&serial)
+        .arg("--no-playback")
+        .arg("--no-control")
+        .arg("--record")
+        .arg(&out_path)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("Couldn't start phone screen recording: {e}"))?;
+    *state.mobile.rec_proc.lock().unwrap() = Some((serial.clone(), out_path, child));
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "mirror",
+        "Recording phone screen",
+        "Saving MKV video to computer",
+    );
+    Ok(None)
+}
+
+#[tauri::command]
+pub async fn mob_swipe(
+    state: State<'_, AppState>,
+    serial: String,
+    direction: String,
+) -> CmdResult<()> {
+    let adb = locate_adb(&state)?;
+    let args = match direction.as_str() {
+        "up" => "input swipe 540 1500 540 500 220",
+        "down" => "input swipe 540 500 540 1500 220",
+        "left" => "input swipe 900 1000 180 1000 220",
+        "right" => "input swipe 180 1000 900 1000 220",
+        "notifications" => "cmd statusbar expand-notifications",
+        "quicksettings" => "cmd statusbar expand-settings",
+        "collapse" => "cmd statusbar collapse",
+        _ => return Err("Unknown gesture.".into()),
+    };
+    tokio::task::spawn_blocking(move || {
+        adb_shell(&adb, &serial, args, 5)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_pull_photos(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    remote_paths: Vec<String>,
+) -> CmdResult<usize> {
+    if remote_paths.is_empty() {
+        return Ok(0);
+    }
+    let adb = locate_adb(&state)?;
+    let dest_dir = phone_save_dir(&state);
+    let s = serial.clone();
+    let count = tokio::task::spawn_blocking(move || -> CmdResult<usize> {
+        let _ = std::fs::create_dir_all(&dest_dir);
+        let mut saved = 0usize;
+        for rp in remote_paths.iter().take(200) {
+            if !rp.starts_with("/sdcard/") {
+                continue;
+            }
+            let name = rp.rsplit('/').next().unwrap_or("photo.jpg");
+            let target = nomnom_core::phone::free_path(&dest_dir, name);
+            let target_str = target.to_string_lossy().into_owned();
+            if run_adb(&adb, &["-s", &s, "pull", rp, &target_str], 45).is_ok() {
+                saved += 1;
+            }
+        }
+        Ok(saved)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    if count > 0 {
+        record_timeline(
+            &state,
+            &app,
+            &serial,
+            &serial,
+            "photo",
+            &format!("Saved {count} photos"),
+            &format!("Copied to {}", phone_save_dir(&state).display()),
+        );
+    }
+    Ok(count)
+}
+
+#[tauri::command]
+pub async fn mob_app_action(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    package: String,
+    action: String,
+) -> CmdResult<String> {
+    if package.trim().is_empty() || !package.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')) {
+        return Err("Invalid package name.".into());
+    }
+    let adb = locate_adb(&state)?;
+    let dest_dir = phone_save_dir(&state);
+    let s = serial.clone();
+    let pkg = package.clone();
+    let act = action.clone();
+    let msg = tokio::task::spawn_blocking(move || -> CmdResult<String> {
+        match act.as_str() {
+            "force_stop" => {
+                adb_shell(&adb, &s, &format!("am force-stop {pkg}"), 6)?;
+                Ok(format!("Force-stopped {}", friendly_app_name(&pkg)))
+            }
+            "clear_data" => {
+                adb_shell(&adb, &s, &format!("pm clear {pkg}"), 10)?;
+                Ok(format!("Cleared cache and data for {}", friendly_app_name(&pkg)))
+            }
+            "disable" => {
+                adb_shell(&adb, &s, &format!("pm disable-user --user 0 {pkg}"), 8)?;
+                Ok(format!("Disabled {}", friendly_app_name(&pkg)))
+            }
+            "enable" => {
+                adb_shell(&adb, &s, &format!("pm enable {pkg}"), 8)?;
+                Ok(format!("Enabled {}", friendly_app_name(&pkg)))
+            }
+            "app_info" => {
+                adb_shell(
+                    &adb,
+                    &s,
+                    &format!("am start -a android.settings.APPLICATION_DETAILS_SETTINGS -d package:{pkg}"),
+                    6,
+                )?;
+                Ok(format!("Opened App Info for {}", friendly_app_name(&pkg)))
+            }
+            "pull_apk" => {
+                let paths_out = adb_shell(&adb, &s, &format!("pm path {pkg}"), 6)?;
+                let apk_path = paths_out
+                    .lines()
+                    .filter_map(|l| l.trim().strip_prefix("package:"))
+                    .next()
+                    .ok_or_else(|| "Couldn't locate APK on phone.".to_string())?;
+                let _ = std::fs::create_dir_all(&dest_dir);
+                let target = nomnom_core::phone::free_path(&dest_dir, &format!("{pkg}.apk"));
+                let target_str = target.to_string_lossy().into_owned();
+                run_adb(&adb, &["-s", &s, "pull", apk_path, &target_str], 90)?;
+                Ok(format!("Backed up APK to {target_str}"))
+            }
+            _ => Err("Unknown app action.".into()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    record_timeline(&state, &app, &serial, &serial, "app", &msg, &package);
+    Ok(msg)
+}
+
+fn clean_sdcard_path(raw: &str) -> CmdResult<String> {
+    let trimmed = raw.trim().replace('\\', "/");
+    let normalized = if trimmed.is_empty() || trimmed == "/" {
+        "/sdcard".to_string()
+    } else if trimmed == "/sdcard" || trimmed.starts_with("/sdcard/") {
+        trimmed.trim_end_matches('/').to_string()
+    } else {
+        return Err("Only paths inside /sdcard can be accessed.".into());
+    };
+    if normalized.split('/').any(|seg| seg == "..") {
+        return Err("Invalid folder path.".into());
+    }
+    Ok(normalized)
+}
+
+fn parse_df_kb(df_out: &str) -> (u64, u64, u64) {
+    for line in df_out.lines().skip(1) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 4 {
+            if let (Ok(total), Ok(used), Ok(avail)) = (
+                parts[1].parse::<u64>(),
+                parts[2].parse::<u64>(),
+                parts[3].parse::<u64>(),
+            ) {
+                return (total, used, avail);
+            }
+        }
+    }
+    (0, 0, 0)
+}
+
+#[tauri::command]
+pub async fn mob_fs_list(
+    state: State<'_, AppState>,
+    serial: String,
+    dir: String,
+) -> CmdResult<FsListing> {
+    let adb = locate_adb(&state)?;
+    let clean = clean_sdcard_path(&dir)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<FsListing> {
+        let q = shell_single_quote(&clean);
+        let script = format!(
+            "echo '===DF==='; df -k /data 2>/dev/null || df -k /sdcard 2>/dev/null; \
+             echo '===LS==='; \
+             if [ -d {q} ]; then \
+               for item in {q}/*; do \
+                 [ -e \"$item\" ] || continue; \
+                 if [ -d \"$item\" ]; then t=D; sz=0; else t=F; sz=$(stat -c '%s' \"$item\" 2>/dev/null || echo 0); fi; \
+                 mt=$(stat -c '%Y' \"$item\" 2>/dev/null || echo 0); \
+                 echo \"$t|$sz|$mt|$item\"; \
+               done; \
+             fi"
+        );
+        let raw = adb_shell(&adb, &serial, &script, 12)?;
+        let (df_part, ls_part) = match raw.split_once("===LS===") {
+            Some((a, b)) => (a, b),
+            None => (raw.as_str(), ""),
+        };
+        let (storage_total_kb, storage_used_kb, storage_avail_kb) =
+            parse_df_kb(df_part.replace("===DF===", "").trim());
+
+        let mut entries = Vec::new();
+        for line in ls_part.lines() {
+            let mut parts = line.splitn(4, '|');
+            let Some(kind) = parts.next() else { continue };
+            let Some(sz_s) = parts.next() else { continue };
+            let Some(mt_s) = parts.next() else { continue };
+            let Some(path) = parts.next() else { continue };
+            if kind != "D" && kind != "F" {
+                continue;
+            }
+            let path = path.trim().to_string();
+            let name = path.rsplit('/').next().unwrap_or(&path).to_string();
+            entries.push(FsEntry {
+                name,
+                path,
+                is_dir: kind == "D",
+                size: sz_s.parse().unwrap_or(0),
+                mtime: mt_s.parse().unwrap_or(0),
+            });
+        }
+        entries.sort_by(|a, b| {
+            b.is_dir
+                .cmp(&a.is_dir)
+                .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        });
+        Ok(FsListing {
+            dir: clean,
+            entries,
+            storage_total_kb,
+            storage_used_kb,
+            storage_avail_kb,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_fs_push(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    dir: String,
+    paths: Vec<String>,
+) -> CmdResult<usize> {
+    let adb = locate_adb(&state)?;
+    let clean = clean_sdcard_path(&dir)?;
+    let s = serial.clone();
+    let target_dir = clean.clone();
+    let sent = tokio::task::spawn_blocking(move || -> CmdResult<usize> {
+        let mut n = 0usize;
+        for p in paths {
+            let lp = Path::new(&p);
+            if !lp.is_file() {
+                continue;
+            }
+            let fname = lp
+                .file_name()
+                .map(|x| x.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "file".into());
+            let remote = format!("{target_dir}/{fname}");
+            run_adb(&adb, &["-s", &s, "push", &p, &remote], 120)?;
+            n += 1;
+        }
+        Ok(n)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    if sent > 0 {
+        record_timeline(
+            &state,
+            &app,
+            &serial,
+            &serial,
+            "file",
+            &format!("Uploaded {sent} {}", if sent == 1 { "file" } else { "files" }),
+            &clean,
+        );
+    }
+    Ok(sent)
+}
+
+#[tauri::command]
+pub async fn mob_fs_pull(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    remote_path: String,
+) -> CmdResult<String> {
+    let clean = clean_sdcard_path(&remote_path)?;
+    let adb = locate_adb(&state)?;
+    let dest_dir = phone_save_dir(&state);
+    let s = serial.clone();
+    let rp = clean.clone();
+    let saved = tokio::task::spawn_blocking(move || -> CmdResult<String> {
+        let _ = std::fs::create_dir_all(&dest_dir);
+        let name = rp.rsplit('/').next().unwrap_or("file");
+        let target = nomnom_core::phone::free_path(&dest_dir, name);
+        let target_str = target.to_string_lossy().into_owned();
+        run_adb(&adb, &["-s", &s, "pull", &rp, &target_str], 120)?;
+        Ok(target_str)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let name = clean.rsplit('/').next().unwrap_or(&clean);
+    record_timeline(&state, &app, &serial, &serial, "file", &format!("Downloaded {name}"), &saved);
+    Ok(saved)
+}
+
+#[tauri::command]
+pub async fn mob_fs_mkdir(
+    state: State<'_, AppState>,
+    serial: String,
+    path: String,
+) -> CmdResult<()> {
+    let clean = clean_sdcard_path(&path)?;
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || {
+        adb_shell(&adb, &serial, &format!("mkdir -p {}", shell_single_quote(&clean)), 6)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_fs_rename(
+    state: State<'_, AppState>,
+    serial: String,
+    from: String,
+    to: String,
+) -> CmdResult<()> {
+    let a = clean_sdcard_path(&from)?;
+    let b = clean_sdcard_path(&to)?;
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || {
+        adb_shell(
+            &adb,
+            &serial,
+            &format!("mv {} {}", shell_single_quote(&a), shell_single_quote(&b)),
+            8,
+        )?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_fs_delete(
+    state: State<'_, AppState>,
+    serial: String,
+    path: String,
+) -> CmdResult<()> {
+    let clean = clean_sdcard_path(&path)?;
+    if clean == "/sdcard" {
+        return Err("Cannot delete the root storage folder.".into());
+    }
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || {
+        adb_shell(&adb, &serial, &format!("rm -rf {}", shell_single_quote(&clean)), 12)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn parse_meminfo_kb(text: &str) -> (u64, u64) {
+    let mut total = 0u64;
+    let mut avail = 0u64;
+    for line in text.lines() {
+        let l = line.trim();
+        if let Some(rest) = l.strip_prefix("MemTotal:") {
+            total = rest.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+        } else if let Some(rest) = l.strip_prefix("MemAvailable:") {
+            avail = rest.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+        }
+    }
+    (total, avail)
+}
+
+#[tauri::command]
+pub async fn mob_system_info(
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<SystemInfo> {
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<SystemInfo> {
+        let script = concat!(
+            "echo '===PROPS==='; ",
+            "echo \"model=$(getprop ro.product.model)\"; ",
+            "echo \"mfr=$(getprop ro.product.manufacturer)\"; ",
+            "echo \"brand=$(getprop ro.product.brand)\"; ",
+            "echo \"device=$(getprop ro.product.device)\"; ",
+            "echo \"rel=$(getprop ro.build.version.release)\"; ",
+            "echo \"sdk=$(getprop ro.build.version.sdk)\"; ",
+            "echo \"patch=$(getprop ro.build.version.security_patch)\"; ",
+            "echo \"build=$(getprop ro.build.display.id)\"; ",
+            "echo \"abi=$(getprop ro.product.cpu.abi)\"; ",
+            "echo \"hw=$(getprop ro.board.platform) $(getprop ro.hardware)\"; ",
+            "echo \"carrier=$(getprop gsm.operator.alpha)\"; ",
+            "echo \"cores=$(nproc 2>/dev/null || echo 0)\"; ",
+            "echo \"kernel=$(uname -r 2>/dev/null)\"; ",
+            "echo \"ip=$(ip route | awk '/wlan0/ && /src/ {print $9; exit}')\"; ",
+            "echo \"airplane=$(settings get global airplane_mode_on)\"; ",
+            "echo \"anim=$(settings get global animator_duration_scale)\"; ",
+            "echo \"touches=$(settings get system show_touches)\"; ",
+            "echo \"stayon=$(settings get global stay_on_while_plugged_in)\"; ",
+            "echo \"night=$(cmd uimode night 2>/dev/null)\"; ",
+            "echo '===WM==='; wm size; wm density; ",
+            "echo '===MEM==='; head -n 5 /proc/meminfo; ",
+            "echo '===DF==='; df -k /data 2>/dev/null || df -k /sdcard 2>/dev/null; ",
+            "echo '===BAT==='; dumpsys battery; ",
+            "echo '===SSID==='; dumpsys wifi 2>/dev/null | grep -m 1 'SSID:'"
+        );
+        let raw = adb_shell(&adb, &serial, script, 10)?;
+        let sec = |tag: &str, next: Option<&str>| -> &str {
+            let m = format!("==={tag}===");
+            let Some(start) = raw.find(&m) else { return "" };
+            let rest = &raw[start + m.len()..];
+            if let Some(n) = next {
+                if let Some(end) = rest.find(&format!("==={n}===")) {
+                    return rest[..end].trim();
+                }
+            }
+            rest.trim()
+        };
+        let mut kv = HashMap::new();
+        for l in sec("PROPS", Some("WM")).lines() {
+            if let Some((k, v)) = l.split_once('=') {
+                kv.insert(k.trim(), v.trim().to_string());
+            }
+        }
+        let get = |k: &str| kv.get(k).cloned().unwrap_or_default();
+
+        let mut screen_size = String::new();
+        let mut screen_density = String::new();
+        for l in sec("WM", Some("MEM")).lines() {
+            if l.contains("size:") {
+                if let Some((_, v)) = l.split_once(':') {
+                    screen_size = v.trim().replace('x', "×");
+                }
+            } else if l.contains("density:") {
+                if let Some((_, v)) = l.split_once(':') {
+                    screen_density = format!("{} dpi", v.trim());
+                }
+            }
+        }
+        let (ram_total_kb, ram_avail_kb) = parse_meminfo_kb(sec("MEM", Some("DF")));
+        let (storage_total_kb, storage_used_kb, storage_avail_kb) = parse_df_kb(sec("DF", Some("BAT")));
+
+        let bat_raw = sec("BAT", Some("SSID"));
+        let bat = parse_battery(bat_raw);
+        let mut voltage_mv = 0u32;
+        let mut health_code = 2u32;
+        let mut tech = String::new();
+        for l in bat_raw.lines() {
+            let t = l.trim();
+            if let Some(v) = t.strip_prefix("voltage:") {
+                let n: u32 = v.trim().parse().unwrap_or(0);
+                voltage_mv = if n > 100_000 { n / 1000 } else { n };
+            } else if let Some(v) = t.strip_prefix("health:") {
+                health_code = v.trim().parse().unwrap_or(2);
+            } else if let Some(v) = t.strip_prefix("technology:") {
+                tech = v.trim().to_string();
+            }
+        }
+        let battery_health = match health_code {
+            2 => "Good",
+            3 => "Overheat",
+            4 => "Dead",
+            5 => "Over voltage",
+            7 => "Cold",
+            _ => "Unknown",
+        }
+        .to_string();
+
+        let ssid_line = sec("SSID", None);
+        let wifi_ssid = ssid_line
+            .split("SSID:")
+            .nth(1)
+            .map(|s| s.split(',').next().unwrap_or("").trim().trim_matches('"').to_string())
+            .filter(|s| !s.is_empty() && s != "<unknown ssid>")
+            .unwrap_or_default();
+
+        Ok(SystemInfo {
+            model: get("model"),
+            manufacturer: get("mfr"),
+            brand: get("brand"),
+            device: get("device"),
+            android_version: get("rel"),
+            sdk_level: get("sdk").parse().unwrap_or(0),
+            security_patch: get("patch"),
+            build_id: get("build"),
+            kernel: get("kernel"),
+            abi: get("abi"),
+            hardware: get("hw").trim().to_string(),
+            cpu_cores: get("cores").parse().unwrap_or(0),
+            ram_total_kb,
+            ram_avail_kb,
+            storage_total_kb,
+            storage_used_kb,
+            storage_avail_kb,
+            battery_level: bat.level,
+            battery_temp_c: bat.temp_c,
+            battery_voltage_mv: voltage_mv,
+            battery_health,
+            battery_tech: tech,
+            battery_charging: bat.charging,
+            wifi_ssid,
+            wifi_ip: get("ip"),
+            carrier: get("carrier"),
+            airplane_mode: get("airplane") == "1",
+            screen_size,
+            screen_density,
+            dark_mode: get("night").to_lowercase().contains("yes"),
+            anim_scale: {
+                let a = get("anim");
+                if a.is_empty() || a == "null" { "1.0".into() } else { a }
+            },
+            show_touches: get("touches") == "1",
+            stay_awake_plugged: get("stayon") != "0" && !get("stayon").is_empty() && get("stayon") != "null",
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_set_tweak(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    tweak: String,
+    value: String,
+) -> CmdResult<String> {
+    let adb = locate_adb(&state)?;
+    let s = serial.clone();
+    let t = tweak.clone();
+    let v = value.clone();
+    let note = tokio::task::spawn_blocking(move || -> CmdResult<String> {
+        match t.as_str() {
+            "dark_mode" => {
+                let yes = v == "on" || v == "true" || v == "yes";
+                adb_shell(&adb, &s, &format!("cmd uimode night {}", if yes { "yes" } else { "no" }), 5)?;
+                Ok(if yes { "Dark mode enabled".into() } else { "Light mode enabled".into() })
+            }
+            "anim_scale" => {
+                let scale = match v.as_str() {
+                    "0" | "0.0" => "0.0",
+                    "0.5" => "0.5",
+                    "1" | "1.0" => "1.0",
+                    "1.5" => "1.5",
+                    _ => return Err("Unsupported animation scale.".into()),
+                };
+                adb_shell(
+                    &adb,
+                    &s,
+                    &format!(
+                        "settings put global window_animation_scale {scale}; \
+                         settings put global transition_animation_scale {scale}; \
+                         settings put global animator_duration_scale {scale}"
+                    ),
+                    6,
+                )?;
+                Ok(format!("Animation speed set to {scale}x"))
+            }
+            "density" => {
+                if v == "reset" {
+                    adb_shell(&adb, &s, "wm density reset", 5)?;
+                    Ok("Display density reset to default".into())
+                } else {
+                    let dpi: u32 = v.parse().map_err(|_| "Enter a valid DPI number (e.g. 420).")?;
+                    if !(160..=720).contains(&dpi) {
+                        return Err("Choose a safe DPI between 160 and 720.".into());
+                    }
+                    adb_shell(&adb, &s, &format!("wm density {dpi}"), 5)?;
+                    Ok(format!("Display density set to {dpi} dpi"))
+                }
+            }
+            "size" => {
+                if v == "reset" {
+                    adb_shell(&adb, &s, "wm size reset", 5)?;
+                    Ok("Display resolution reset to default".into())
+                } else {
+                    let clean = v.replace('×', "x");
+                    let ok = clean
+                        .split_once('x')
+                        .and_then(|(w, h)| Some((w.parse::<u32>().ok()?, h.parse::<u32>().ok()?)))
+                        .is_some_and(|(w, h)| (480..=3840).contains(&w) && (480..=3840).contains(&h));
+                    if !ok {
+                        return Err("Enter resolution like 1080x2340.".into());
+                    }
+                    adb_shell(&adb, &s, &format!("wm size {clean}"), 5)?;
+                    Ok(format!("Display resolution set to {clean}"))
+                }
+            }
+            "show_touches" => {
+                let on = v == "on" || v == "true";
+                adb_shell(&adb, &s, &format!("settings put system show_touches {}", if on { 1 } else { 0 }), 5)?;
+                Ok(if on { "Show touches enabled".into() } else { "Show touches disabled".into() })
+            }
+            "stay_awake" => {
+                let on = v == "on" || v == "true";
+                adb_shell(&adb, &s, &format!("svc power stayon {}", if on { "usb" } else { "false" }), 5)?;
+                Ok(if on { "Stay awake while charging enabled".into() } else { "Stay awake disabled".into() })
+            }
+            "airplane" => {
+                let on = v == "on" || v == "true";
+                adb_shell(&adb, &s, &format!("cmd connectivity airplane-mode {}", if on { "enable" } else { "disable" }), 5)?;
+                Ok(if on { "Airplane mode enabled".into() } else { "Airplane mode disabled".into() })
+            }
+            _ => Err("Unknown system tweak.".into()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    record_timeline(&state, &app, &serial, &serial, "control", &note, &tweak);
+    Ok(note)
+}
+
+#[tauri::command]
+pub async fn mob_power(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    mode: String,
+) -> CmdResult<String> {
+    let adb = locate_adb(&state)?;
+    let s = serial.clone();
+    let m = mode.clone();
+    let note = tokio::task::spawn_blocking(move || -> CmdResult<String> {
+        match m.as_str() {
+            "wake" => {
+                adb_shell(&adb, &s, "input keyevent 224", 4)?;
+                Ok("Woke phone screen".into())
+            }
+            "sleep" => {
+                adb_shell(&adb, &s, "input keyevent 223", 4)?;
+                Ok("Locked phone screen".into())
+            }
+            "reboot" => {
+                run_adb(&adb, &["-s", &s, "reboot"], 8)?;
+                Ok("Rebooting phone…".into())
+            }
+            "recovery" => {
+                run_adb(&adb, &["-s", &s, "reboot", "recovery"], 8)?;
+                Ok("Rebooting into recovery…".into())
+            }
+            "bootloader" => {
+                run_adb(&adb, &["-s", &s, "reboot", "bootloader"], 8)?;
+                Ok("Rebooting into bootloader…".into())
+            }
+            _ => Err("Unknown power action.".into()),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    record_timeline(&state, &app, &serial, &serial, "control", &note, &mode);
+    Ok(note)
+}
+
+#[tauri::command]
+pub async fn mob_shell(
+    state: State<'_, AppState>,
+    serial: String,
+    command: String,
+) -> CmdResult<ShellOutput> {
+    if command.trim().is_empty() {
+        return Ok(ShellOutput { stdout: String::new(), stderr: String::new(), ok: true });
+    }
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<ShellOutput> {
+        let mut child = hidden_cmd(&adb)
+            .args(["-s", &serial, "shell", &command])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Couldn't start adb shell: {e}"))?;
+        let deadline = Instant::now() + Duration::from_secs(15);
+        loop {
+            match child.try_wait() {
+                Ok(Some(_)) => break,
+                Ok(None) if Instant::now() >= deadline => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Ok(ShellOutput {
+                        stdout: String::new(),
+                        stderr: "Command timed out after 15 seconds.".into(),
+                        ok: false,
+                    });
+                }
+                Ok(None) => std::thread::sleep(Duration::from_millis(25)),
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+        let out = child.wait_with_output().map_err(|e| e.to_string())?;
+        Ok(ShellOutput {
+            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+            ok: out.status.success(),
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_logcat(
+    state: State<'_, AppState>,
+    serial: String,
+    level: Option<String>,
+    lines: Option<u32>,
+) -> CmdResult<String> {
+    let adb = locate_adb(&state)?;
+    let lv = match level.as_deref() {
+        Some("E") => "E",
+        Some("W") => "W",
+        Some("I") => "I",
+        _ => "V",
+    };
+    let n = lines.unwrap_or(150).clamp(20, 500);
+    tokio::task::spawn_blocking(move || {
+        adb_shell(&adb, &serial, &format!("logcat -d -t {n} *:{lv}"), 10)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_logcat_clear(state: State<'_, AppState>, serial: String) -> CmdResult<()> {
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || {
+        adb_shell(&adb, &serial, "logcat -c", 5)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn parse_tunnel_list(raw: &str, serial: &str, direction: &str) -> Vec<PortTunnel> {
+    raw.lines()
+        .filter_map(|l| {
+            let parts: Vec<&str> = l.split_whitespace().collect();
+            if parts.len() >= 3 && (parts[0] == serial || parts[0].contains(serial)) {
+                Some(PortTunnel {
+                    direction: direction.into(),
+                    local: parts[1].into(),
+                    remote: parts[2].into(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub async fn mob_tunnels_list(
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<Vec<PortTunnel>> {
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<Vec<PortTunnel>> {
+        let rev = run_adb(&adb, &["-s", &serial, "reverse", "--list"], 5).unwrap_or_default();
+        let fwd = run_adb(&adb, &["-s", &serial, "forward", "--list"], 5).unwrap_or_default();
+        let mut all = parse_tunnel_list(&rev, &serial, "reverse");
+        all.extend(parse_tunnel_list(&fwd, &serial, "forward"));
+        Ok(all)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_tunnel_add(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    direction: String,
+    local_port: u16,
+    remote_port: u16,
+) -> CmdResult<Vec<PortTunnel>> {
+    let adb = locate_adb(&state)?;
+    let dir = if direction == "forward" { "forward" } else { "reverse" };
+    let s = serial.clone();
+    tokio::task::spawn_blocking(move || -> CmdResult<()> {
+        let a = format!("tcp:{remote_port}");
+        let b = format!("tcp:{local_port}");
+        if dir == "reverse" {
+            run_adb(&adb, &["-s", &s, "reverse", &a, &b], 6)?;
+        } else {
+            run_adb(&adb, &["-s", &s, "forward", &b, &a], 6)?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "connect",
+        &format!("Port {dir} :{local_port} ↔ :{remote_port}"),
+        if dir == "reverse" {
+            "Phone can open this computer's localhost"
+        } else {
+            "Computer can open phone's localhost"
+        },
+    );
+    mob_tunnels_list(state, serial).await
+}
+
+#[tauri::command]
+pub async fn mob_tunnel_remove(
+    state: State<'_, AppState>,
+    serial: String,
+    direction: String,
+    spec: String,
+) -> CmdResult<Vec<PortTunnel>> {
+    let adb = locate_adb(&state)?;
+    let dir = if direction == "forward" { "forward" } else { "reverse" };
+    let s = serial.clone();
+    tokio::task::spawn_blocking(move || -> CmdResult<()> {
+        if spec == "all" {
+            let _ = run_adb(&adb, &["-s", &s, dir, "--remove-all"], 5);
+        } else {
+            let _ = run_adb(&adb, &["-s", &s, dir, "--remove", &spec], 5);
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    mob_tunnels_list(state, serial).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2920,5 +4043,16 @@ NotificationRecord(0x2 pkg=android user=UserHandle{0} id=2 tag=null key=0|androi
     fn escapes_adb_text_safely() {
         assert_eq!(escape_adb_input_text("hello world!"), "hello%sworld\\!");
         assert_eq!(escape_adb_input_text("a&b;c"), "a\\&b\\;c");
+    }
+
+    #[test]
+    fn validates_sdcard_paths_and_parsers() {
+        assert_eq!(clean_sdcard_path("/sdcard/Download/").unwrap(), "/sdcard/Download");
+        assert!(clean_sdcard_path("/sdcard/../etc").is_err());
+        assert!(clean_sdcard_path("/system/bin").is_err());
+        let (tot, used, avail) = parse_df_kb("Filesystem 1K-blocks Used Available Use% Mounted\n/dev/block 120000 80000 40000 67% /data");
+        assert_eq!((tot, used, avail), (120000, 80000, 40000));
+        let (mt, ma) = parse_meminfo_kb("MemTotal:        8192000 kB\nMemFree:         1000000 kB\nMemAvailable:    3200000 kB\n");
+        assert_eq!((mt, ma), (8192000, 3200000));
     }
 }

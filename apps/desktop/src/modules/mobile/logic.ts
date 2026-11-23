@@ -5,7 +5,10 @@ export type MobileTab =
   | 'messages'
   | 'calls'
   | 'photos'
+  | 'files'
   | 'apps'
+  | 'system'
+  | 'console'
   | 'deck'
   | 'guide'
   | 'settings';

@@ -159,4 +159,11 @@ export const FEATURES: Entry[] = [
   ['Mark as read', 'Marcar como lida', 'Marcar como leída'],
   ['Install Android tools', 'Instalar ferramentas Android', 'Instalar herramientas Android'],
   ['Switch to Wi-Fi', 'Mudar para Wi-Fi', 'Cambiar a Wi-Fi'],
+  ['Phone as microphone', 'Celular como microfone', 'Móvil como micrófono'],
+  ['Record screen', 'Gravar tela', 'Grabar pantalla'],
+  ['Stop recording', 'Parar gravação', 'Detener grabación'],
+  ['Files', 'Arquivos', 'Archivos'],
+  ['System', 'Sistema', 'Sistema'],
+  ['Console', 'Console', 'Consola'],
+  ['Dark mode', 'Modo escuro', 'Modo oscuro'],
 ];

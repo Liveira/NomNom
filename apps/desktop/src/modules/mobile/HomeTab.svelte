@@ -29,6 +29,9 @@
     onMediaAction,
     onToggleControl,
     onAudioToggle,
+    onMicToggle,
+    onRecordToggle,
+    onSwipe,
     onOpenSoundDisplay,
     onContinuityCamera,
     onWebcam,
@@ -51,9 +54,12 @@
     onMediaAction: (act: 'play_pause' | 'next' | 'prev') => void;
     onToggleControl: (ctrl: 'dnd' | 'torch' | 'wifi' | 'bluetooth' | 'hotspot', next: boolean) => void;
     onAudioToggle: (next: boolean) => void;
+    onMicToggle: (next: boolean) => void;
+    onRecordToggle: () => void;
+    onSwipe: (dir: 'up' | 'down' | 'left' | 'right' | 'notifications' | 'quicksettings') => void;
     onOpenSoundDisplay: () => void;
     onContinuityCamera: () => void;
-    onWebcam: () => void;
+    onWebcam: (facing: 'back' | 'front') => void;
     onTypeText: (text: string) => Promise<void>;
     onKeyEvent: (key: string) => void;
     onNotificationAction: (
@@ -70,6 +76,7 @@
   let replyKey = $state<string | null>(null);
   let replyDraft = $state('');
   let menuKey = $state<string | null>(null);
+  let camFacing = $state<'back' | 'front'>('back');
 
   const connected = $derived(!!device && device.state === 'device');
   const media = $derived(snapshot?.media ?? null);
@@ -85,7 +92,10 @@
     bluetooth: false,
     hotspot: false,
     audio_forwarding: false,
+    mic_active: false,
     webcam_active: false,
+    recording_active: false,
+    dark_mode: false,
   });
   const notifs = $derived(snapshot?.notifications ?? []);
   const recentTimeline = $derived(timeline.slice(0, 5));
@@ -507,6 +517,19 @@
           onchange={(v) => onAudioToggle(v)}
         />
       </div>
+
+      <div class="speaker-row">
+        <span class="sp-label">
+          <Icon name="mic" size={16} />
+          <span>Phone as microphone</span>
+        </span>
+        <Switch
+          checked={controls.mic_active}
+          disabled={!connected}
+          label="Phone as microphone"
+          onchange={(v) => onMicToggle(v)}
+        />
+      </div>
     </section>
 
     <!-- Continuity Camera + Webcam Row -->
@@ -525,35 +548,61 @@
         </span>
       </button>
 
-      <button
-        class="card cam-card"
-        class:active={controls.webcam_active}
-        disabled={!connected || busyAction === 'webcam'}
-        onclick={onWebcam}
-      >
+      <div class="card cam-card" class:active={controls.webcam_active}>
         <div class="qtop">
-          <span class="qmain-ico static"><Icon name="video" size={17} /></span>
+          <button
+            class="qmain-ico"
+            disabled={!connected || busyAction === 'webcam'}
+            aria-label="Phone as webcam"
+            onclick={() => onWebcam(camFacing)}
+          >
+            <Icon name="video" size={17} />
+          </button>
+          <button
+            class="face-pill"
+            disabled={!connected}
+            title="Switch front or back camera"
+            onclick={() => (camFacing = camFacing === 'back' ? 'front' : 'back')}
+          >
+            {camFacing === 'back' ? 'Back' : 'Front'}
+          </button>
         </div>
-        <span class="cam-title">
+        <button
+          class="qlabel"
+          disabled={!connected || busyAction === 'webcam'}
+          onclick={() => onWebcam(camFacing)}
+        >
           {controls.webcam_active ? 'Stop webcam' : 'Phone as webcam'}
-        </span>
-      </button>
+        </button>
+      </div>
     </section>
 
-    <!-- Type on Phone Card -->
+    <!-- Record Screen + Type on Phone Card -->
     <section class="card type-card">
       <div class="type-head">
         <span class="type-left">
           <span class="qmain-ico static sm"><Icon name="keyboard" size={16} /></span>
-          <strong>Type on phone</strong>
+          <strong>Type &amp; remote control</strong>
         </span>
-        <button
-          class="start-btn"
-          disabled={!connected}
-          onclick={() => (typingOpen = !typingOpen)}
-        >
-          {typingOpen ? 'Close' : 'Start'}
-        </button>
+        <div class="head-actions">
+          <button
+            class="start-btn"
+            class:rec-btn={controls.recording_active}
+            disabled={!connected}
+            title="Record phone screen to MKV video"
+            onclick={onRecordToggle}
+          >
+            <Icon name="record" size={13} />
+            {controls.recording_active ? 'Stop rec' : 'Rec'}
+          </button>
+          <button
+            class="start-btn"
+            disabled={!connected}
+            onclick={() => (typingOpen = !typingOpen)}
+          >
+            {typingOpen ? 'Close' : 'Start'}
+          </button>
+        </div>
       </div>
 
       {#if typingOpen && connected}
@@ -577,6 +626,12 @@
           <button class="kbtn" onclick={() => onKeyEvent('backspace')}>Backspace</button>
           <button class="kbtn" onclick={() => onKeyEvent('back')}>Back</button>
           <button class="kbtn" onclick={() => onKeyEvent('home')}>Home</button>
+          <button class="kbtn" onclick={() => onKeyEvent('recents')}>Recents</button>
+          <button class="kbtn" onclick={() => onKeyEvent('vol_down')}>Vol −</button>
+          <button class="kbtn" onclick={() => onKeyEvent('vol_up')}>Vol +</button>
+          <button class="kbtn" onclick={() => onSwipe('up')}>Swipe ↑</button>
+          <button class="kbtn" onclick={() => onSwipe('down')}>Swipe ↓</button>
+          <button class="kbtn" onclick={() => onSwipe('notifications')}>Shade</button>
         </div>
       {/if}
     </section>
@@ -1070,8 +1125,41 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding-top: 12px;
+    padding-top: 10px;
+    margin-top: 8px;
     border-top: 1px solid var(--border);
+  }
+  .face-pill {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
+    padding: 2px 8px;
+    border-radius: var(--radius-xs);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .face-pill:hover:not(:disabled) {
+    background: var(--surface-3);
+    color: var(--text);
+  }
+  .start-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 5px 11px;
+    border-radius: var(--radius-s);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .start-btn.rec-btn {
+    background: var(--danger);
+    border-color: transparent;
+    color: #fff;
   }
   .sp-label {
     display: inline-flex;

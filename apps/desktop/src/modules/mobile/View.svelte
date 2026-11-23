@@ -22,6 +22,7 @@
   } from '../../lib/ipc';
   import HomeTab from './HomeTab.svelte';
   import Modals from './Modals.svelte';
+  import PowerTabs from './PowerTabs.svelte';
   import SubTabs from './SubTabs.svelte';
   import type { MobileTab } from './logic';
 
@@ -30,7 +31,10 @@
     { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'calls', label: 'Calls', icon: 'phone' },
     { id: 'photos', label: 'Photos', icon: 'image' },
+    { id: 'files', label: 'Files', icon: 'folder' },
     { id: 'apps', label: 'Apps', icon: 'grid' },
+    { id: 'system', label: 'System', icon: 'cpu' },
+    { id: 'console', label: 'Console', icon: 'terminal' },
     { id: 'deck', label: 'Deck', icon: 'layers' },
     { id: 'guide', label: 'Guide', icon: 'book' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -140,13 +144,13 @@
     }
   }
 
-  async function runMirror(startApp?: string) {
+  async function runMirror(startApp?: string, displaySize?: string) {
     if (!activeDevice || activeDevice.state !== 'device') return;
     busyAction = 'mirror';
     try {
       await mobileIpc.mirror(activeDevice.serial, {
         ...mirrorOpts,
-        ...(startApp ? { startApp, newDisplay: true } : {}),
+        ...(startApp ? { startApp, newDisplay: true, displaySize } : {}),
       });
       showNotice(startApp ? 'Opened app window' : 'Screen mirroring started');
     } catch (e) {
@@ -240,6 +244,43 @@
     }
   }
 
+  async function toggleMic(next: boolean) {
+    if (!activeDevice || activeDevice.state !== 'device') return;
+    try {
+      const active = await mobileIpc.micToggle(activeDevice.serial, next);
+      showNotice(active ? 'Phone microphone stream active' : 'Phone microphone stopped');
+      await refreshAll(true);
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
+  async function toggleRecord() {
+    if (!activeDevice || activeDevice.state !== 'device') return;
+    const currentlyRec = snapshot?.controls.recording_active ?? false;
+    try {
+      const saved = await mobileIpc.recordToggle(activeDevice.serial, !currentlyRec);
+      if (saved) {
+        showNotice(`Recording saved: ${saved}`);
+        void openPath(saved).catch(() => {});
+      } else {
+        showNotice('Recording phone screen to MKV…');
+      }
+      await refreshAll(true);
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
+  async function runSwipe(dir: 'up' | 'down' | 'left' | 'right' | 'notifications' | 'quicksettings') {
+    if (!activeDevice || activeDevice.state !== 'device') return;
+    try {
+      await mobileIpc.swipe(activeDevice.serial, dir);
+    } catch (e) {
+      showError(String(e));
+    }
+  }
+
   async function continuityCamera() {
     if (!activeDevice || activeDevice.state !== 'device') return;
     busyAction = 'camera';
@@ -254,12 +295,12 @@
     }
   }
 
-  async function toggleWebcam() {
+  async function toggleWebcam(facing: 'back' | 'front' = 'back') {
     if (!activeDevice || activeDevice.state !== 'device') return;
     busyAction = 'webcam';
     try {
-      const on = await mobileIpc.webcam(activeDevice.serial, 'back');
-      showNotice(on ? 'Phone webcam stream started' : 'Phone webcam stopped');
+      const on = await mobileIpc.webcam(activeDevice.serial, facing);
+      showNotice(on ? `Phone webcam (${facing}) started` : 'Phone webcam stopped');
       await refreshAll(true);
     } catch (e) {
       showError(String(e));
@@ -343,14 +384,20 @@
 
   const COMMANDS = [
     { id: 'mirror', label: 'Mirror screen', hint: 'Open live phone screen window via scrcpy', icon: 'cast' },
+    { id: 'record', label: 'Record phone screen', hint: 'Start or stop recording the phone display to MKV', icon: 'record' },
     { id: 'files', label: 'Send files', hint: 'Push files from this computer to /Download/NomNom', icon: 'send' },
     { id: 'clipboard', label: 'Send clipboard', hint: 'Send text or open copied URL on your phone', icon: 'clipboard' },
     { id: 'find', label: 'Find phone', hint: 'Wake, unmute and ring your phone', icon: 'bell-ring' },
     { id: 'camera', label: 'Continuity Camera', hint: 'Open camera on phone and pull the photo here', icon: 'camera' },
     { id: 'webcam', label: 'Phone as webcam', hint: 'Stream your phone camera (Android 12+)', icon: 'video' },
+    { id: 'mic', label: 'Phone as microphone', hint: 'Stream phone microphone audio to this computer', icon: 'mic' },
     { id: 'screenshot', label: 'Phone screenshot', hint: 'Capture the phone screen immediately', icon: 'image' },
+    { id: 'dark', label: 'Toggle phone dark mode', hint: 'Switch Android light/dark theme right away', icon: 'moon' },
     { id: 'sound', label: 'Sound & display', hint: 'Adjust volumes, brightness and screen timeout', icon: 'sliders' },
     { id: 'pair', label: 'Pair over Wi-Fi', hint: 'Connect an Android phone without USB cable', icon: 'wifi' },
+    { id: 'tab-files', label: 'Open Phone Files explorer', hint: 'Browse, upload and download /sdcard files', icon: 'folder' },
+    { id: 'tab-system', label: 'Open System & Tweaks', hint: 'Hardware, RAM, DPI, animations and reboot options', icon: 'cpu' },
+    { id: 'tab-console', label: 'Open ADB Shell & Logcat', hint: 'Run commands, read logcat and set port tunnels', icon: 'terminal' },
     { id: 'lock', label: 'Lock phone screen', hint: 'Put the phone display to sleep', icon: 'lock' },
     { id: 'wake', label: 'Wake phone screen', hint: 'Turn the phone display on', icon: 'sun' },
   ];
@@ -358,14 +405,30 @@
   function runCommand(id: string) {
     switch (id) {
       case 'mirror': void runMirror(); break;
+      case 'record': void toggleRecord(); break;
       case 'files': void sendFiles(); break;
       case 'clipboard': void sendClipboard(); break;
       case 'find': void findPhone(); break;
       case 'camera': void continuityCamera(); break;
-      case 'webcam': void toggleWebcam(); break;
+      case 'webcam': void toggleWebcam('back'); break;
+      case 'mic': void toggleMic(!(snapshot?.controls.mic_active ?? false)); break;
       case 'screenshot': void takeScreenshot(); break;
+      case 'dark':
+        if (activeDevice && activeDevice.state === 'device') {
+          void mobileIpc
+            .setTweak(activeDevice.serial, 'dark_mode', snapshot?.controls.dark_mode ? 'off' : 'on')
+            .then((m) => {
+              showNotice(m);
+              void refreshAll(true);
+            })
+            .catch((e) => showError(String(e)));
+        }
+        break;
       case 'sound': modal = 'sound'; break;
       case 'pair': modal = 'pair'; break;
+      case 'tab-files': tab = 'files'; break;
+      case 'tab-system': tab = 'system'; break;
+      case 'tab-console': tab = 'console'; break;
       case 'lock': void sendKey('sleep'); break;
       case 'wake': void sendKey('wakeup'); break;
     }
@@ -493,14 +556,26 @@
         onMediaAction={(act) => void mediaAction(act)}
         onToggleControl={(ctrl, next) => void toggleControl(ctrl, next)}
         onAudioToggle={(next) => void toggleAudio(next)}
+        onMicToggle={(next) => void toggleMic(next)}
+        onRecordToggle={() => void toggleRecord()}
+        onSwipe={(dir) => void runSwipe(dir)}
         onOpenSoundDisplay={() => (modal = 'sound')}
         onContinuityCamera={() => void continuityCamera()}
-        onWebcam={() => void toggleWebcam()}
+        onWebcam={(facing) => void toggleWebcam(facing)}
         onTypeText={typeText}
         onKeyEvent={(k) => void sendKey(k)}
         onNotificationAction={(n, a, r) => void notificationAction(n, a, r)}
         onOpenHistory={() => (modal = 'timeline')}
         onOpenPair={() => (modal = 'pair')}
+      />
+    {:else if tab === 'files' || tab === 'system' || tab === 'console'}
+      <PowerTabs
+        {tab}
+        device={activeDevice}
+        recordingActive={snapshot?.controls.recording_active ?? false}
+        onRecordToggle={() => void toggleRecord()}
+        onNotice={showNotice}
+        onError={showError}
       />
     {:else}
       <SubTabs
@@ -514,7 +589,7 @@
         onInstallTools={() => void installTools()}
         onOpenPair={() => (modal = 'pair')}
         onUnmuteApp={(pkg) => void unmuteApp(pkg)}
-        onMirrorApp={(pkg) => void runMirror(pkg)}
+        onMirrorApp={(pkg, size) => void runMirror(pkg, size)}
         onScreenshot={() => void takeScreenshot()}
       />
     {/if}

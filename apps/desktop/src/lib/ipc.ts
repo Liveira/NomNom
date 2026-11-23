@@ -1685,7 +1685,10 @@ export interface MobileControls {
   bluetooth: boolean;
   hotspot: boolean;
   audio_forwarding: boolean;
+  mic_active: boolean;
   webcam_active: boolean;
+  recording_active: boolean;
+  dark_mode: boolean;
 }
 export interface MobileSoundDisplay {
   media_vol: number;
@@ -1753,6 +1756,7 @@ export interface MobileMirrorOptions {
   audio?: boolean;
   startApp?: string;
   newDisplay?: boolean;
+  displaySize?: string;
 }
 export interface MobileTimelineEntry {
   id: number;
@@ -1796,6 +1800,67 @@ export interface MobilePhoto {
 export interface MobileApp {
   package: string;
   name: string;
+  system: boolean;
+  disabled: boolean;
+}
+export interface MobileFsEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  size: number;
+  mtime: number;
+}
+export interface MobileFsListing {
+  dir: string;
+  entries: MobileFsEntry[];
+  storage_total_kb: number;
+  storage_used_kb: number;
+  storage_avail_kb: number;
+}
+export interface MobileSystemInfo {
+  model: string;
+  manufacturer: string;
+  brand: string;
+  device: string;
+  android_version: string;
+  sdk_level: number;
+  security_patch: string;
+  build_id: string;
+  kernel: string;
+  abi: string;
+  hardware: string;
+  cpu_cores: number;
+  ram_total_kb: number;
+  ram_avail_kb: number;
+  storage_total_kb: number;
+  storage_used_kb: number;
+  storage_avail_kb: number;
+  battery_level: number;
+  battery_temp_c: number;
+  battery_voltage_mv: number;
+  battery_health: string;
+  battery_tech: string;
+  battery_charging: boolean;
+  wifi_ssid: string;
+  wifi_ip: string;
+  carrier: string;
+  airplane_mode: boolean;
+  screen_size: string;
+  screen_density: string;
+  dark_mode: boolean;
+  anim_scale: string;
+  show_touches: boolean;
+  stay_awake_plugged: boolean;
+}
+export interface MobileShellOutput {
+  stdout: string;
+  stderr: string;
+  ok: boolean;
+}
+export interface MobilePortTunnel {
+  direction: 'reverse' | 'forward' | string;
+  local: string;
+  remote: string;
 }
 export interface MobileCapturedImage {
   path: string;
@@ -1857,13 +1922,64 @@ export const mobileIpc = {
     invoke<string>('mob_pull_photo', { serial, remotePath }),
   deletePhoto: (serial: string, remotePath: string) =>
     invoke<void>('mob_delete_photo', { serial, remotePath }),
-  apps: (serial: string) => invoke<MobileApp[]>('mob_apps', { serial }),
+  apps: (serial: string, filter: 'user' | 'system' | 'disabled' | 'all' = 'user') =>
+    invoke<MobileApp[]>('mob_apps', { serial, filter }),
   launchApp: (serial: string, pkg: string, mirrored: boolean) =>
     invoke<void>('mob_launch_app', { serial, package: pkg, mirrored }),
+  appAction: (
+    serial: string,
+    pkg: string,
+    action: 'force_stop' | 'clear_data' | 'disable' | 'enable' | 'app_info' | 'pull_apk',
+  ) => invoke<string>('mob_app_action', { serial, package: pkg, action }),
   installApk: (serial: string, path: string) =>
     invoke<string>('mob_install_apk', { serial, path }),
   uninstallApp: (serial: string, pkg: string) =>
     invoke<string>('mob_uninstall_app', { serial, package: pkg }),
+  micToggle: (serial: string, enabled: boolean) =>
+    invoke<boolean>('mob_mic_toggle', { serial, enabled }),
+  recordToggle: (serial: string, enabled: boolean) =>
+    invoke<string | null>('mob_record_toggle', { serial, enabled }),
+  swipe: (
+    serial: string,
+    direction: 'up' | 'down' | 'left' | 'right' | 'notifications' | 'quicksettings' | 'collapse',
+  ) => invoke<void>('mob_swipe', { serial, direction }),
+  pullPhotos: (serial: string, remotePaths: string[]) =>
+    invoke<number>('mob_pull_photos', { serial, remotePaths }),
+  fsList: (serial: string, dir: string) =>
+    invoke<MobileFsListing>('mob_fs_list', { serial, dir }),
+  fsPush: (serial: string, dir: string, paths: string[]) =>
+    invoke<number>('mob_fs_push', { serial, dir, paths }),
+  fsPull: (serial: string, remotePath: string) =>
+    invoke<string>('mob_fs_pull', { serial, remotePath }),
+  fsMkdir: (serial: string, path: string) =>
+    invoke<void>('mob_fs_mkdir', { serial, path }),
+  fsRename: (serial: string, from: string, to: string) =>
+    invoke<void>('mob_fs_rename', { serial, from, to }),
+  fsDelete: (serial: string, path: string) =>
+    invoke<void>('mob_fs_delete', { serial, path }),
+  systemInfo: (serial: string) =>
+    invoke<MobileSystemInfo>('mob_system_info', { serial }),
+  setTweak: (
+    serial: string,
+    tweak: 'dark_mode' | 'anim_scale' | 'density' | 'size' | 'show_touches' | 'stay_awake' | 'airplane',
+    value: string,
+  ) => invoke<string>('mob_set_tweak', { serial, tweak, value }),
+  power: (serial: string, mode: 'wake' | 'sleep' | 'reboot' | 'recovery' | 'bootloader') =>
+    invoke<string>('mob_power', { serial, mode }),
+  shell: (serial: string, command: string) =>
+    invoke<MobileShellOutput>('mob_shell', { serial, command }),
+  logcat: (serial: string, level: 'V' | 'I' | 'W' | 'E' = 'W', lines = 150) =>
+    invoke<string>('mob_logcat', { serial, level, lines }),
+  logcatClear: (serial: string) => invoke<void>('mob_logcat_clear', { serial }),
+  tunnelsList: (serial: string) => invoke<MobilePortTunnel[]>('mob_tunnels_list', { serial }),
+  tunnelAdd: (
+    serial: string,
+    direction: 'reverse' | 'forward',
+    localPort: number,
+    remotePort: number,
+  ) => invoke<MobilePortTunnel[]>('mob_tunnel_add', { serial, direction, localPort, remotePort }),
+  tunnelRemove: (serial: string, direction: 'reverse' | 'forward', spec: string) =>
+    invoke<MobilePortTunnel[]>('mob_tunnel_remove', { serial, direction, spec }),
   timeline: (limit = 40) => invoke<MobileTimelineEntry[]>('mob_timeline', { limit }),
   clearTimeline: () => invoke<void>('mob_clear_timeline'),
   deckList: () => invoke<MobileDeckItem[]>('mob_deck_list'),

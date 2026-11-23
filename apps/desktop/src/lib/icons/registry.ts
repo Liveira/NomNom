@@ -120,6 +120,9 @@ import IPhoneOutgoing from '@lucide/svelte/icons/phone-outgoing';
 import IPhoneMissed from '@lucide/svelte/icons/phone-missed';
 import IPhoneOff from '@lucide/svelte/icons/phone-off';
 import IUsb from '@lucide/svelte/icons/usb';
+import IMic from '@lucide/svelte/icons/mic';
+import IFolderPlus from '@lucide/svelte/icons/folder-plus';
+import ICircleDot from '@lucide/svelte/icons/circle-dot';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ICONS: Record<string, Component<any>> = {
@@ -243,6 +246,9 @@ export const ICONS: Record<string, Component<any>> = {
   'phone-missed': IPhoneMissed,
   'phone-off': IPhoneOff,
   'usb': IUsb,
+  'mic': IMic,
+  'folder-plus': IFolderPlus,
+  'record': ICircleDot,
 };
 
 export type IconName = keyof typeof ICONS;
