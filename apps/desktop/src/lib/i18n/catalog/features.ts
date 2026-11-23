@@ -166,4 +166,10 @@ export const FEATURES: Entry[] = [
   ['System', 'Sistema', 'Sistema'],
   ['Console', 'Console', 'Consola'],
   ['Dark mode', 'Modo escuro', 'Modo oscuro'],
+  ['Webcam', 'Webcam', 'Webcam'],
+  ['Display', 'Monitor', 'Pantalla'],
+  ['Webcam Studio', 'Estúdio de Webcam', 'Estudio de Webcam'],
+  ['Virtual Display & Gaming', 'Monitor Virtual e Jogos', 'Pantalla Virtual y Juegos'],
+  ['Contacts', 'Contatos', 'Contactos'],
+  ['Export .vcf', 'Exportar .vcf', 'Exportar .vcf'],
 ];

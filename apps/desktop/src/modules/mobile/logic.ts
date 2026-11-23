@@ -2,6 +2,8 @@ import type { MobileSms } from '../../lib/ipc';
 
 export type MobileTab =
   | 'home'
+  | 'webcam'
+  | 'display'
   | 'messages'
   | 'calls'
   | 'photos'

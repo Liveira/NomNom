@@ -195,12 +195,75 @@ pub struct MirrorOptions {
     pub max_size: Option<u32>,
     pub bit_rate_mbps: Option<u32>,
     pub max_fps: Option<u32>,
+    pub video_codec: Option<String>,
     pub turn_screen_off: Option<bool>,
     pub stay_awake: Option<bool>,
     pub audio: Option<bool>,
     pub start_app: Option<String>,
     pub new_display: Option<bool>,
     pub display_size: Option<String>,
+    pub display_dpi: Option<u32>,
+    pub display_id: Option<u32>,
+    pub keep_alive_on_close: Option<bool>,
+    pub no_decorations: Option<bool>,
+    pub keyboard_uhid: Option<bool>,
+    pub mouse_uhid: Option<bool>,
+    pub gamepad_uhid: Option<bool>,
+    pub borderless: Option<bool>,
+    pub always_on_top: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CameraInfo {
+    pub id: String,
+    pub facing: String,
+    pub label: String,
+    pub sizes: Vec<String>,
+    pub fps: Vec<u32>,
+    pub high_speed: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CameraCatalog {
+    pub cameras: Vec<CameraInfo>,
+    pub v4l2_devices: Vec<String>,
+    pub obs_path: Option<String>,
+    pub supports_usb_uvc: bool,
+    pub sdk_level: u32,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WebcamProOptions {
+    pub camera_id: Option<String>,
+    pub facing: Option<String>,
+    pub size: Option<String>,
+    pub aspect_ratio: Option<String>,
+    pub fps: Option<u32>,
+    pub high_speed: Option<bool>,
+    pub video_codec: Option<String>,
+    pub bit_rate_mbps: Option<u32>,
+    pub orientation: Option<u32>,
+    pub flip: Option<bool>,
+    pub lock_orientation: Option<bool>,
+    pub audio_mic: Option<bool>,
+    pub borderless: Option<bool>,
+    pub always_on_top: Option<bool>,
+    pub record: Option<bool>,
+    #[allow(dead_code)]
+    pub v4l2_sink: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DisplayInfo {
+    pub id: u32,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PhoneContact {
+    pub name: String,
+    pub number: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1629,6 +1692,11 @@ pub async fn mob_mirror(
     if let Some(fps) = opts.max_fps.filter(|&v| v > 0) {
         cmd.arg("--max-fps").arg(fps.to_string());
     }
+    if let Some(codec) = opts.video_codec.as_deref() {
+        if matches!(codec, "h264" | "h265" | "av1") {
+            cmd.arg(format!("--video-codec={codec}"));
+        }
+    }
     if opts.turn_screen_off.unwrap_or(false) {
         cmd.arg("--turn-screen-off");
     }
@@ -1638,16 +1706,47 @@ pub async fn mob_mirror(
     if opts.audio == Some(false) {
         cmd.arg("--no-audio");
     }
-    if let Some(ref pkg) = app_pkg {
+    if opts.keyboard_uhid.unwrap_or(false) {
+        cmd.arg("--keyboard=uhid");
+    }
+    if opts.mouse_uhid.unwrap_or(false) {
+        cmd.arg("--mouse=uhid");
+    }
+    if opts.gamepad_uhid.unwrap_or(false) {
+        cmd.arg("--gamepad=uhid");
+    }
+    if opts.borderless.unwrap_or(false) {
+        cmd.arg("--window-borderless");
+    }
+    if opts.always_on_top.unwrap_or(false) {
+        cmd.arg("--always-on-top");
+    }
+    if let Some(did) = opts.display_id {
+        cmd.arg(format!("--display-id={did}"));
+    }
+    if opts.new_display.unwrap_or(false) || app_pkg.is_some() {
         if opts.new_display.unwrap_or(true) {
             let dim = opts
                 .display_size
                 .as_deref()
                 .filter(|d| d.contains('x') && d.chars().all(|c| c.is_ascii_digit() || c == 'x'))
                 .unwrap_or("880x1920");
-            cmd.arg(format!("--new-display={dim}"));
+            if let Some(dpi) = opts.display_dpi.filter(|&d| (120..=640).contains(&d)) {
+                cmd.arg(format!("--new-display={dim}/{dpi}"));
+            } else {
+                cmd.arg(format!("--new-display={dim}"));
+            }
+            cmd.arg("--display-ime-policy=local");
+            if opts.keep_alive_on_close.unwrap_or(false) {
+                cmd.arg("--no-vd-destroy-content");
+            }
+            if opts.no_decorations.unwrap_or(false) {
+                cmd.arg("--no-vd-system-decorations");
+            }
         }
-        cmd.arg(format!("--start-app={pkg}"));
+        if let Some(ref pkg) = app_pkg {
+            cmd.arg(format!("--start-app={pkg}"));
+        }
     }
 
     let mut child = cmd
@@ -3976,6 +4075,495 @@ pub async fn mob_tunnel_remove(
     mob_tunnels_list(state, serial).await
 }
 
+fn run_scrcpy_probe(scrcpy: &Path, adb: &Path, args: &[&str], timeout_secs: u64) -> CmdResult<String> {
+    let mut cmd = hidden_cmd(scrcpy);
+    if let Some(parent) = scrcpy.parent() {
+        cmd.current_dir(parent);
+    }
+    let mut child = cmd
+        .env("ADB", adb)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Couldn't start scrcpy: {e}"))?;
+
+    let deadline = Instant::now() + Duration::from_secs(timeout_secs);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if Instant::now() >= deadline => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("Timed out reading camera list from phone.".into());
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(25)),
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    let mut combined = String::from_utf8_lossy(&out.stdout).into_owned();
+    let err = String::from_utf8_lossy(&out.stderr);
+    if !err.is_empty() {
+        combined.push('\n');
+        combined.push_str(&err);
+    }
+    Ok(combined)
+}
+
+fn parse_scrcpy_cameras(raw: &str) -> Vec<CameraInfo> {
+    let mut cameras: Vec<CameraInfo> = Vec::new();
+    let mut back_idx = 0u32;
+    let mut front_idx = 0u32;
+    let mut in_high_speed = false;
+
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("--camera-id=") {
+            // Example: --camera-id=0 (back, 4000x3000, fps=[15, 24, 30, 60])
+            let id = rest.split_whitespace().next().unwrap_or("0").to_string();
+            let inside = rest
+                .split_once('(')
+                .map(|(_, r)| r.trim_end_matches(')'))
+                .unwrap_or("");
+            let facing = if inside.contains("front") {
+                "front"
+            } else if inside.contains("external") {
+                "external"
+            } else {
+                "back"
+            }
+            .to_string();
+            let label = if facing == "front" {
+                front_idx += 1;
+                if front_idx == 1 {
+                    format!("Front camera (ID {id})")
+                } else {
+                    format!("Front lens #{front_idx} (ID {id})")
+                }
+            } else if facing == "back" {
+                back_idx += 1;
+                match back_idx {
+                    1 => format!("Back main lens (ID {id})"),
+                    2 => format!("Back lens #2 · Wide/Ultra-wide (ID {id})"),
+                    3 => format!("Back lens #3 · Tele/Macro (ID {id})"),
+                    _ => format!("Back lens #{back_idx} (ID {id})"),
+                }
+            } else {
+                format!("External camera (ID {id})")
+            };
+
+            let mut fps = Vec::new();
+            if let Some(fpart) = inside.split("fps=[").nth(1) {
+                let nums = fpart.split(']').next().unwrap_or("");
+                for tok in nums.split(',') {
+                    if let Ok(n) = tok.trim().parse::<u32>() {
+                        fps.push(n);
+                    }
+                }
+            }
+            in_high_speed = false;
+            cameras.push(CameraInfo {
+                id,
+                facing,
+                label,
+                sizes: Vec::new(),
+                fps,
+                high_speed: Vec::new(),
+            });
+            continue;
+        }
+        let Some(cur) = cameras.last_mut() else {
+            continue;
+        };
+        if trimmed.starts_with("High speed capture:") {
+            in_high_speed = true;
+            continue;
+        }
+        if let Some(sz) = trimmed.strip_prefix("- ") {
+            let val = sz.trim().to_string();
+            if in_high_speed {
+                if !val.is_empty() && cur.high_speed.len() < 16 {
+                    cur.high_speed.push(val);
+                }
+            } else if val.contains('x') && cur.sizes.len() < 32 {
+                cur.sizes.push(val);
+            }
+        }
+    }
+    cameras
+}
+
+fn parse_scrcpy_displays(raw: &str) -> Vec<DisplayInfo> {
+    let mut out = Vec::new();
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("--display-id=") {
+            let mut parts = rest.splitn(2, ' ');
+            let Some(id_str) = parts.next() else { continue };
+            let Ok(id) = id_str.parse::<u32>() else { continue };
+            let desc = parts.next().unwrap_or("").trim();
+            out.push(DisplayInfo {
+                id,
+                label: if desc.is_empty() {
+                    format!("Display #{id}")
+                } else {
+                    format!("Display #{id} {desc}")
+                },
+            });
+        }
+    }
+    out
+}
+
+fn find_obs_binary() -> Option<PathBuf> {
+    #[cfg(windows)]
+    {
+        let candidates = [
+            PathBuf::from(r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"),
+            PathBuf::from(r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe"),
+        ];
+        for c in candidates {
+            if c.is_file() {
+                return Some(c);
+            }
+        }
+        None
+    }
+    #[cfg(not(windows))]
+    {
+        let path_var = std::env::var_os("PATH")?;
+        std::env::split_paths(&path_var)
+            .map(|d| d.join("obs"))
+            .find(|p| p.is_file())
+    }
+}
+
+fn list_v4l2_devices() -> Vec<String> {
+    #[cfg(target_os = "linux")]
+    {
+        let mut list: Vec<String> = std::fs::read_dir("/dev")
+            .ok()
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter_map(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                name.starts_with("video").then(|| format!("/dev/{name}"))
+            })
+            .collect();
+        list.sort();
+        list
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Vec::new()
+    }
+}
+
+#[tauri::command]
+pub async fn mob_cameras(
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<CameraCatalog> {
+    let scrcpy = locate_scrcpy(&state)?;
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<CameraCatalog> {
+        let sdk_level = adb_shell(&adb, &serial, "getprop ro.build.version.sdk", 4)
+            .ok()
+            .and_then(|s| s.trim().parse::<u32>().ok())
+            .unwrap_or(0);
+        let raw = run_scrcpy_probe(&scrcpy, &adb, &["-s", &serial, "--list-camera-sizes"], 12)?;
+        let cameras = parse_scrcpy_cameras(&raw);
+        let obs_path = find_obs_binary().map(|p| p.to_string_lossy().into_owned());
+        Ok(CameraCatalog {
+            cameras,
+            v4l2_devices: list_v4l2_devices(),
+            obs_path,
+            supports_usb_uvc: sdk_level >= 34,
+            sdk_level,
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_webcam_pro(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+    options: Option<WebcamProOptions>,
+    stop: Option<bool>,
+) -> CmdResult<bool> {
+    if stop.unwrap_or(false) {
+        if let Ok(mut g) = state.mobile.webcam_proc.lock() {
+            if let Some((_, mut c)) = g.take() {
+                let _ = c.kill();
+            }
+        }
+        return Ok(false);
+    }
+    // Restart cleanly if already active so new settings take effect immediately.
+    if let Ok(mut g) = state.mobile.webcam_proc.lock() {
+        if let Some((_, mut c)) = g.take() {
+            let _ = c.kill();
+            let _ = c.wait();
+        }
+    }
+
+    let scrcpy = locate_scrcpy(&state)?;
+    let adb = locate_adb(&state)?;
+    let opts = options.unwrap_or_default();
+
+    let mut cmd = hidden_cmd(&scrcpy);
+    if let Some(parent) = scrcpy.parent() {
+        cmd.current_dir(parent);
+    }
+    cmd.env("ADB", &adb)
+        .arg("-s")
+        .arg(&serial)
+        .arg("--video-source=camera")
+        .arg("--window-title")
+        .arg("NomNom Webcam");
+
+    if let Some(ref cid) = opts.camera_id.as_deref().filter(|s| !s.is_empty()) {
+        cmd.arg(format!("--camera-id={cid}"));
+    } else {
+        let face = match opts.facing.as_deref() {
+            Some("front") => "front",
+            _ => "back",
+        };
+        cmd.arg(format!("--camera-facing={face}"));
+    }
+
+    if let Some(ref sz) = opts
+        .size
+        .as_deref()
+        .filter(|s| s.contains('x') && s.chars().all(|c| c.is_ascii_digit() || c == 'x'))
+    {
+        cmd.arg(format!("--camera-size={sz}"));
+    } else if let Some(ref ar) = opts
+        .aspect_ratio
+        .as_deref()
+        .filter(|s| !s.is_empty() && *s != "sensor")
+    {
+        cmd.arg(format!("--camera-ar={ar}"));
+    }
+
+    if let Some(fps) = opts.fps.filter(|&f| f > 0 && f <= 240) {
+        cmd.arg(format!("--camera-fps={fps}"));
+    }
+    if opts.high_speed.unwrap_or(false) {
+        cmd.arg("--camera-high-speed");
+    }
+    if let Some(codec) = opts.video_codec.as_deref() {
+        if matches!(codec, "h264" | "h265" | "av1") {
+            cmd.arg(format!("--video-codec={codec}"));
+        }
+    }
+    if let Some(mbps) = opts.bit_rate_mbps.filter(|&b| b > 0 && b <= 64) {
+        cmd.arg("--video-bit-rate").arg(format!("{mbps}M"));
+    }
+
+    let deg = opts.orientation.unwrap_or(0);
+    let flip = opts.flip.unwrap_or(false);
+    let lock = opts.lock_orientation.unwrap_or(false);
+    if deg != 0 || flip || lock {
+        let base = if flip {
+            format!("flip{deg}")
+        } else {
+            format!("{deg}")
+        };
+        let spec = if lock { format!("@{base}") } else { base };
+        cmd.arg(format!("--capture-orientation={spec}"));
+    }
+
+    if opts.audio_mic.unwrap_or(false) {
+        cmd.arg("--audio-source=mic");
+    } else {
+        cmd.arg("--no-audio");
+    }
+    if opts.borderless.unwrap_or(false) {
+        cmd.arg("--window-borderless");
+    }
+    if opts.always_on_top.unwrap_or(false) {
+        cmd.arg("--always-on-top");
+    }
+    if opts.record.unwrap_or(false) {
+        let dest = phone_save_dir(&state);
+        let _ = std::fs::create_dir_all(&dest);
+        cmd.arg("--record")
+            .arg(dest.join(format!("webcam-{}.mkv", now())));
+    }
+    #[cfg(target_os = "linux")]
+    if let Some(ref sink) = opts.v4l2_sink.as_deref().filter(|s| s.starts_with("/dev/video")) {
+        cmd.arg(format!("--v4l2-sink={sink}"));
+    }
+
+    let child = cmd
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Couldn't start Webcam Studio: {e}"))?;
+    *state.mobile.webcam_proc.lock().unwrap() = Some((serial.clone(), child));
+
+    let detail = format!(
+        "{} · {} fps · {}",
+        opts.size.as_deref().unwrap_or("auto"),
+        opts.fps.unwrap_or(30),
+        opts.video_codec.as_deref().unwrap_or("h264").to_uppercase()
+    );
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "webcam",
+        "NomNom Webcam Studio",
+        &detail,
+    );
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn mob_usb_webcam(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<String> {
+    let adb = locate_adb(&state)?;
+    let s = serial.clone();
+    tokio::task::spawn_blocking(move || -> CmdResult<()> {
+        adb_shell(&adb, &s, "svc usb setFunctions uvc", 6)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "webcam",
+        "Native USB Webcam (UVC)",
+        "Phone switched to hardware USB webcam mode",
+    );
+    Ok("Switched phone to native USB Webcam mode. Select Android Webcam in Discord, Zoom or Meet.".into())
+}
+
+#[tauri::command]
+pub fn mob_launch_obs() -> CmdResult<String> {
+    let obs = find_obs_binary().ok_or_else(|| {
+        "OBS Studio wasn't found in the default folder. Install OBS Studio to use OBS Virtual Camera with Discord or Zoom.".to_string()
+    })?;
+    let mut cmd = Command::new(&obs);
+    if let Some(parent) = obs.parent() {
+        cmd.current_dir(parent);
+    }
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Couldn't open OBS Studio: {e}"))?;
+    Ok("Opened OBS Studio".into())
+}
+
+#[tauri::command]
+pub async fn mob_displays(
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<Vec<DisplayInfo>> {
+    let scrcpy = locate_scrcpy(&state)?;
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<Vec<DisplayInfo>> {
+        let raw = run_scrcpy_probe(&scrcpy, &adb, &["-s", &serial, "--list-displays"], 10)?;
+        Ok(parse_scrcpy_displays(&raw))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn build_vcard(contacts: &[PhoneContact]) -> String {
+    let mut out = String::new();
+    for c in contacts {
+        let name = c.name.replace(['\r', '\n'], " ");
+        let num = c.number.replace(['\r', '\n'], "");
+        out.push_str("BEGIN:VCARD\r\nVERSION:3.0\r\n");
+        out.push_str(&format!("FN:{name}\r\n"));
+        out.push_str(&format!("TEL;TYPE=CELL:{num}\r\n"));
+        out.push_str("END:VCARD\r\n");
+    }
+    out
+}
+
+#[tauri::command]
+pub async fn mob_contacts(
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<Vec<PhoneContact>> {
+    let adb = locate_adb(&state)?;
+    tokio::task::spawn_blocking(move || -> CmdResult<Vec<PhoneContact>> {
+        let out = adb_shell(
+            &adb,
+            &serial,
+            "content query --uri content://com.android.contacts/data/phones --projection display_name:data1",
+            12,
+        )?;
+        if out.contains("Permission Denial") || out.contains("Error while accessing provider") {
+            return Err("This phone restricts shell contact reading.".into());
+        }
+        let mut seen = HashSet::new();
+        let mut list = Vec::new();
+        for row in parse_content_rows(&out) {
+            let name = row.get("display_name").cloned().unwrap_or_default();
+            let number = row.get("data1").cloned().unwrap_or_default();
+            if number.is_empty() {
+                continue;
+            }
+            let key = format!("{}:{}", name.to_lowercase(), number.replace(' ', ""));
+            if seen.insert(key) {
+                list.push(PhoneContact {
+                    name: if name.is_empty() { number.clone() } else { name },
+                    number,
+                });
+            }
+        }
+        list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        Ok(list)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn mob_export_contacts(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    serial: String,
+) -> CmdResult<String> {
+    let contacts = mob_contacts(state.clone(), serial.clone()).await?;
+    if contacts.is_empty() {
+        return Err("No contacts found to export.".into());
+    }
+    let dest_dir = phone_save_dir(&state);
+    let _ = std::fs::create_dir_all(&dest_dir);
+    let path = nomnom_core::phone::free_path(&dest_dir, &format!("contacts-{}.vcf", now()));
+    let vcf = build_vcard(&contacts);
+    std::fs::write(&path, vcf).map_err(|e| format!("Couldn't save contacts file: {e}"))?;
+    let path_str = path.to_string_lossy().into_owned();
+    record_timeline(
+        &state,
+        &app,
+        &serial,
+        &serial,
+        "file",
+        &format!("Exported {} contacts (.vcf)", contacts.len()),
+        &path_str,
+    );
+    Ok(path_str)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -4054,5 +4642,34 @@ NotificationRecord(0x2 pkg=android user=UserHandle{0} id=2 tag=null key=0|androi
         assert_eq!((tot, used, avail), (120000, 80000, 40000));
         let (mt, ma) = parse_meminfo_kb("MemTotal:        8192000 kB\nMemFree:         1000000 kB\nMemAvailable:    3200000 kB\n");
         assert_eq!((mt, ma), (8192000, 3200000));
+    }
+
+    #[test]
+    fn parses_scrcpy_cameras_displays_and_vcard() {
+        let cam_raw = "\
+[server] INFO: List of camera sizes:\n\
+    --camera-id=0    (back, 4000x3000, fps=[15, 24, 30, 60])\n\
+        - 3840x2160\n\
+        - 1920x1080\n\
+      High speed capture:\n\
+        - 1920x1080 (fps=[120])\n\
+    --camera-id=1    (front, 3264x2448, fps=[15, 30])\n\
+        - 1920x1080\n";
+        let cams = parse_scrcpy_cameras(cam_raw);
+        assert_eq!(cams.len(), 2);
+        assert_eq!(cams[0].id, "0");
+        assert_eq!(cams[0].facing, "back");
+        assert_eq!(cams[0].sizes, vec!["3840x2160", "1920x1080"]);
+        assert_eq!(cams[0].fps, vec![15, 24, 30, 60]);
+        assert_eq!(cams[0].high_speed, vec!["1920x1080 (fps=[120])"]);
+        assert_eq!(cams[1].facing, "front");
+
+        let disp_raw = "    --display-id=0    (1080x2340)\n    --display-id=2    (1920x1080)\n";
+        let disps = parse_scrcpy_displays(disp_raw);
+        assert_eq!(disps.len(), 2);
+        assert_eq!(disps[1].id, 2);
+
+        let vcf = build_vcard(&[PhoneContact { name: "Ada".into(), number: "+5511999".into() }]);
+        assert!(vcf.contains("FN:Ada") && vcf.contains("TEL;TYPE=CELL:+5511999"));
     }
 }

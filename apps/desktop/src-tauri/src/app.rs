@@ -459,6 +459,13 @@ pub fn run() {
             mobile::mob_tunnels_list,
             mobile::mob_tunnel_add,
             mobile::mob_tunnel_remove,
+            mobile::mob_cameras,
+            mobile::mob_webcam_pro,
+            mobile::mob_usb_webcam,
+            mobile::mob_launch_obs,
+            mobile::mob_displays,
+            mobile::mob_contacts,
+            mobile::mob_export_contacts,
         ])
         .setup(move |app| {
             tray::create(app.handle())?;

@@ -20,14 +20,18 @@
     type MobileTimelineEntry,
     type MobileToolsStatus,
   } from '../../lib/ipc';
+  import DisplayGamingTab from './DisplayGamingTab.svelte';
   import HomeTab from './HomeTab.svelte';
   import Modals from './Modals.svelte';
   import PowerTabs from './PowerTabs.svelte';
   import SubTabs from './SubTabs.svelte';
+  import WebcamStudioTab from './WebcamStudioTab.svelte';
   import type { MobileTab } from './logic';
 
   const TABS: { id: MobileTab; label: string; icon: string }[] = [
     { id: 'home', label: 'Home', icon: 'home' },
+    { id: 'webcam', label: 'Webcam', icon: 'video' },
+    { id: 'display', label: 'Display', icon: 'monitor' },
     { id: 'messages', label: 'Messages', icon: 'message' },
     { id: 'calls', label: 'Calls', icon: 'phone' },
     { id: 'photos', label: 'Photos', icon: 'image' },
@@ -389,7 +393,9 @@
     { id: 'clipboard', label: 'Send clipboard', hint: 'Send text or open copied URL on your phone', icon: 'clipboard' },
     { id: 'find', label: 'Find phone', hint: 'Wake, unmute and ring your phone', icon: 'bell-ring' },
     { id: 'camera', label: 'Continuity Camera', hint: 'Open camera on phone and pull the photo here', icon: 'camera' },
-    { id: 'webcam', label: 'Phone as webcam', hint: 'Stream your phone camera (Android 12+)', icon: 'video' },
+    { id: 'webcam-studio', label: 'Open Webcam Studio', hint: '4K/60fps/120fps, multi-lens, H.265/AV1, USB UVC & OBS', icon: 'video' },
+    { id: 'virtual-display', label: 'Open Virtual Display & Gaming', hint: 'Second monitor, Desktop mode & UHID Keyboard/Mouse/Gamepad', icon: 'monitor' },
+    { id: 'webcam', label: 'Phone as webcam', hint: 'Quick-start your phone camera (Android 12+)', icon: 'video' },
     { id: 'mic', label: 'Phone as microphone', hint: 'Stream phone microphone audio to this computer', icon: 'mic' },
     { id: 'screenshot', label: 'Phone screenshot', hint: 'Capture the phone screen immediately', icon: 'image' },
     { id: 'dark', label: 'Toggle phone dark mode', hint: 'Switch Android light/dark theme right away', icon: 'moon' },
@@ -410,6 +416,8 @@
       case 'clipboard': void sendClipboard(); break;
       case 'find': void findPhone(); break;
       case 'camera': void continuityCamera(); break;
+      case 'webcam-studio': tab = 'webcam'; break;
+      case 'virtual-display': tab = 'display'; break;
       case 'webcam': void toggleWebcam('back'); break;
       case 'mic': void toggleMic(!(snapshot?.controls.mic_active ?? false)); break;
       case 'screenshot': void takeScreenshot(); break;
@@ -567,6 +575,20 @@
         onNotificationAction={(n, a, r) => void notificationAction(n, a, r)}
         onOpenHistory={() => (modal = 'timeline')}
         onOpenPair={() => (modal = 'pair')}
+      />
+    {:else if tab === 'webcam'}
+      <WebcamStudioTab
+        device={activeDevice}
+        webcamActive={snapshot?.controls.webcam_active ?? false}
+        onRefresh={() => void refreshAll(true)}
+        onNotice={showNotice}
+        onError={showError}
+      />
+    {:else if tab === 'display'}
+      <DisplayGamingTab
+        device={activeDevice}
+        onNotice={showNotice}
+        onError={showError}
       />
     {:else if tab === 'files' || tab === 'system' || tab === 'console'}
       <PowerTabs

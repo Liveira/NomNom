@@ -1751,12 +1751,63 @@ export interface MobileMirrorOptions {
   maxSize?: number;
   bitRateMbps?: number;
   maxFps?: number;
+  videoCodec?: 'h264' | 'h265' | 'av1';
   turnScreenOff?: boolean;
   stayAwake?: boolean;
   audio?: boolean;
   startApp?: string;
   newDisplay?: boolean;
   displaySize?: string;
+  displayDpi?: number;
+  displayId?: number;
+  keepAliveOnClose?: boolean;
+  noDecorations?: boolean;
+  keyboardUhid?: boolean;
+  mouseUhid?: boolean;
+  gamepadUhid?: boolean;
+  borderless?: boolean;
+  alwaysOnTop?: boolean;
+}
+export interface MobileCameraInfo {
+  id: string;
+  facing: 'back' | 'front' | 'external' | string;
+  label: string;
+  sizes: string[];
+  fps: number[];
+  high_speed: string[];
+}
+export interface MobileCameraCatalog {
+  cameras: MobileCameraInfo[];
+  v4l2_devices: string[];
+  obs_path: string | null;
+  supports_usb_uvc: boolean;
+  sdk_level: number;
+}
+export interface MobileWebcamProOptions {
+  cameraId?: string;
+  facing?: 'back' | 'front';
+  size?: string;
+  aspectRatio?: string;
+  fps?: number;
+  highSpeed?: boolean;
+  videoCodec?: 'h264' | 'h265' | 'av1';
+  bitRateMbps?: number;
+  orientation?: number;
+  flip?: boolean;
+  lockOrientation?: boolean;
+  audioMic?: boolean;
+  borderless?: boolean;
+  alwaysOnTop?: boolean;
+  record?: boolean;
+  v4l2Sink?: string;
+}
+export interface MobileDisplayInfo {
+  id: number;
+  label: string;
+}
+export interface MobileContact {
+  name: string;
+  number: string;
 }
 export interface MobileTimelineEntry {
   id: number;
@@ -1980,6 +2031,14 @@ export const mobileIpc = {
   ) => invoke<MobilePortTunnel[]>('mob_tunnel_add', { serial, direction, localPort, remotePort }),
   tunnelRemove: (serial: string, direction: 'reverse' | 'forward', spec: string) =>
     invoke<MobilePortTunnel[]>('mob_tunnel_remove', { serial, direction, spec }),
+  cameras: (serial: string) => invoke<MobileCameraCatalog>('mob_cameras', { serial }),
+  webcamPro: (serial: string, options?: MobileWebcamProOptions, stop = false) =>
+    invoke<boolean>('mob_webcam_pro', { serial, options, stop }),
+  usbWebcam: (serial: string) => invoke<string>('mob_usb_webcam', { serial }),
+  launchObs: () => invoke<string>('mob_launch_obs'),
+  displays: (serial: string) => invoke<MobileDisplayInfo[]>('mob_displays', { serial }),
+  contacts: (serial: string) => invoke<MobileContact[]>('mob_contacts', { serial }),
+  exportContacts: (serial: string) => invoke<string>('mob_export_contacts', { serial }),
   timeline: (limit = 40) => invoke<MobileTimelineEntry[]>('mob_timeline', { limit }),
   clearTimeline: () => invoke<void>('mob_clear_timeline'),
   deckList: () => invoke<MobileDeckItem[]>('mob_deck_list'),

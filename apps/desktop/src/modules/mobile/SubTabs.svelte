@@ -9,6 +9,7 @@
     mobileIpc,
     type MobileApp,
     type MobileCall,
+    type MobileContact,
     type MobileDeckItem,
     type MobileDevice,
     type MobileMirrorOptions,
@@ -67,11 +68,20 @@
     threads.find((t) => t.address === activeThread) ?? threads[0] ?? null,
   );
 
-  // Calls state
+  // Calls & Contacts state
   let calls = $state<MobileCall[]>([]);
   let callsLoading = $state(false);
   let callsNote = $state('');
   let dialNumber = $state('');
+  let contacts = $state<MobileContact[]>([]);
+  let contactQuery = $state('');
+  let contactsNote = $state('');
+  const filteredContacts = $derived(
+    contacts.filter((c) => {
+      const q = contactQuery.trim().toLowerCase();
+      return !q || c.name.toLowerCase().includes(q) || c.number.includes(q);
+    }),
+  );
 
   // Photos state
   let photos = $state<MobilePhoto[]>([]);
@@ -127,12 +137,29 @@
     if (!serial) return;
     callsLoading = true;
     callsNote = '';
+    contactsNote = '';
     try {
       calls = await mobileIpc.calls(serial);
     } catch (e) {
       callsNote = String(e);
     } finally {
       callsLoading = false;
+    }
+    try {
+      contacts = await mobileIpc.contacts(serial);
+    } catch (e) {
+      contactsNote = String(e);
+    }
+  }
+
+  async function exportContacts() {
+    if (!serial) return;
+    try {
+      const saved = await mobileIpc.exportContacts(serial);
+      onNotice(`Exported contacts to ${saved}`);
+      void openPath(saved).catch(() => {});
+    } catch (e) {
+      onError(String(e));
     }
   }
 
@@ -499,6 +526,40 @@
                 </span>
               </div>
               <button class="plain sm" onclick={() => dial(c.number)}>Call</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+
+    <section class="panel-box">
+      <div class="bar">
+        <h3>Contacts ({contacts.length})</h3>
+        <div class="bar-acts">
+          <input type="search" placeholder="Search contacts…" bind:value={contactQuery} aria-label="Search contacts" />
+          <button class="primary" disabled={!serial || contacts.length === 0} onclick={exportContacts}>
+            <Icon name="download" size={14} /> Export .vcf
+          </button>
+        </div>
+      </div>
+      {#if !serial}
+        <p class="sub">Connect your Android phone to browse and export contacts.</p>
+      {:else if contactsNote}
+        <p class="warn">{contactsNote}</p>
+      {:else if filteredContacts.length === 0}
+        <p class="sub">No matching contacts.</p>
+      {:else}
+        <ul class="call-list">
+          {#each filteredContacts.slice(0, 80) as ct (ct.name + ct.number)}
+            <li>
+              <span class="avatar" style:background={appBadgeColor(ct.name)}>
+                {ct.name.slice(0, 1).toUpperCase()}
+              </span>
+              <div class="c-info">
+                <strong translate="no">{ct.name}</strong>
+                <span class="sub tabular" translate="no">{ct.number}</span>
+              </div>
+              <button class="plain sm" onclick={() => dial(ct.number)}>Call</button>
             </li>
           {/each}
         </ul>
