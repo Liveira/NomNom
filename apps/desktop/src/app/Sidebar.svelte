@@ -4,12 +4,26 @@
   import Logo from '../lib/icons/Logo.svelte';
   import ProgressBar from '../lib/ui/ProgressBar.svelte';
   import { onUpdateProgress, updateIpc } from '../lib/ipc';
-  import { FOOTER_MODULES } from '../lib/modules';
+  import { FOOTER_MODULES, type NavItem } from '../lib/modules';
+  import { CORE, TOOL_CATEGORIES, toolCategoryOf } from '../lib/tools';
   import { app } from './state.svelte';
 
   const collapsed = $derived(app.settings?.appearance.sidebar_collapsed ?? false);
   const main = $derived(app.sidebarNav.filter((n) => !FOOTER_MODULES.has(n.id)));
   const footer = $derived(app.sidebarNav.filter((n) => FOOTER_MODULES.has(n.id)));
+  const coreNav = $derived(main.filter((n) => CORE.has(n.id)));
+  const toolNav = $derived(main.filter((n) => !CORE.has(n.id)));
+  const showCategoryGroups = $derived(!collapsed && toolNav.length >= 6);
+  const groupedTools = $derived.by(() => {
+    const groups: { id: string; title: string; items: NavItem[] }[] = [];
+    for (const cat of TOOL_CATEGORIES) {
+      const items = toolNav.filter((n) => toolCategoryOf(n.id)?.id === cat.id);
+      if (items.length > 0) groups.push({ id: cat.id, title: cat.title, items });
+    }
+    const uncategorized = toolNav.filter((n) => !toolCategoryOf(n.id));
+    if (uncategorized.length > 0) groups.push({ id: 'other', title: 'Other', items: uncategorized });
+    return groups;
+  });
 
   let updating = $state(false);
   let updatePct = $state<number | null>(null);
@@ -47,20 +61,52 @@
   </button>
 
   <ul class="nav-list app-nav-list">
-    {#each main as item (item.id)}
-      <li>
-        <button
-          class="item app-nav-item"
-          class:active={app.current === item.id}
-          aria-current={app.current === item.id ? 'page' : undefined}
-          title={collapsed ? item.name : undefined}
-          onclick={() => app.go(item.id)}
-        >
-          <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
-          {#if !collapsed}<span class="label">{item.name}</span>{/if}
-        </button>
-      </li>
-    {/each}
+    {#if showCategoryGroups}
+      {#each coreNav as item (item.id)}
+        <li>
+          <button
+            class="item app-nav-item"
+            class:active={app.current === item.id}
+            aria-current={app.current === item.id ? 'page' : undefined}
+            onclick={() => app.go(item.id)}
+          >
+            <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
+            <span class="label">{item.name}</span>
+          </button>
+        </li>
+      {/each}
+      {#each groupedTools as group (group.id)}
+        <li class="nav-group-label app-nav-group-label" aria-hidden="true">{group.title}</li>
+        {#each group.items as item (item.id)}
+          <li>
+            <button
+              class="item app-nav-item"
+              class:active={app.current === item.id}
+              aria-current={app.current === item.id ? 'page' : undefined}
+              onclick={() => app.go(item.id)}
+            >
+              <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
+              <span class="label">{item.name}</span>
+            </button>
+          </li>
+        {/each}
+      {/each}
+    {:else}
+      {#each main as item (item.id)}
+        <li>
+          <button
+            class="item app-nav-item"
+            class:active={app.current === item.id}
+            aria-current={app.current === item.id ? 'page' : undefined}
+            title={collapsed ? item.name : undefined}
+            onclick={() => app.go(item.id)}
+          >
+            <span class="icon-wrap"><Icon name={item.icon} size={18} /></span>
+            {#if !collapsed}<span class="label">{item.name}</span>{/if}
+          </button>
+        </li>
+      {/each}
+    {/if}
   </ul>
 
   <div class="spacer app-spacer"></div>
@@ -179,6 +225,15 @@
   .nav-list:not(.footer-list)::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
   .spacer { flex: 1; min-height: 8px; }
+  .nav-group-label {
+    padding: 10px 10px 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    user-select: none;
+  }
 
   .item {
     position: relative;
