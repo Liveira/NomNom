@@ -466,32 +466,81 @@ fn locate_scrcpy(state: &AppState) -> CmdResult<PathBuf> {
     })
 }
 
-fn run_adb_raw(adb: &Path, args: &[&str], timeout_secs: u64) -> CmdResult<Vec<u8>> {
-    let mut child = hidden_cmd(adb)
-        .args(args)
+/// Runs a child process while draining stdout and stderr on separate threads so large outputs
+/// (> 4 KB on Windows pipes, e.g. `dumpsys`, `pm list`, `scrcpy --list-camera-sizes`) never
+/// deadlock while waiting for the timeout.
+fn run_cmd_with_timeout(
+    cmd: &mut Command,
+    timeout_secs: u64,
+    timeout_msg: &str,
+) -> CmdResult<std::process::Output> {
+    use std::io::Read;
+
+    let mut child = cmd
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Couldn't start adb: {e}"))?;
+        .map_err(|e| format!("Couldn't start command: {e}"))?;
+
+    let mut out_pipe = child.stdout.take();
+    let mut err_pipe = child.stderr.take();
+
+    let out_handle = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(mut p) = out_pipe.take() {
+            let _ = p.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let err_handle = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(mut p) = err_pipe.take() {
+            let _ = p.read_to_end(&mut buf);
+        }
+        buf
+    });
 
     let deadline = Instant::now() + Duration::from_secs(timeout_secs);
-    loop {
+    let status = loop {
         match child.try_wait() {
-            Ok(Some(_)) => break,
+            Ok(Some(st)) => break st,
             Ok(None) => {
                 if Instant::now() >= deadline {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err("Timed out waiting for the phone to answer.".into());
+                    let _ = out_handle.join();
+                    let _ = err_handle.join();
+                    return Err(timeout_msg.to_string());
                 }
                 std::thread::sleep(Duration::from_millis(20));
             }
-            Err(e) => return Err(format!("adb failed: {e}")),
+            Err(e) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = out_handle.join();
+                let _ = err_handle.join();
+                return Err(format!("Command failed: {e}"));
+            }
         }
-    }
-    let out = child
-        .wait_with_output()
-        .map_err(|e| format!("Couldn't read adb output: {e}"))?;
+    };
+
+    let stdout = out_handle.join().unwrap_or_default();
+    let stderr = err_handle.join().unwrap_or_default();
+    Ok(std::process::Output {
+        status,
+        stdout,
+        stderr,
+    })
+}
+
+fn run_adb_raw(adb: &Path, args: &[&str], timeout_secs: u64) -> CmdResult<Vec<u8>> {
+    let mut cmd = hidden_cmd(adb);
+    cmd.args(args);
+    let out = run_cmd_with_timeout(
+        &mut cmd,
+        timeout_secs,
+        "Timed out waiting for the phone to answer.",
+    )?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
         let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -522,7 +571,7 @@ fn measure_tcp_latency(addr: &str) -> Option<u32> {
 }
 
 fn is_wifi_serial(serial: &str) -> bool {
-    serial.contains(':') || serial.contains("._adb")
+    serial.contains(':') || serial.contains("._adb") || serial.starts_with("adb-")
 }
 
 fn extract_ip_from_serial(serial: &str) -> Option<String> {
@@ -1085,7 +1134,7 @@ fn record_timeline(
 }
 
 fn device_display_name(adb: &Path, serial: &str) -> String {
-    let script = "for p in ro.product.marketname ro.config.marketing_name ro.product.vendor.marketname ro.product.model; do v=$(getprop $p); if [ -n \"$v\" ]; then echo \"$v\"; break; fi; done";
+    let script = "dn=$(settings get global device_name 2>/dev/null); if [ -n \"$dn\" ] && [ \"$dn\" != \"null\" ]; then echo \"$dn\"; else for p in ro.product.marketname ro.config.marketing_name ro.product.vendor.marketname ro.product.model; do v=$(getprop $p); if [ -n \"$v\" ]; then echo \"$v\"; break; fi; done; fi";
     adb_shell(adb, serial, script, 3)
         .ok()
         .map(|s| s.trim().to_string())
@@ -1375,8 +1424,10 @@ pub async fn mob_snapshot(
         // Gather core properties & settings in a single fast shell round-trip.
         let probe_script = concat!(
             "echo \"===NAME===\"; ",
+            "dn=$(settings get global device_name 2>/dev/null); ",
+            "if [ -n \"$dn\" ] && [ \"$dn\" != \"null\" ]; then echo \"$dn\"; else ",
             "for p in ro.product.marketname ro.config.marketing_name ro.product.vendor.marketname ro.product.model; do ",
-            "v=$(getprop $p); if [ -n \"$v\" ]; then echo \"$v\"; break; fi; done; ",
+            "v=$(getprop $p); if [ -n \"$v\" ]; then echo \"$v\"; break; fi; done; fi; ",
             "echo \"===MFR===\"; getprop ro.product.manufacturer; ",
             "echo \"===REL===\"; getprop ro.build.version.release; ",
             "echo \"===SDK===\"; getprop ro.build.version.sdk; ",
@@ -1391,7 +1442,7 @@ pub async fn mob_snapshot(
             "echo \"timeout=$(settings get system screen_off_timeout)\"; ",
             "echo \"night=$(cmd uimode night 2>/dev/null)\"; ",
             "echo \"===AP===\"; ip addr show 2>/dev/null | grep -E 'ap0|swlan0|wlan1' | head -n 2; ",
-            "echo \"===BAT===\"; dumpsys battery; ",
+            "echo \"===BAT===\"; dumpsys battery | head -n 35; ",
             "echo \"===MEDIA===\"; dumpsys media_session; ",
             "echo \"===AUDIO===\"; dumpsys audio | grep -A 6 -E 'STREAM_MUSIC|STREAM_RING|STREAM_ALARM|STREAM_NOTIFICATION' | head -n 60; ",
             "echo \"===NOTIF===\"; dumpsys notification --noredact"
@@ -1504,7 +1555,12 @@ pub async fn mob_snapshot(
         let notifications = parse_notifications(section("NOTIF", None), &muted, &dismissed);
         let is_wifi = is_wifi_serial(&serial);
         let latency_ms = if is_wifi {
-            measure_tcp_latency(&serial)
+            measure_tcp_latency(&serial).or_else(|| {
+                let t0 = Instant::now();
+                adb_shell(&adb, &serial, "true", 3)
+                    .ok()
+                    .map(|_| t0.elapsed().as_millis().max(1) as u32)
+            })
         } else {
             None
         };
@@ -3967,35 +4023,20 @@ pub async fn mob_shell(
     }
     let adb = locate_adb(&state)?;
     tokio::task::spawn_blocking(move || -> CmdResult<ShellOutput> {
-        let mut child = hidden_cmd(&adb)
-            .args(["-s", &serial, "shell", &command])
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Couldn't start adb shell: {e}"))?;
-        let deadline = Instant::now() + Duration::from_secs(15);
-        loop {
-            match child.try_wait() {
-                Ok(Some(_)) => break,
-                Ok(None) if Instant::now() >= deadline => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Ok(ShellOutput {
-                        stdout: String::new(),
-                        stderr: "Command timed out after 15 seconds.".into(),
-                        ok: false,
-                    });
-                }
-                Ok(None) => std::thread::sleep(Duration::from_millis(25)),
-                Err(e) => return Err(e.to_string()),
-            }
+        let mut cmd = hidden_cmd(&adb);
+        cmd.args(["-s", &serial, "shell", &command]);
+        match run_cmd_with_timeout(&mut cmd, 15, "Command timed out after 15 seconds.") {
+            Ok(out) => Ok(ShellOutput {
+                stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+                stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
+                ok: out.status.success(),
+            }),
+            Err(msg) => Ok(ShellOutput {
+                stdout: String::new(),
+                stderr: msg,
+                ok: false,
+            }),
         }
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        Ok(ShellOutput {
-            stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
-            stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
-            ok: out.status.success(),
-        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -4137,28 +4178,12 @@ fn run_scrcpy_probe(scrcpy: &Path, adb: &Path, args: &[&str], timeout_secs: u64)
     if let Some(parent) = scrcpy.parent() {
         cmd.current_dir(parent);
     }
-    let mut child = cmd
-        .env("ADB", adb)
-        .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Couldn't start scrcpy: {e}"))?;
-
-    let deadline = Instant::now() + Duration::from_secs(timeout_secs);
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => break,
-            Ok(None) if Instant::now() >= deadline => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err("Timed out reading camera list from phone.".into());
-            }
-            Ok(None) => std::thread::sleep(Duration::from_millis(25)),
-            Err(e) => return Err(e.to_string()),
-        }
-    }
-    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+    cmd.env("ADB", adb).args(args);
+    let out = run_cmd_with_timeout(
+        &mut cmd,
+        timeout_secs,
+        "Timed out reading camera list from phone.",
+    )?;
     let mut combined = String::from_utf8_lossy(&out.stdout).into_owned();
     let err = String::from_utf8_lossy(&out.stderr);
     if !err.is_empty() {
@@ -4211,8 +4236,12 @@ fn parse_scrcpy_cameras(raw: &str) -> Vec<CameraInfo> {
             };
 
             let mut fps = Vec::new();
-            if let Some(fpart) = inside.split("fps=[").nth(1) {
-                let nums = fpart.split(']').next().unwrap_or("");
+            if let Some(fpart) = inside
+                .split("fps=[")
+                .nth(1)
+                .or_else(|| inside.split("fps={").nth(1))
+            {
+                let nums = fpart.split([']', '}']).next().unwrap_or("");
                 for tok in nums.split(',') {
                     if let Ok(n) = tok.trim().parse::<u32>() {
                         fps.push(n);
@@ -4233,7 +4262,7 @@ fn parse_scrcpy_cameras(raw: &str) -> Vec<CameraInfo> {
         let Some(cur) = cameras.last_mut() else {
             continue;
         };
-        if trimmed.starts_with("High speed capture:") {
+        if trimmed.starts_with("High speed capture") {
             in_high_speed = true;
             continue;
         }
@@ -5079,11 +5108,11 @@ NotificationRecord(0x2 pkg=android user=UserHandle{0} id=2 tag=null key=0|androi
     fn parses_scrcpy_cameras_displays_and_vcard() {
         let cam_raw = "\
 [server] INFO: List of camera sizes:\n\
-    --camera-id=0    (back, 4000x3000, fps=[15, 24, 30, 60])\n\
+    --camera-id=0    (back, 4000x3000, fps={15, 24, 30, 60}, zoom-range=[1, 4])\n\
         - 3840x2160\n\
         - 1920x1080\n\
-      High speed capture:\n\
-        - 1920x1080 (fps=[120])\n\
+      High speed capture (--camera-high-speed):\n\
+        - 1920x1080 (fps={120})\n\
     --camera-id=1    (front, 3264x2448, fps=[15, 30])\n\
         - 1920x1080\n";
         let cams = parse_scrcpy_cameras(cam_raw);
@@ -5092,8 +5121,10 @@ NotificationRecord(0x2 pkg=android user=UserHandle{0} id=2 tag=null key=0|androi
         assert_eq!(cams[0].facing, "back");
         assert_eq!(cams[0].sizes, vec!["3840x2160", "1920x1080"]);
         assert_eq!(cams[0].fps, vec![15, 24, 30, 60]);
-        assert_eq!(cams[0].high_speed, vec!["1920x1080 (fps=[120])"]);
+        assert_eq!(cams[0].high_speed, vec!["1920x1080 (fps={120})"]);
         assert_eq!(cams[1].facing, "front");
+        assert_eq!(cams[1].fps, vec![15, 30]);
+        assert!(is_wifi_serial("adb-RQCX603GDLF-1J38B1._adb-tls-connect._tcp"));
 
         let disp_raw = "    --display-id=0    (1080x2340)\n    --display-id=2    (1920x1080)\n";
         let disps = parse_scrcpy_displays(disp_raw);
