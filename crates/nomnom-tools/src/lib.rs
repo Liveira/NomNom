@@ -28,6 +28,8 @@ pub enum Tool {
     YtDlp,
     Ffmpeg,
     Ffprobe,
+    Adb,
+    Scrcpy,
 }
 
 impl Tool {
@@ -37,18 +39,23 @@ impl Tool {
             Tool::YtDlp => "yt-dlp.exe",
             Tool::Ffmpeg => "ffmpeg.exe",
             Tool::Ffprobe => "ffprobe.exe",
+            Tool::Adb => "adb.exe",
+            Tool::Scrcpy => "scrcpy.exe",
         }
         #[cfg(not(windows))]
         match self {
             Tool::YtDlp => "yt-dlp",
             Tool::Ffmpeg => "ffmpeg",
             Tool::Ffprobe => "ffprobe",
+            Tool::Adb => "adb",
+            Tool::Scrcpy => "scrcpy",
         }
     }
 
     fn version_args(self) -> &'static [&'static str] {
         match self {
-            Tool::YtDlp => &["--version"],
+            Tool::YtDlp | Tool::Scrcpy => &["--version"],
+            Tool::Adb => &["version"],
             _ => &["-version"],
         }
     }
@@ -88,19 +95,40 @@ impl Tools {
     }
 
     pub fn managed_path(&self, tool: Tool) -> PathBuf {
-        self.dir.join(tool.exe_name())
+        match tool {
+            Tool::Adb | Tool::Scrcpy => self.dir.join("scrcpy").join(tool.exe_name()),
+            _ => self.dir.join(tool.exe_name()),
+        }
     }
 
-    /// Managed copy first, then anything on PATH.
+    /// Managed copy first, then anything on PATH, then well-known SDK folders for ADB.
     pub fn locate(&self, tool: Tool) -> Option<PathBuf> {
         let managed = self.managed_path(tool);
         if is_usable_binary(&managed) {
             return Some(managed);
         }
-        let path_var = std::env::var_os("PATH")?;
-        std::env::split_paths(&path_var)
-            .map(|d| d.join(tool.exe_name()))
-            .find(|p| is_usable_binary(p))
+        if let Some(path_var) = std::env::var_os("PATH") {
+            if let Some(found) = std::env::split_paths(&path_var)
+                .map(|d| d.join(tool.exe_name()))
+                .find(|p| is_usable_binary(p))
+            {
+                return Some(found);
+            }
+        }
+        #[cfg(windows)]
+        if tool == Tool::Adb {
+            if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+                let sdk_adb = PathBuf::from(local)
+                    .join("Android")
+                    .join("Sdk")
+                    .join("platform-tools")
+                    .join("adb.exe");
+                if is_usable_binary(&sdk_adb) {
+                    return Some(sdk_adb);
+                }
+            }
+        }
+        None
     }
 
     pub async fn status(&self, tool: Tool) -> ToolStatus {
@@ -126,6 +154,11 @@ impl Tools {
     /// Downloads ffmpeg and ffprobe. The archive is large (about 120–150 MB).
     pub async fn install_ffmpeg(&self, progress: &InstallProgress) -> Result<(), ToolError> {
         install::install_ffmpeg(&self.dir, progress).await
+    }
+
+    /// Downloads scrcpy (which bundles adb on Windows and Linux) into `tools/scrcpy/`.
+    pub async fn install_scrcpy(&self, progress: &InstallProgress) -> Result<(), ToolError> {
+        install::install_scrcpy(&self.dir, progress).await
     }
 
     /// Updates the managed yt-dlp in place. Never touches a copy found on PATH (such as one

@@ -1,5 +1,15 @@
 <script lang="ts">
-  let { checked, label, onchange }: { checked: boolean; label: string; onchange: (next: boolean) => void } = $props();
+  let {
+    checked,
+    label,
+    disabled = false,
+    onchange,
+  }: {
+    checked: boolean;
+    label: string;
+    disabled?: boolean;
+    onchange: (next: boolean) => void;
+  } = $props();
 </script>
 
 <button
@@ -9,7 +19,8 @@
   role="switch"
   aria-checked={checked}
   aria-label={label}
-  onclick={() => onchange(!checked)}><span></span></button
+  {disabled}
+  onclick={() => !disabled && onchange(!checked)}><span></span></button
 >
 
 <style>
@@ -31,6 +42,10 @@
     border-radius: 50%;
     background: var(--text-2);
     transition: transform var(--dur-2) var(--ease-out), background var(--dur-2);
+  }
+  .switch:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
   .switch:focus-visible { border-radius: var(--radius-pill); }
   .switch.on {

@@ -76,6 +76,34 @@ impl Module for TextModule {
     }
 }
 
+static MOBILE: ModuleManifest = ModuleManifest {
+    id: "mobile",
+    name: "Mobile Manager",
+    nav: Some(NavEntry {
+        order: 18,
+        icon: "smartphone",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[
+        nomnom_core::module::Capability::Network,
+        nomnom_core::module::Capability::WriteFs,
+        nomnom_core::module::Capability::Spawn,
+    ],
+};
+
+pub struct MobileModule;
+#[async_trait]
+impl Module for MobileModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &MOBILE
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static PHONE: ModuleManifest = ModuleManifest {
     id: "phone",
     name: "Phone transfer",

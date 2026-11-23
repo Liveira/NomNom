@@ -8,6 +8,7 @@ pub type InstallProgress = dyn Fn(u64, Option<u64>) + Send + Sync;
 
 const YTDLP_BASE: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download";
 const FFMPEG_BASE: &str = "https://github.com/BtbN/FFmpeg-Builds/releases/latest/download";
+const SCRCPY_LATEST_API: &str = "https://api.github.com/repos/Genymobile/scrcpy/releases/latest";
 
 fn ytdlp_release_asset() -> &'static str {
     #[cfg(windows)]
@@ -180,6 +181,168 @@ pub(crate) async fn install_ffmpeg(
     })();
     let _ = std::fs::remove_file(&archive_path);
     result
+}
+
+pub(crate) async fn install_scrcpy(
+    dir: &Path,
+    progress: &InstallProgress,
+) -> Result<(), ToolError> {
+    std::fs::create_dir_all(dir).map_err(io)?;
+    let client = client()?;
+    let release_json = fetch_text(&client, SCRCPY_LATEST_API).await?;
+    let release: serde_json::Value = serde_json::from_str(&release_json)
+        .map_err(|e| ToolError::Network(format!("couldn't read scrcpy release info: {e}")))?;
+    let assets = release
+        .get("assets")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| ToolError::Network("scrcpy release had no files listed".into()))?;
+
+    #[cfg(windows)]
+    let (prefix, suffix) = ("scrcpy-win64-", ".zip");
+    #[cfg(not(windows))]
+    let (prefix, suffix) = ("scrcpy-linux-x86_64-", ".tar.gz");
+
+    let asset = assets
+        .iter()
+        .find(|a| {
+            a.get("name")
+                .and_then(|n| n.as_str())
+                .is_some_and(|n| n.starts_with(prefix) && n.ends_with(suffix))
+        })
+        .ok_or_else(|| {
+            ToolError::Network("couldn't find a matching scrcpy package for this system".into())
+        })?;
+
+    let asset_name = asset
+        .get("name")
+        .and_then(|n| n.as_str())
+        .unwrap_or("scrcpy.zip");
+    let download_url = asset
+        .get("browser_download_url")
+        .and_then(|u| u.as_str())
+        .ok_or_else(|| ToolError::Network("scrcpy package had no download link".into()))?;
+
+    // Check optional published SHA256SUMS.txt if present in the same release.
+    let expected_hash = if let Some(sum_url) = assets.iter().find_map(|a| {
+        let n = a.get("name")?.as_str()?;
+        (n == "SHA256SUMS.txt" || n == "SHA256SUMS")
+            .then(|| a.get("browser_download_url")?.as_str())
+            .flatten()
+    }) {
+        fetch_text(&client, sum_url)
+            .await
+            .ok()
+            .and_then(|txt| parse_checksum(&txt, asset_name))
+    } else {
+        None
+    };
+
+    let archive_path = dir.join(format!("{asset_name}.part"));
+    download_to(&client, download_url, &archive_path, progress).await?;
+
+    let result = (|| {
+        if let Some(ref hex) = expected_hash {
+            if !verify_sha256(&archive_path, hex)? {
+                return Err(ToolError::ChecksumMismatch);
+            }
+        }
+        extract_scrcpy(&archive_path, dir)
+    })();
+    let _ = std::fs::remove_file(&archive_path);
+    result
+}
+
+#[cfg(windows)]
+fn extract_scrcpy(zip_path: &Path, dir: &Path) -> Result<(), ToolError> {
+    let mut archive =
+        zip::ZipArchive::new(std::fs::File::open(zip_path).map_err(io)?).map_err(io)?;
+    let staging = dir.join(format!(".scrcpy-staging-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&staging);
+    std::fs::create_dir_all(&staging).map_err(io)?;
+
+    let unpack = (|| -> Result<(), ToolError> {
+        for i in 0..archive.len() {
+            let mut entry = archive.by_index(i).map_err(io)?;
+            if entry.is_dir() {
+                continue;
+            }
+            let raw_name = entry.name().replace('\\', "/");
+            // Strip leading folder (e.g. `scrcpy-win64-v3.1/adb.exe` -> `adb.exe`).
+            let rel = match raw_name.split_once('/') {
+                Some((_, rest)) if !rest.is_empty() => rest,
+                _ => raw_name.as_str(),
+            };
+            if rel.contains("..") || rel.starts_with('/') || rel.contains(':') {
+                continue;
+            }
+            let dest = staging.join(rel);
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent).map_err(io)?;
+            }
+            let mut out = std::fs::File::create(&dest).map_err(io)?;
+            std::io::copy(&mut entry, &mut out).map_err(io)?;
+        }
+        if !staging.join("scrcpy.exe").is_file() {
+            return Err(ToolError::MissingInArchive("scrcpy.exe"));
+        }
+        if !staging.join("adb.exe").is_file() {
+            return Err(ToolError::MissingInArchive("adb.exe"));
+        }
+        let target = dir.join("scrcpy");
+        let _ = std::fs::remove_dir_all(&target);
+        std::fs::rename(&staging, &target).map_err(io)?;
+        Ok(())
+    })();
+
+    if unpack.is_err() {
+        let _ = std::fs::remove_dir_all(&staging);
+    }
+    unpack
+}
+
+#[cfg(not(windows))]
+fn extract_scrcpy(tar_path: &Path, dir: &Path) -> Result<(), ToolError> {
+    let staging = dir.join(format!(".scrcpy-staging-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&staging);
+    std::fs::create_dir_all(&staging).map_err(io)?;
+
+    let unpack = (|| -> Result<(), ToolError> {
+        let status = std::process::Command::new("tar")
+            .arg("-xzf")
+            .arg(tar_path)
+            .arg("--strip-components=1")
+            .arg("-C")
+            .arg(&staging)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map_err(|e| ToolError::Io(format!("couldn't run tar to unpack scrcpy: {e}")))?;
+        if !status.success() {
+            return Err(ToolError::Io(
+                "tar couldn't unpack the scrcpy archive (or install scrcpy and android-tools with your package manager)."
+                    .into(),
+            ));
+        }
+        let scrcpy = staging.join("scrcpy");
+        let adb = staging.join("adb");
+        if !scrcpy.is_file() {
+            return Err(ToolError::MissingInArchive("scrcpy"));
+        }
+        mark_executable(&scrcpy)?;
+        if adb.is_file() {
+            mark_executable(&adb)?;
+        }
+        let target = dir.join("scrcpy");
+        let _ = std::fs::remove_dir_all(&target);
+        std::fs::rename(&staging, &target).map_err(io)?;
+        Ok(())
+    })();
+
+    if unpack.is_err() {
+        let _ = std::fs::remove_dir_all(&staging);
+    }
+    unpack
 }
 
 /// Pulls only `bin/ffmpeg.exe` and `bin/ffprobe.exe` out of the Windows zip archive.

@@ -39,4 +39,5 @@ pub struct AppState {
     pub shell_note: Mutex<Option<String>>,
     pub started: Instant,
     pub phone: crate::phone::PhoneState,
+    pub mobile: crate::mobile::MobileState,
 }

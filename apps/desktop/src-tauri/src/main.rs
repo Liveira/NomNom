@@ -25,6 +25,7 @@ mod integrations;
 mod launcher;
 mod memory;
 mod mini;
+mod mobile;
 mod modules;
 mod monitor;
 mod notes;

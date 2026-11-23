@@ -12,6 +12,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ToolsHub),
         Arc::new(builtin::Downloads),
         Arc::new(builtin::Activity),
+        Arc::new(builtin::MobileModule),
         Arc::new(builtin::Backup),
         Arc::new(builtin::Monitor),
         Arc::new(builtin::Organizer),

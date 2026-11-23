@@ -23,6 +23,13 @@ export const TOOLS: ToolInfo[] = [
     tint: 'var(--glow-blush)',
   },
   {
+    id: 'mobile',
+    icon: 'smartphone',
+    title: 'Mobile Manager',
+    desc: 'Mirror screen, notifications, controls, messages, calls, photos, apps and webcam for your Android phone.',
+    tint: 'var(--glow-peach)',
+  },
+  {
     id: 'storage',
     icon: 'storage',
     title: 'Disk Analyzer',
@@ -203,7 +210,7 @@ export const TOOLS: ToolInfo[] = [
 export const CORE = new Set(['home', 'tools', 'settings']);
 
 /** What a new install starts with. The rest are one click away on the Tools page. */
-export const DEFAULT_PICKS = ['downloads', 'activity', 'organizer', 'filetools'];
+export const DEFAULT_PICKS = ['downloads', 'activity', 'mobile', 'organizer', 'filetools'];
 
 /**
  * The pages that go in the sidebar. `picked` is the person's choice; `null` means they never chose,

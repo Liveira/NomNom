@@ -135,4 +135,28 @@ export const FEATURES: Entry[] = [
   ['Pick a time within the next 60 days.', 'Escolha um horário dentro dos próximos 60 dias.', 'Elige una hora dentro de los próximos 60 días.'],
   ['There are already 50 downloads waiting. Remove some first.', 'Já há 50 downloads esperando. Remova alguns primeiro.', 'Ya hay 50 descargas esperando. Quita algunas primero.'],
   ["Scheduled download couldn't start", 'O download agendado não pôde começar', 'La descarga programada no pudo empezar'],
+
+  // Mobile Manager
+  ['Mobile Manager', 'Mobile Manager', 'Mobile Manager'],
+  [
+    'Mirror screen, notifications, controls, messages, calls, photos, apps and webcam for your Android phone.',
+    'Espelhe a tela, notificações, controles, mensagens, chamadas, fotos, apps e webcam do seu celular Android.',
+    'Refleja la pantalla, notificaciones, controles, mensajes, llamadas, fotos, apps y webcam de tu móvil Android.',
+  ],
+  ['Mirror screen', 'Espelhar tela', 'Reflejar pantalla'],
+  ['Send files', 'Enviar arquivos', 'Enviar archivos'],
+  ['Send clipboard', 'Enviar área de transferência', 'Enviar portapapeles'],
+  ['Find phone', 'Encontrar celular', 'Buscar móvil'],
+  ['Phone controls', 'Controles do celular', 'Controles del móvil'],
+  ['Sound & display', 'Som e tela', 'Sonido y pantalla'],
+  ['Phone as speaker', 'Celular como alto-falante', 'Móvil como altavoz'],
+  ['Continuity Camera', 'Câmera contínua', 'Cámara continua'],
+  ['Phone as webcam', 'Celular como webcam', 'Móvil como webcam'],
+  ['Type on phone', 'Digitar no celular', 'Escribir en el móvil'],
+  ['Timeline', 'Linha do tempo', 'Línea de tiempo'],
+  ['No phone connected', 'Nenhum celular conectado', 'Ningún móvil conectado'],
+  ['Pair device', 'Parear dispositivo', 'Emparejar dispositivo'],
+  ['Mark as read', 'Marcar como lida', 'Marcar como leída'],
+  ['Install Android tools', 'Instalar ferramentas Android', 'Instalar herramientas Android'],
+  ['Switch to Wi-Fi', 'Mudar para Wi-Fi', 'Cambiar a Wi-Fi'],
 ];

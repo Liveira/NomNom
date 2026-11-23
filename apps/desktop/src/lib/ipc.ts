@@ -1652,3 +1652,232 @@ export const hwIpc = {
 export const monitorIpc = {
   snapshot: () => invoke<MonSnapshot>('mon_snapshot'),
 };
+
+// ---- Mobile Manager --------------------------------------------------------------------------
+export interface MobileToolsStatus {
+  adb_found: boolean;
+  scrcpy_found: boolean;
+  adb_path: string | null;
+  scrcpy_path: string | null;
+  adb_version: string | null;
+  scrcpy_version: string | null;
+  installing: boolean;
+}
+export interface MobileDevice {
+  serial: string;
+  state: string;
+  transport: 'usb' | 'wifi' | string;
+  model: string;
+  product: string;
+  wifi_ip: string | null;
+  latency_ms: number | null;
+}
+export interface MobileBattery {
+  level: number;
+  charging: boolean;
+  charge_type: string;
+  temp_c: number;
+}
+export interface MobileControls {
+  dnd: boolean;
+  torch: boolean;
+  wifi: boolean;
+  bluetooth: boolean;
+  hotspot: boolean;
+  audio_forwarding: boolean;
+  webcam_active: boolean;
+}
+export interface MobileSoundDisplay {
+  media_vol: number;
+  media_max: number;
+  ring_vol: number;
+  ring_max: number;
+  alarm_vol: number;
+  alarm_max: number;
+  notif_vol: number;
+  notif_max: number;
+  brightness: number;
+  auto_brightness: boolean;
+  screen_timeout_ms: number;
+}
+export interface MobileSoundDisplayPatch {
+  mediaVol?: number;
+  ringVol?: number;
+  alarmVol?: number;
+  notifVol?: number;
+  brightness?: number;
+  autoBrightness?: boolean;
+  screenTimeoutMs?: number;
+}
+export interface MobileMedia {
+  app: string;
+  package: string;
+  title: string;
+  artist: string;
+  playing: boolean;
+  position_ms: number;
+  duration_ms: number;
+}
+export interface MobileNotification {
+  key: string;
+  package: string;
+  app_name: string;
+  title: string;
+  text: string;
+  post_time_ms: number;
+  can_reply: boolean;
+}
+export interface MobileSnapshot {
+  serial: string;
+  name: string;
+  manufacturer: string;
+  android_version: string;
+  sdk_level: number;
+  screen_size: string;
+  transport: 'usb' | 'wifi' | string;
+  wifi_ip: string | null;
+  latency_ms: number | null;
+  battery: MobileBattery;
+  controls: MobileControls;
+  sound_display: MobileSoundDisplay;
+  media: MobileMedia | null;
+  notifications: MobileNotification[];
+  muted_packages: string[];
+}
+export interface MobileMirrorOptions {
+  maxSize?: number;
+  bitRateMbps?: number;
+  maxFps?: number;
+  turnScreenOff?: boolean;
+  stayAwake?: boolean;
+  audio?: boolean;
+  startApp?: string;
+  newDisplay?: boolean;
+}
+export interface MobileTimelineEntry {
+  id: number;
+  device_id: string;
+  device_name: string;
+  kind: string;
+  title: string;
+  detail: string;
+  at: number;
+}
+export interface MobileDeckItem {
+  id: string;
+  title: string;
+  icon: string;
+  kind: 'screenshot' | 'key' | 'url' | 'app' | 'shell' | string;
+  payload: string;
+}
+export interface MobileSms {
+  id: string;
+  address: string;
+  body: string;
+  date_ms: number;
+  incoming: boolean;
+  read: boolean;
+}
+export interface MobileCall {
+  id: string;
+  number: string;
+  name: string;
+  date_ms: number;
+  duration_secs: number;
+  kind: 'incoming' | 'outgoing' | 'missed' | 'rejected' | string;
+}
+export interface MobilePhoto {
+  path: string;
+  name: string;
+  folder: string;
+  size: number;
+  mtime: number;
+}
+export interface MobileApp {
+  package: string;
+  name: string;
+}
+export interface MobileCapturedImage {
+  path: string;
+  name: string;
+  data_url: string;
+}
+
+export const mobileIpc = {
+  toolsStatus: () => invoke<MobileToolsStatus>('mob_tools_status'),
+  installTools: () => invoke<MobileToolsStatus>('mob_install_tools'),
+  devices: () => invoke<MobileDevice[]>('mob_devices'),
+  pairWifi: (address: string, code: string) => invoke<string>('mob_pair_wifi', { address, code }),
+  connectWifi: (address: string) => invoke<string>('mob_connect_wifi', { address }),
+  disconnectWifi: (serial: string) => invoke<string>('mob_disconnect_wifi', { serial }),
+  enableWifi: (serial: string) => invoke<string>('mob_enable_wifi', { serial }),
+  snapshot: (serial: string) => invoke<MobileSnapshot>('mob_snapshot', { serial }),
+  mediaAction: (serial: string, action: 'play_pause' | 'next' | 'prev' | 'stop' | 'vol_up' | 'vol_down') =>
+    invoke<void>('mob_media_action', { serial, action }),
+  toggleControl: (serial: string, control: 'dnd' | 'torch' | 'wifi' | 'bluetooth' | 'hotspot', enabled: boolean) =>
+    invoke<string>('mob_toggle_control', { serial, control, enabled }),
+  setSoundDisplay: (serial: string, patch: MobileSoundDisplayPatch) =>
+    invoke<void>('mob_set_sound_display', { serial, patch }),
+  mirror: (serial: string, options?: MobileMirrorOptions) =>
+    invoke<void>('mob_mirror', { serial, options }),
+  webcam: (serial: string, facing?: 'front' | 'back') =>
+    invoke<boolean>('mob_webcam', { serial, facing }),
+  audioToggle: (serial: string, enabled: boolean) =>
+    invoke<boolean>('mob_audio_toggle', { serial, enabled }),
+  continuityCamera: (serial: string) =>
+    invoke<MobileCapturedImage>('mob_continuity_camera', { serial }),
+  screenshot: (serial: string) =>
+    invoke<MobileCapturedImage>('mob_screenshot', { serial }),
+  sendFiles: (serial: string, paths: string[]) =>
+    invoke<number>('mob_send_files', { serial, paths }),
+  sendClipboard: (serial: string, text?: string, openLinks = true) =>
+    invoke<string>('mob_send_clipboard', { serial, text, openLinks }),
+  findPhone: (serial: string) =>
+    invoke<string>('mob_find_phone', { serial }),
+  typeText: (serial: string, text: string) =>
+    invoke<void>('mob_type_text', { serial, text }),
+  keyevent: (serial: string, key: string) =>
+    invoke<void>('mob_keyevent', { serial, key }),
+  notificationAction: (
+    serial: string,
+    pkg: string,
+    key: string,
+    action: 'dismiss' | 'clear_all' | 'mute' | 'unmute' | 'open' | 'reply',
+    replyText?: string,
+  ) => invoke<string>('mob_notification_action', { serial, package: pkg, key, action, replyText }),
+  messages: (serial: string) => invoke<MobileSms[]>('mob_messages', { serial }),
+  sendSms: (serial: string, address: string, body: string) =>
+    invoke<string>('mob_send_sms', { serial, address, body }),
+  calls: (serial: string) => invoke<MobileCall[]>('mob_calls', { serial }),
+  dial: (serial: string, number: string) => invoke<string>('mob_dial', { serial, number }),
+  photos: (serial: string, limit = 60) => invoke<MobilePhoto[]>('mob_photos', { serial, limit }),
+  photoPreview: (serial: string, remotePath: string) =>
+    invoke<string>('mob_photo_preview', { serial, remotePath }),
+  pullPhoto: (serial: string, remotePath: string) =>
+    invoke<string>('mob_pull_photo', { serial, remotePath }),
+  deletePhoto: (serial: string, remotePath: string) =>
+    invoke<void>('mob_delete_photo', { serial, remotePath }),
+  apps: (serial: string) => invoke<MobileApp[]>('mob_apps', { serial }),
+  launchApp: (serial: string, pkg: string, mirrored: boolean) =>
+    invoke<void>('mob_launch_app', { serial, package: pkg, mirrored }),
+  installApk: (serial: string, path: string) =>
+    invoke<string>('mob_install_apk', { serial, path }),
+  uninstallApp: (serial: string, pkg: string) =>
+    invoke<string>('mob_uninstall_app', { serial, package: pkg }),
+  timeline: (limit = 40) => invoke<MobileTimelineEntry[]>('mob_timeline', { limit }),
+  clearTimeline: () => invoke<void>('mob_clear_timeline'),
+  deckList: () => invoke<MobileDeckItem[]>('mob_deck_list'),
+  deckSave: (item: MobileDeckItem) => invoke<MobileDeckItem[]>('mob_deck_save', { item }),
+  deckDelete: (id: string) => invoke<MobileDeckItem[]>('mob_deck_delete', { id }),
+  deckRun: (serial: string, item: MobileDeckItem) =>
+    invoke<string>('mob_deck_run', { serial, item }),
+};
+
+export function onMobileInstallProgress(
+  handler: (p: { done: number; total: number | null }) => void,
+): Promise<UnlistenFn> {
+  return listen<{ done: number; total: number | null }>('mobile://install-progress', (e) => handler(e.payload));
+}
+export function onMobileTimeline(handler: () => void): Promise<UnlistenFn> {
+  return listen('mobile://timeline', () => handler());
+}

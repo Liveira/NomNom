@@ -97,6 +97,29 @@ import IFileText from '@lucide/svelte/icons/file-text';
 import IMousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
 import IHourglass from '@lucide/svelte/icons/hourglass';
 import ISearchX from '@lucide/svelte/icons/search-x';
+import IWifi from '@lucide/svelte/icons/wifi';
+import IBluetooth from '@lucide/svelte/icons/bluetooth';
+import IFlashlight from '@lucide/svelte/icons/flashlight';
+import IRadio from '@lucide/svelte/icons/radio';
+import IVolume2 from '@lucide/svelte/icons/volume-2';
+import ICamera from '@lucide/svelte/icons/camera';
+import IVideo from '@lucide/svelte/icons/video';
+import IMessageSquare from '@lucide/svelte/icons/message-square';
+import IPhone from '@lucide/svelte/icons/phone';
+import IBookOpen from '@lucide/svelte/icons/book-open';
+import ISend from '@lucide/svelte/icons/send';
+import ISkipBack from '@lucide/svelte/icons/skip-back';
+import ISkipForward from '@lucide/svelte/icons/skip-forward';
+import IBellRing from '@lucide/svelte/icons/bell-ring';
+import IEllipsis from '@lucide/svelte/icons/ellipsis';
+import ICast from '@lucide/svelte/icons/cast';
+import IGrid2x2 from '@lucide/svelte/icons/grid-2x2';
+import IBatteryCharging from '@lucide/svelte/icons/battery-charging';
+import IPhoneIncoming from '@lucide/svelte/icons/phone-incoming';
+import IPhoneOutgoing from '@lucide/svelte/icons/phone-outgoing';
+import IPhoneMissed from '@lucide/svelte/icons/phone-missed';
+import IPhoneOff from '@lucide/svelte/icons/phone-off';
+import IUsb from '@lucide/svelte/icons/usb';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ICONS: Record<string, Component<any>> = {
@@ -197,6 +220,29 @@ export const ICONS: Record<string, Component<any>> = {
   'mouse': IMousePointer2,
   'hourglass': IHourglass,
   'search-x': ISearchX,
+  'wifi': IWifi,
+  'bluetooth': IBluetooth,
+  'flashlight': IFlashlight,
+  'radio': IRadio,
+  'volume': IVolume2,
+  'camera': ICamera,
+  'video': IVideo,
+  'message': IMessageSquare,
+  'phone': IPhone,
+  'book': IBookOpen,
+  'send': ISend,
+  'skip-back': ISkipBack,
+  'skip-forward': ISkipForward,
+  'bell-ring': IBellRing,
+  'ellipsis': IEllipsis,
+  'cast': ICast,
+  'grid': IGrid2x2,
+  'battery-charging': IBatteryCharging,
+  'phone-in': IPhoneIncoming,
+  'phone-out': IPhoneOutgoing,
+  'phone-missed': IPhoneMissed,
+  'phone-off': IPhoneOff,
+  'usb': IUsb,
 };
 
 export type IconName = keyof typeof ICONS;

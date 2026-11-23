@@ -193,6 +193,26 @@ const MIGRATIONS: &[&str] = &[
         body TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         used_at INTEGER NOT NULL DEFAULT 0);",
+    // v17: Mobile Manager timeline, custom deck shortcuts and muted notification apps.
+    "CREATE TABLE mobile_timeline(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT NOT NULL,
+        device_name TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        title TEXT NOT NULL,
+        detail TEXT NOT NULL,
+        at INTEGER NOT NULL);
+     CREATE INDEX mobile_timeline_at ON mobile_timeline(at DESC);
+     CREATE TABLE mobile_deck(
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        created_at INTEGER NOT NULL);
+     CREATE TABLE mobile_muted(
+        package_name TEXT PRIMARY KEY,
+        muted_at INTEGER NOT NULL) WITHOUT ROWID;",
 ];
 
 /// How many row numbers are tried per table when a damaged table has to be read row by row.

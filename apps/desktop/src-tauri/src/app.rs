@@ -2,7 +2,7 @@ use crate::modules::downloads;
 use crate::{
     actions, activity, archives, backup, browser, clipboard, colorpick, commands, events,
     filesearch, filetools, focus, folder_compare, folder_rules, game_mode, goals, hardware,
-    integrations, launcher, memory, mini, modules, monitor, notes, notifications, notifier, ocr,
+    integrations, launcher, memory, mini, mobile, modules, monitor, notes, notifications, notifier, ocr,
     organizer, path_editor, pdftools, phone, pipe_server, qr, quick, recorder, reminders, rename,
     settings_io, shortcuts, shots, snippets, startup, state::AppState, storage, storage_cleanup,
     storage_history, storage_ops, storage_tools, subscriptions, toast, translate, tray, updater,
@@ -106,6 +106,7 @@ pub fn run() {
         custom_shortcuts: Default::default(),
         custom_errors: Default::default(),
         phone: Default::default(),
+        mobile: Default::default(),
         rate_limiter: crate::browser::RateLimiter::new(),
         journal: nomnom_organizer::journal::Journal::new(db.clone()),
         organizer: Default::default(),
@@ -398,6 +399,46 @@ pub fn run() {
             downloads::tools_status,
             downloads::tools_install,
             downloads::tools_update_ytdlp,
+            mobile::mob_tools_status,
+            mobile::mob_install_tools,
+            mobile::mob_devices,
+            mobile::mob_pair_wifi,
+            mobile::mob_connect_wifi,
+            mobile::mob_disconnect_wifi,
+            mobile::mob_enable_wifi,
+            mobile::mob_snapshot,
+            mobile::mob_media_action,
+            mobile::mob_toggle_control,
+            mobile::mob_set_sound_display,
+            mobile::mob_mirror,
+            mobile::mob_webcam,
+            mobile::mob_audio_toggle,
+            mobile::mob_continuity_camera,
+            mobile::mob_screenshot,
+            mobile::mob_send_files,
+            mobile::mob_send_clipboard,
+            mobile::mob_find_phone,
+            mobile::mob_type_text,
+            mobile::mob_keyevent,
+            mobile::mob_notification_action,
+            mobile::mob_messages,
+            mobile::mob_send_sms,
+            mobile::mob_calls,
+            mobile::mob_dial,
+            mobile::mob_photos,
+            mobile::mob_photo_preview,
+            mobile::mob_pull_photo,
+            mobile::mob_delete_photo,
+            mobile::mob_apps,
+            mobile::mob_launch_app,
+            mobile::mob_install_apk,
+            mobile::mob_uninstall_app,
+            mobile::mob_timeline,
+            mobile::mob_clear_timeline,
+            mobile::mob_deck_list,
+            mobile::mob_deck_save,
+            mobile::mob_deck_delete,
+            mobile::mob_deck_run,
         ])
         .setup(move |app| {
             tray::create(app.handle())?;
@@ -452,6 +493,7 @@ pub fn run() {
         }
         RunEvent::Exit => {
             recorder::shutdown();
+            app.state::<AppState>().mobile.shutdown();
             activity::flush_on_exit(app);
         }
         _ => {}
