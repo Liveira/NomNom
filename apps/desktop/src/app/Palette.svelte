@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import Icon from '../lib/icons/Icon.svelte';
-  import { actionsIpc, clipIpc, fileIpc, launcherIpc, noteIpc, ocrIpc, reminderIpc, snippetIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview, type Snippet } from '../lib/ipc';
+  import { actionsIpc, clipIpc, fileIpc, ipc, launcherIpc, noteIpc, ocrIpc, reminderIpc, snippetIpc, type CustomAction, type FileHit, type LauncherEntry, type ReminderPreview, type Snippet } from '../lib/ipc';
   import { calc, lastTwo, rank, showNumber } from '../lib/palette';
   import { convert } from '../lib/units';
   import { TOOLS } from '../lib/tools';
@@ -88,30 +88,36 @@
   }
 
   const extras = $derived.by((): Item[] => {
-    if (floating) return [];
     const out: Item[] = [];
     for (const t of THEMES_IN_ORDER) {
       out.push({
         key: `theme:${t.id}`,
         title: `Theme: ${t.name}`,
-        hint: 'Change the look',
+        hint: 'Change theme & layout',
         icon: t.icon,
-        keywords: 'colour color appearance dark light',
-        run: () => {
-          onclose();
-          void app.setTheme(t.id);
+        keywords: 'colour color appearance dark light layout tema',
+        run: async () => {
+          if (floating) {
+            await ipc.updateSettings({ theme: t.id }).catch(() => {});
+            close();
+          } else {
+            onclose();
+            void app.setTheme(t.id);
+          }
         },
       });
     }
-    for (const [code, name] of [['auto', 'Automatic'], ['en', 'English'], ['pt', 'Português'], ['es', 'Español']] as const) {
-      out.push({ key: `lang:${code}`, title: `Language: ${name}`, hint: 'Change the language', icon: 'globe', keywords: 'idioma', run: () => { onclose(); void app.setLanguage(code); } });
+    if (!floating) {
+      for (const [code, name] of [['auto', 'Automatic'], ['en', 'English'], ['pt', 'Português'], ['es', 'Español']] as const) {
+        out.push({ key: `lang:${code}`, title: `Language: ${name}`, hint: 'Change the language', icon: 'globe', keywords: 'idioma', run: () => { onclose(); void app.setLanguage(code); } });
+      }
+      out.push({ key: 'sidebar', title: 'Show or hide the sidebar', hint: 'Layout', icon: 'panel', run: () => { onclose(); void app.toggleSidebar(); } });
     }
-    out.push({ key: 'sidebar', title: 'Show or hide the sidebar', hint: 'Layout', icon: 'panel', run: () => { onclose(); void app.toggleSidebar(); } });
-    if (app.settings?.clipboard.enabled) {
-      out.push({ key: 'clip', title: 'Open the clipboard history', hint: 'Action', icon: 'clipboard', run: () => { onclose(); void clipIpc.open(); } });
+    if (floating || app.settings?.clipboard.enabled) {
+      out.push({ key: 'clip', title: 'Open the clipboard history', hint: 'Action', icon: 'clipboard', run: () => { close(); void clipIpc.open(); } });
     }
-    if (app.settings?.text.ocr) {
-      out.push({ key: 'ocr', title: 'Read text from the screen', hint: 'Action', icon: 'search', keywords: 'ocr capture', run: () => { onclose(); void ocrIpc.start(); } });
+    if (floating || app.settings?.text.ocr) {
+      out.push({ key: 'ocr', title: 'Read text from the screen', hint: 'Action', icon: 'search', keywords: 'ocr capture', run: () => { close(); void ocrIpc.start(); } });
     }
     return out;
   });

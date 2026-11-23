@@ -4,6 +4,7 @@
   import Icon from '../../lib/icons/Icon.svelte';
   import type { Motion, Theme } from '../../lib/ipc';
   import { isLinux } from '../../lib/platform';
+  import { LAYOUT_LABELS, themeLayout } from '../../lib/themes';
   import { MOTIONS, THEME_GROUPS, THEMES_IN_ORDER } from './themes';
 
   const theme = $derived(app.settings?.appearance.theme ?? 'system');
@@ -42,8 +43,8 @@
 </script>
 
 <section class="group" aria-labelledby="themes">
-  <h3 id="themes">Theme</h3>
-  <p class="lead">Pick how NomNom looks. Move the pointer over a card to see its background move.</p>
+  <h3 id="themes">Theme &amp; layout</h3>
+  <p class="lead">Each theme transforms colours, navigation layout, corners and typography across the whole app.</p>
 
   <div class="gallery" role="radiogroup" aria-label="Theme">
     {#each THEME_GROUPS as g (g.label)}
@@ -52,6 +53,7 @@
       {#each g.items as t (t.id)}
         {@const i = THEMES_IN_ORDER.indexOf(t)}
         {@const on = theme === t.id}
+        {@const layout = themeLayout(t.id === 'system' ? 'dark' : t.id)}
         <button
           class="card-theme"
           class:on
@@ -66,7 +68,7 @@
           onfocus={() => (hovered = t.id)}
           onblur={() => (hovered = null)}
         >
-          <span class="mini" data-theme={t.id === 'system' ? 'dark' : t.id}>
+          <span class="mini" data-theme={t.id === 'system' ? 'dark' : t.id} data-layout-preview={layout}>
             {#if t.id === 'system'}
               <span class="half" data-theme="light"></span>
             {/if}
@@ -84,7 +86,10 @@
             </span>
           </span>
           <span class="meta">
-            <span class="name"><Icon name={t.icon} size={15} /> {t.name}</span>
+            <span class="name-row">
+              <span class="name"><Icon name={t.icon} size={15} /> {t.name}</span>
+              <span class="lbadge">{LAYOUT_LABELS[layout]}</span>
+            </span>
             <span class="tag">{t.tagline}</span>
           </span>
           {#if on}<span class="check" aria-hidden="true"><Icon name="check" size={13} stroke={3} /></span>{/if}
@@ -156,8 +161,38 @@
   .mcard u { height: 4px; width: 80%; border-radius: 2px; background: var(--text-3); }
   .mbtn { height: 12px; width: 40%; border-radius: 5px; background: var(--accent); }
 
-  .meta { display: grid; gap: 2px; padding: 0 2px 2px; }
+  /* Reflect each theme's actual layout geometry inside its mini preview card */
+  .mini[data-layout-preview='dock-top'] .mock { flex-direction: column; }
+  .mini[data-layout-preview='dock-top'] .mside {
+    width: auto; height: 14px; display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 999px;
+  }
+  .mini[data-layout-preview='dock-top'] .mside i { width: 14px; height: 4px; border-radius: 999px; }
+
+  .mini[data-layout-preview='floating'] .mside { border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+  .mini[data-layout-preview='floating'] .mcard { border-radius: 10px; }
+  .mini[data-layout-preview='floating'] .mbtn { border-radius: 999px; }
+
+  .mini[data-layout-preview='rail'] .mside { width: 12%; padding: 4px 2px; justify-items: center; }
+  .mini[data-layout-preview='rail'] .mside i { width: 7px; height: 7px; border-radius: 3px; }
+
+  .mini[data-layout-preview='cyber-hud'] .mock { flex-direction: row-reverse; }
+  .mini[data-layout-preview='cyber-hud'] .mside { border-radius: 1px; border-left: 2px solid var(--accent); }
+  .mini[data-layout-preview='cyber-hud'] .mcard,
+  .mini[data-layout-preview='cyber-hud'] .mbtn { border-radius: 1px; }
+  .mini[data-layout-preview='cyber-hud'] .mcard { box-shadow: 2px 2px 0 var(--border-glow); }
+
+  .mini[data-layout-preview='terminal'] .mside { border-radius: 0; border: 1px dashed var(--accent); background: var(--bg); }
+  .mini[data-layout-preview='terminal'] .mcard,
+  .mini[data-layout-preview='terminal'] .mbtn { border-radius: 0; }
+  .mini[data-layout-preview='terminal'] .mcard { border: 1px solid var(--accent); }
+
+  .meta { display: grid; gap: 3px; padding: 0 2px 2px; }
+  .name-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
   .name { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13.5px; }
+  .lbadge {
+    font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: var(--radius-xs);
+    background: var(--surface-3); color: var(--text-2); letter-spacing: 0.01em;
+  }
   .tag { font-size: 12px; color: var(--text-3); line-height: 1.35; }
   .check {
     position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; z-index: 3;

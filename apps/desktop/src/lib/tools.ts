@@ -89,7 +89,7 @@ export const TOOLS: ToolInfo[] = [
     id: 'actions',
     icon: 'rocket',
     title: 'My actions',
-    desc: 'Programs, folders, links and commands of your own, with shortcuts and a search box (Ctrl+K, or Alt+Space anywhere).',
+    desc: 'Programs, folders, links and commands of your own, with shortcuts and a search box (Ctrl+K anywhere).',
     tint: 'var(--glow-blush)',
   },
   {

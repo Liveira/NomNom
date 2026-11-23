@@ -307,10 +307,20 @@ pub fn lc_ready(app: AppHandle) {
 }
 
 /// Opens the launcher on the screen the pointer is on, or closes it if it is open.
+/// When the main NomNom window is already focused, toggles its built-in command palette instead
+/// so Ctrl+K works seamlessly both inside and outside NomNom.
 pub fn toggle(app: &AppHandle) {
     if app.get_webview_window(LABEL).is_some() {
         close(app);
         return;
+    }
+    if let Some(main_win) = app.get_webview_window("main") {
+        let focused = main_win.is_focused().unwrap_or(false);
+        let visible = main_win.is_visible().unwrap_or(false);
+        if focused && visible {
+            let _ = app.emit("palette://toggle", ());
+            return;
+        }
     }
     if !app.state::<AppState>().settings.get().shortcuts.launcher_on {
         return;

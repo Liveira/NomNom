@@ -6,6 +6,7 @@
 
   let maximized = $state(false);
   const title = $derived(app.nav.find((n) => n.id === app.current)?.name ?? 'NomNom');
+  const searchKey = $derived(app.settings?.shortcuts.launcher || 'Ctrl+K');
 
   function win() {
     try {
@@ -39,7 +40,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<header class="titlebar" data-tauri-drag-region>
+<header class="titlebar app-titlebar" data-tauri-drag-region>
   <div class="side left" data-tauri-drag-region>
     <button class="nav" aria-label="Back" title="Back (Alt+Left)" disabled={!app.canGoBack} onclick={() => app.back()}>
       <Icon name="arrow-left" size={16} />
@@ -53,10 +54,10 @@
     </div>
   </div>
 
-  <button class="search-trigger" aria-label="Search" title="Search (Ctrl+K)" onclick={() => (app.paletteOpen = true)}>
+  <button class="search-trigger" aria-label="Search" title={`Search (${searchKey})`} onclick={() => (app.paletteOpen = true)}>
     <Icon name="search" size={14} />
     <span>Search</span>
-    <kbd>Ctrl+K</kbd>
+    <kbd>{searchKey}</kbd>
   </button>
 
   <div class="side right" data-tauri-drag-region>

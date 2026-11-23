@@ -1,7 +1,7 @@
 import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings, type SettingsPatch, type TaskInfo, type Theme, type Motion } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
 import { i18n } from '../lib/i18n/index.svelte';
-import { isLight } from '../lib/themes';
+import { isLight, themeLayout } from '../lib/themes';
 import { sidebarItems } from '../lib/tools';
 import { discoverModules } from './discover';
 
@@ -149,6 +149,7 @@ class AppState {
     const root = document.documentElement;
     root.dataset.theme = palette;
     root.dataset.scheme = isLight(palette) ? 'light' : 'dark';
+    root.dataset.layout = themeLayout(palette);
     this.palette = palette;
   }
 

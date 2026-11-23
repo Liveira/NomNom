@@ -191,7 +191,7 @@ impl Default for Shortcuts {
             translate_replace: "Ctrl+Alt+R".into(),
             translate_popup: "Ctrl+Alt+Y".into(),
             capture_text: "Ctrl+Alt+O".into(),
-            launcher: "Alt+Space".into(),
+            launcher: "Ctrl+K".into(),
             launcher_on: true,
             notes: "Ctrl+Alt+M".into(),
             pin_top: "Ctrl+Alt+P".into(),

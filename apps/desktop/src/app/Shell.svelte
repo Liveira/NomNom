@@ -1,5 +1,6 @@
 <script lang="ts">
-  import type { Component } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { onDestroy, type Component } from 'svelte';
   import Backdrop from '../lib/fx/Backdrop.svelte';
   import Sidebar from './Sidebar.svelte';
   import Palette from './Palette.svelte';
@@ -9,6 +10,12 @@
   let View = $state<Component | null>(null);
   let main = $state<HTMLElement | null>(null);
   let loadError = $state<string | null>(null);
+
+  let stopPalette: (() => void) | null = null;
+  void listen('palette://toggle', () => {
+    app.paletteOpen = !app.paletteOpen;
+  }).then((u) => (stopPalette = u));
+  onDestroy(() => stopPalette?.());
 
   $effect(() => {
     const item = app.nav.find((n) => n.id === app.current);
@@ -42,11 +49,11 @@
 <svelte:window onkeydown={keys} />
 <Backdrop theme={app.palette} motion={app.motion} />
 <TitleBar />
-<div class="shell">
+<div class="shell app-shell">
   <Sidebar />
-  <main bind:this={main}>
+  <main class="app-main" bind:this={main}>
     {#key app.current}
-      <div class="view">
+      <div class="view app-view">
         {#if loadError}
           <p class="error">Couldn't open this section. {loadError}</p>
         {:else if View}

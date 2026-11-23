@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import './lib/design/fonts.css';
 import './lib/design/tokens.css';
 import './lib/design/base.css';
+import './lib/design/layouts.css';
 import Shell from './app/Shell.svelte';
 import { app } from './app/state.svelte';
 import { i18n } from './lib/i18n/index.svelte';

@@ -40,17 +40,17 @@
   }
 </script>
 
-<nav class="sidebar" class:collapsed aria-label="Main">
-  <button class="brand" onclick={() => app.go('home')} title="NomNom Home">
+<nav class="sidebar app-sidebar" class:collapsed aria-label="Main">
+  <button class="brand app-brand" onclick={() => app.go('home')} title="NomNom Home">
     <Logo size={24} />
     {#if !collapsed}<span class="wordmark">NomNom</span>{/if}
   </button>
 
-  <ul class="nav-list">
+  <ul class="nav-list app-nav-list">
     {#each main as item (item.id)}
       <li>
         <button
-          class="item"
+          class="item app-nav-item"
           class:active={app.current === item.id}
           aria-current={app.current === item.id ? 'page' : undefined}
           title={collapsed ? item.name : undefined}
@@ -63,7 +63,7 @@
     {/each}
   </ul>
 
-  <div class="spacer"></div>
+  <div class="spacer app-spacer"></div>
 
   {#if app.newVersion && !collapsed}
     <div class="update-card" role="status">
@@ -81,11 +81,11 @@
     </div>
   {/if}
 
-  <ul class="nav-list footer-list">
+  <ul class="nav-list footer-list app-nav-footer">
     {#each footer as item (item.id)}
       <li>
         <button
-          class="item"
+          class="item app-nav-item"
           class:active={app.current === item.id}
           aria-current={app.current === item.id ? 'page' : undefined}
           title={collapsed ? item.name : undefined}
@@ -99,9 +99,9 @@
         </button>
       </li>
     {/each}
-    <li>
+    <li class="app-collapse-item">
       <button
-        class="item"
+        class="item app-nav-item"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         onclick={() => app.toggleSidebar()}

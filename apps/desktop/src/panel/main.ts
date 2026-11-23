@@ -2,9 +2,11 @@ import { mount, type Component } from 'svelte';
 import '../lib/design/fonts.css';
 import '../lib/design/tokens.css';
 import '../lib/design/base.css';
+import '../lib/design/layouts.css';
 import { i18n } from '../lib/i18n/index.svelte';
 import { ipc } from '../lib/ipc';
 import { isLinux } from '../lib/platform';
+import { themeLayout } from '../lib/themes';
 import ClipboardPanel from './ClipboardPanel.svelte';
 import LauncherPanel from './LauncherPanel.svelte';
 import OcrPanel from './OcrPanel.svelte';
@@ -18,13 +20,17 @@ import TranslatePanel from './TranslatePanel.svelte';
 const kind = new URLSearchParams(location.search).get('kind') ?? 'toast';
 
 const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+const initialTheme = dark ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+document.documentElement.dataset.layout = themeLayout(initialTheme);
 if (isLinux) document.documentElement.dataset.opaque = 'true';
 ipc
   .getSettings()
   .then((s) => {
     const t = s.appearance.theme;
-    document.documentElement.dataset.theme = t === 'system' ? (dark ? 'dark' : 'light') : t;
+    const resolved = t === 'system' ? (dark ? 'dark' : 'light') : t;
+    document.documentElement.dataset.theme = resolved;
+    document.documentElement.dataset.layout = themeLayout(resolved);
     i18n.apply(s.general.language);
   })
   .catch(() => {});
