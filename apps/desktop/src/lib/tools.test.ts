@@ -14,7 +14,7 @@ import {
 } from './tools';
 import { CORE_GUIDES, TOOL_GUIDES } from './tool-guides';
 
-const nav = ['home', 'tools', 'downloads', 'activity', 'backup', 'monitor', 'settings'].map((id) => ({ id }));
+const nav = ['home', 'tools', 'downloads', 'activity', 'backup', 'monitor', 'changelog', 'settings'].map((id) => ({ id }));
 const ids = (list: { id: string }[]) => list.map((n) => n.id);
 
 describe('sidebarItems', () => {
@@ -22,13 +22,13 @@ describe('sidebarItems', () => {
     expect(ids(sidebarItems(nav, null))).toEqual(ids(nav));
   });
   it('shows the chosen tools and always the core pages, in the usual order', () => {
-    expect(ids(sidebarItems(nav, ['monitor', 'downloads']))).toEqual(['home', 'tools', 'downloads', 'monitor', 'settings']);
+    expect(ids(sidebarItems(nav, ['monitor', 'downloads']))).toEqual(['home', 'tools', 'downloads', 'monitor', 'changelog', 'settings']);
   });
-  it('an empty choice still leaves Home, Tools and Settings', () => {
-    expect(ids(sidebarItems(nav, []))).toEqual(['home', 'tools', 'settings']);
+  it('an empty choice still leaves Home, Tools, Patch notes and Settings', () => {
+    expect(ids(sidebarItems(nav, []))).toEqual(['home', 'tools', 'changelog', 'settings']);
   });
   it('ignores names that are not tools', () => {
-    expect(ids(sidebarItems(nav, ['nope']))).toEqual(['home', 'tools', 'settings']);
+    expect(ids(sidebarItems(nav, ['nope']))).toEqual(['home', 'tools', 'changelog', 'settings']);
   });
 });
 

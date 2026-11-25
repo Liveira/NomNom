@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '../../lib/icons/Icon.svelte';
   import Logo from '../../lib/icons/Logo.svelte';
+  import { app } from '../../app/state.svelte';
   import { updateIpc } from '../../lib/ipc';
 
   let version = $state('');
@@ -21,7 +22,10 @@
     <div>
       <div class="ver">Version {version || '…'}</div>
       <div class="hint">Everything runs on this computer. No account, no tracking.</div>
-      <a class="link" href="https://github.com/Liveira/NomNom" target="_blank" rel="noreferrer"><Icon name="external" size={13} /> Source code and releases</a>
+      <div class="links">
+        <button class="link-btn" onclick={() => app.go('changelog')}><Icon name="scroll-text" size={13} /> Patch notes</button>
+        <a class="link" href="https://github.com/Liveira/NomNom" target="_blank" rel="noreferrer"><Icon name="external" size={13} /> Source code and releases</a>
+      </div>
     </div>
   </div>
 </section>
@@ -47,7 +51,10 @@
   .ver { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
   .hint { color: var(--text-3); font-size: 12.5px; margin-top: 2px; }
   .lead { margin: 0 0 10px; }
-  .link { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; color: var(--accent-text); }
+  .links { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 8px; }
+  .link, .link-btn { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-text); font-size: 13px; }
+  .link-btn { border: 0; padding: 0; background: none; cursor: pointer; font-weight: 600; }
+  .link-btn:hover { text-decoration: underline; }
   .credits { list-style: none; margin: 0; padding: 0; display: grid; }
   .credits li { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--border); }
   .credits li:first-child { border-top: 0; }

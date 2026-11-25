@@ -28,6 +28,30 @@ static SETTINGS: ModuleManifest = ModuleManifest {
     capabilities: &[],
 };
 
+static CHANGELOG: ModuleManifest = ModuleManifest {
+    id: "changelog",
+    name: "Patch notes",
+    nav: Some(NavEntry {
+        order: 990,
+        icon: "scroll-text",
+    }),
+    commands: &[],
+    context_actions: &[],
+    settings_key: None,
+    capabilities: &[],
+};
+
+pub struct ChangelogModule;
+#[async_trait]
+impl Module for ChangelogModule {
+    fn manifest(&self) -> &ModuleManifest {
+        &CHANGELOG
+    }
+    async fn start(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 static CLIPBOARD: ModuleManifest = ModuleManifest {
     id: "clipboard",
     name: "Clipboard",

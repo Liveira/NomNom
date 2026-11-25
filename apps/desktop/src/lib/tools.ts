@@ -286,8 +286,8 @@ export const TOOLS: ToolInfo[] = [
 
 const TOOL_BY_ID = new Map(TOOLS.map((t) => [t.id, t]));
 
-/** Always in the sidebar: the pages that find and set up everything else. */
-export const CORE = new Set(['home', 'tools', 'settings']);
+/** Always in the sidebar: the pages that find, document and set up everything else. */
+export const CORE = new Set(['home', 'tools', 'changelog', 'settings']);
 
 /** What a new install starts with. The rest are one click away on the Tools page. */
 export const DEFAULT_PICKS = ['downloads', 'activity', 'mobile', 'organizer', 'filetools'];

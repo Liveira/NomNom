@@ -11,8 +11,8 @@ export interface NavItem {
   view: ModuleDef['view'];
 }
 
-/** Settings is pinned to the bottom of the sidebar, so it is not part of the main list. */
-export const FOOTER_MODULES = new Set(['settings']);
+/** Patch notes and Settings are pinned to the bottom of the sidebar, separate from the main list. */
+export const FOOTER_MODULES = new Set(['changelog', 'settings']);
 
 /** Merges frontend definitions with backend manifests. Modules unknown to the backend are hidden. */
 export function buildNav(defs: ModuleDef[], manifests: ModuleManifest[]): NavItem[] {

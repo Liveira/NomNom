@@ -123,6 +123,10 @@ import IUsb from '@lucide/svelte/icons/usb';
 import IMic from '@lucide/svelte/icons/mic';
 import IFolderPlus from '@lucide/svelte/icons/folder-plus';
 import ICircleDot from '@lucide/svelte/icons/circle-dot';
+import IScrollText from '@lucide/svelte/icons/scroll-text';
+import IChevronLeft from '@lucide/svelte/icons/chevron-left';
+import IMenu from '@lucide/svelte/icons/menu';
+import ITag from '@lucide/svelte/icons/tag';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const ICONS: Record<string, Component<any>> = {
@@ -249,6 +253,10 @@ export const ICONS: Record<string, Component<any>> = {
   'mic': IMic,
   'folder-plus': IFolderPlus,
   'record': ICircleDot,
+  'scroll-text': IScrollText,
+  'chevron-left': IChevronLeft,
+  'menu': IMenu,
+  'tag': ITag,
 };
 
 export type IconName = keyof typeof ICONS;

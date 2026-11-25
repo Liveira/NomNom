@@ -44,6 +44,7 @@
           { id: 'home', name: 'Home', icon: 'home' },
           { id: 'tools', name: 'Tools', icon: 'tools' },
           ...TOOLS.map((t) => ({ id: t.id, name: t.title, icon: t.icon })),
+          { id: 'changelog', name: 'Patch notes', icon: 'scroll-text' },
           { id: 'settings', name: 'Settings', icon: 'settings' },
         ]
       : app.nav.map((n) => ({ id: n.id, name: n.name, icon: n.icon })),
@@ -148,7 +149,16 @@
         run: () => runAction(a),
       });
     }
-    for (const p of pages) list.push({ key: `page:${p.id}`, title: p.name, hint: 'Open', icon: p.icon, run: () => go(p.id) });
+    for (const p of pages) {
+      list.push({
+        key: `page:${p.id}`,
+        title: p.name,
+        hint: 'Open',
+        icon: p.icon,
+        keywords: p.id === 'changelog' ? 'changelog release versions history updates novidades notas versao' : undefined,
+        run: () => go(p.id),
+      });
+    }
     for (const sn of snippets) {
       list.push({
         key: `snip:${sn.id}`,

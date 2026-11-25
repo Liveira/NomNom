@@ -51,6 +51,19 @@ html[data-layout='floating'] .app-sidebar {
   backdrop-filter: blur(14px);
 }
 
+html[data-layout='floating'] .app-rail-ghost {
+  margin: 6px 0 6px 6px;
+}
+
+html[data-layout='floating'] .app-sidebar.drawer-open {
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  margin: 0;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-pop);
+}
+
 html[data-layout='floating'] .app-sidebar .app-nav-item {
   border-radius: var(--radius-s);
   padding: 7px 11px;
@@ -71,7 +84,13 @@ html[data-layout='floating'] .app-sidebar .app-nav-item.active::before {
 }
 
 html[data-layout='floating'] .app-view {
-  padding: 24px 32px 44px;
+  padding: clamp(16px, 2.3vw, 26px) clamp(14px, 2.8vw, 34px) 44px;
+}
+
+@media (max-width: 920px) {
+  html[data-layout='floating'] .app-sidebar:not(.drawer-open) {
+    margin: 6px 0 6px 6px;
+  }
 }
 
 /* ======================================================================================
@@ -97,25 +116,30 @@ html[data-layout='dock-top'] .app-titlebar {
 
 html[data-layout='dock-top'] .app-sidebar {
   width: auto !important;
-  height: 52px;
+  height: 50px;
   flex: none;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
-  padding: 0 18px;
+  gap: 8px;
+  padding: 0 clamp(10px, 1.8vw, 18px);
   border-right: 0;
   border-bottom: 1px solid var(--border-strong);
-  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 80%, transparent);
   backdrop-filter: blur(18px);
 }
 
-html[data-layout='dock-top'] .app-sidebar .app-brand {
-  padding: 0 8px 0 0;
+html[data-layout='dock-top'] .app-sidebar .app-brand-row {
   margin: 0;
   flex: none;
 }
 
-html[data-layout='dock-top'] .app-sidebar .app-nav-list {
+html[data-layout='dock-top'] .app-sidebar .app-brand {
+  padding: 0 6px 0 0;
+  margin: 0;
+  flex: none;
+}
+
+html[data-layout='dock-top'] .app-sidebar .app-nav-list:not(.app-nav-footer) {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -124,17 +148,23 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-list {
   overflow-y: hidden;
   flex: 1;
   min-width: 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: none;
 }
 
-html[data-layout='dock-top'] .app-sidebar .app-nav-list::-webkit-scrollbar {
-  height: 3px;
+html[data-layout='dock-top'] .app-sidebar .app-nav-list:not(.app-nav-footer)::-webkit-scrollbar {
+  display: none;
 }
 
-html[data-layout='dock-top'] .app-sidebar .app-nav-list::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 2px;
+html[data-layout='dock-top'] .app-sidebar .app-nav-list.fade-left {
+  mask-image: linear-gradient(to right, transparent, #000 18px, #000 100%);
+}
+
+html[data-layout='dock-top'] .app-sidebar .app-nav-list.fade-right {
+  mask-image: linear-gradient(to left, transparent, #000 18px, #000 100%);
+}
+
+html[data-layout='dock-top'] .app-sidebar .app-nav-list.fade-left.fade-right {
+  mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent);
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-list li {
@@ -153,20 +183,22 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-footer {
   padding-top: 0;
   border-top: 0;
   border-left: 1px solid var(--border);
-  padding-left: 10px;
+  padding-left: 8px;
   flex: none;
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-collapse-item,
-html[data-layout='dock-top'] .app-sidebar .app-nav-group-label {
+html[data-layout='dock-top'] .app-sidebar .app-nav-group-label,
+html[data-layout='dock-top'] .app-sidebar .update-card {
   display: none;
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-item {
   width: auto;
-  padding: 6px 11px;
+  padding: 6px 10px;
   border-radius: var(--radius-s);
   justify-content: center;
+  gap: 7px;
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-item.active {
@@ -184,19 +216,51 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-item.active::before {
   height: 2px;
 }
 
-html[data-layout='dock-top'] .app-sidebar .update-card {
-  display: none;
-}
-
 html[data-layout='dock-top'] .app-view {
   margin-inline: auto;
-  max-width: 1220px;
-  padding: 26px 36px 44px;
+  max-width: 1260px;
+  padding: clamp(16px, 2.3vw, 26px) clamp(14px, 3vw, 36px) 44px;
+}
+
+@media (max-width: 1080px) {
+  html[data-layout='dock-top'] .app-sidebar .app-nav-footer .label {
+    display: none;
+  }
+  html[data-layout='dock-top'] .app-sidebar .app-nav-footer .app-nav-item {
+    padding: 6px 8px;
+  }
+  html[data-layout='dock-top'] .app-sidebar .app-nav-item {
+    padding: 5px 9px;
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 860px) {
+  html[data-layout='dock-top'] .app-sidebar {
+    gap: 5px;
+  }
+  html[data-layout='dock-top'] .app-sidebar .app-brand .wordmark {
+    display: none;
+  }
+  html[data-layout='dock-top'] .app-sidebar .app-brand {
+    padding-right: 2px;
+  }
+  html[data-layout='dock-top'] .app-sidebar .app-nav-item {
+    padding: 5px 8px;
+    font-size: 12px;
+    gap: 5px;
+  }
+}
+
+@media (max-height: 640px) {
+  html[data-layout='dock-top'] .app-sidebar {
+    height: 44px;
+  }
 }
 
 /* ======================================================================================
    3. ICON RAIL & ELEVATED BENTO (Nebula, Sunset, Ember, Firefly Forest)
-      Compact creative-studio vertical icon rail (84px) + wide Bento stage.
+      Compact creative-studio vertical icon rail (82px, slims to 58px on narrow screens).
    ====================================================================================== */
 html[data-layout='rail'] {
   --radius-xs: 3px;
@@ -207,16 +271,21 @@ html[data-layout='rail'] {
 }
 
 html[data-layout='rail'] .app-sidebar {
-  width: 84px !important;
-  padding: 12px 6px 10px;
+  width: 82px !important;
+  padding: 10px 6px 8px;
   align-items: center;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   backdrop-filter: blur(14px);
 }
 
+html[data-layout='rail'] .app-sidebar .app-brand-row {
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
 html[data-layout='rail'] .app-sidebar .app-brand {
   justify-content: center;
-  padding: 6px 0 12px;
+  padding: 4px 0 8px;
 }
 
 html[data-layout='rail'] .app-sidebar .app-brand .wordmark {
@@ -225,7 +294,7 @@ html[data-layout='rail'] .app-sidebar .app-brand .wordmark {
 
 html[data-layout='rail'] .app-sidebar .app-nav-list {
   width: 100%;
-  gap: 4px;
+  gap: 3px;
 }
 
 html[data-layout='rail'] .app-sidebar .app-nav-item {
@@ -233,7 +302,7 @@ html[data-layout='rail'] .app-sidebar .app-nav-item {
   justify-content: center;
   align-items: center;
   gap: 3px;
-  padding: 7px 3px;
+  padding: 6px 3px;
   border-radius: var(--radius-m);
   text-align: center;
 }
@@ -241,7 +310,7 @@ html[data-layout='rail'] .app-sidebar .app-nav-item {
 html[data-layout='rail'] .app-sidebar .app-nav-item .label {
   font-size: 10.5px;
   line-height: 1.15;
-  max-width: 72px;
+  max-width: 70px;
 }
 
 html[data-layout='rail'] .app-sidebar .app-nav-item.active {
@@ -262,7 +331,28 @@ html[data-layout='rail'] .app-sidebar .update-card {
 
 html[data-layout='rail'] .app-view {
   max-width: 1260px;
-  padding: 26px 34px 44px;
+  margin-inline: auto;
+  padding: clamp(16px, 2.3vw, 26px) clamp(14px, 2.8vw, 34px) 44px;
+}
+
+@media (max-width: 920px) {
+  html[data-layout='rail'] .app-sidebar {
+    width: 58px !important;
+    padding: 8px 6px;
+  }
+  html[data-layout='rail'] .app-sidebar .app-nav-item {
+    padding: 8px 0;
+  }
+  html[data-layout='rail'] .app-sidebar .app-nav-item .label {
+    display: none;
+  }
+}
+
+@media (max-height: 640px) {
+  html[data-layout='rail'] .app-sidebar .app-nav-item {
+    padding: 4px 2px;
+    gap: 2px;
+  }
 }
 
 /* ======================================================================================
@@ -300,8 +390,14 @@ html[data-layout='cyber-hud'] .app-titlebar .search-trigger {
 html[data-layout='cyber-hud'] .app-sidebar {
   border-right: 0;
   border-left: 2px solid var(--accent);
-  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
   backdrop-filter: blur(10px);
+}
+
+html[data-layout='cyber-hud'] .app-sidebar.drawer-open {
+  left: auto;
+  right: 0;
+  background: var(--surface-1);
 }
 
 html[data-layout='cyber-hud'] .app-sidebar .app-nav-item {

@@ -2,11 +2,16 @@
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import Icon from '../lib/icons/Icon.svelte';
   import Logo from '../lib/icons/Logo.svelte';
+  import { themeLayout } from '../lib/themes';
   import { app } from './state.svelte';
 
   let maximized = $state(false);
+  let winW = $state(typeof window !== 'undefined' ? window.innerWidth : 1040);
+
   const title = $derived(app.nav.find((n) => n.id === app.current)?.name ?? 'NomNom');
   const searchKey = $derived(app.settings?.shortcuts.launcher || 'Ctrl+K');
+  const layout = $derived(themeLayout(app.palette));
+  const showMenuBtn = $derived(winW <= 920 && layout !== 'dock-top' && layout !== 'rail');
 
   function win() {
     try {
@@ -19,14 +24,25 @@
   $effect(() => {
     const w = win();
     if (!w) return;
+    let gone = false;
     let off: (() => void) | undefined;
-    const sync = () => void w.isMaximized().then((m) => (maximized = m)).catch(() => {});
+    const sync = () => void w.isMaximized().then((m) => { if (!gone) maximized = m; }).catch(() => {});
     sync();
-    void w.onResized(sync).then((u) => (off = u)).catch(() => {});
-    return () => off?.();
+    void w.onResized(sync).then((u) => {
+      if (gone) u();
+      else off = u;
+    }).catch(() => {});
+    return () => {
+      gone = true;
+      off?.();
+    };
   });
 
   function onKey(e: KeyboardEvent) {
+    if (e.key === 'Escape' && app.navDrawerOpen) {
+      app.navDrawerOpen = false;
+      return;
+    }
     if (!e.altKey) return;
     if (e.key === 'ArrowLeft') {
       e.preventDefault();
@@ -38,10 +54,22 @@
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window bind:innerWidth={winW} onkeydown={onKey} />
 
 <header class="titlebar app-titlebar" data-tauri-drag-region>
   <div class="side left" data-tauri-drag-region>
+    {#if showMenuBtn}
+      <button
+        class="nav menu-btn"
+        class:active={app.navDrawerOpen}
+        aria-label={app.navDrawerOpen ? 'Close menu' : 'Open menu'}
+        title={app.navDrawerOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={app.navDrawerOpen}
+        onclick={() => (app.navDrawerOpen = !app.navDrawerOpen)}
+      >
+        <Icon name={app.navDrawerOpen ? 'x' : 'menu'} size={15} />
+      </button>
+    {/if}
     <button class="nav" aria-label="Back" title="Back (Alt+Left)" disabled={!app.canGoBack} onclick={() => app.back()}>
       <Icon name="arrow-left" size={16} />
     </button>
@@ -56,7 +84,7 @@
 
   <button class="search-trigger" aria-label="Search" title={`Search (${searchKey})`} onclick={() => (app.paletteOpen = true)}>
     <Icon name="search" size={14} />
-    <span>Search</span>
+    <span class="search-label">Search</span>
     <kbd>{searchKey}</kbd>
   </button>
 
@@ -82,10 +110,11 @@
   .titlebar {
     height: var(--titlebar-h);
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(0, 1fr) auto minmax(132px, 1fr);
     align-items: center;
+    gap: 8px;
     position: relative;
-    z-index: 3;
+    z-index: 30;
     user-select: none;
     -webkit-user-select: none;
     background: var(--surface-1);
@@ -97,16 +126,23 @@
     height: 100%;
     min-width: 0;
   }
-  .left { padding-left: 10px; gap: 3px; }
+  .left { padding-left: 8px; gap: 3px; }
   .right { justify-content: flex-end; }
   .crumb {
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    margin-left: 8px;
+    margin-left: 6px;
     font-size: 12.5px;
     font-weight: 600;
     color: var(--text-2);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .crumb :global(svg) {
+    flex: none;
+  }
+  .crumb span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -116,7 +152,7 @@
     align-items: center;
     gap: 8px;
     height: 26px;
-    min-width: 210px;
+    width: clamp(148px, 24vw, 270px);
     padding: 0 8px 0 11px;
     border-radius: var(--radius-s);
     border: 1px solid var(--border);
@@ -133,9 +169,10 @@
     margin-left: auto;
     font: 600 10.5px var(--font-mono);
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: 3px;
     background: var(--surface-2);
     color: var(--text-3);
+    white-space: nowrap;
   }
   button {
     border: 0;
@@ -148,18 +185,36 @@
   .nav {
     width: 26px;
     height: 26px;
+    flex: none;
     border-radius: var(--radius-xs);
+  }
+  .menu-btn.active {
+    background: var(--glow-peach);
+    color: var(--accent-text);
   }
   .nav:hover:not(:disabled), .ctl:hover { background: var(--surface-2); color: var(--text); }
   .nav:disabled { opacity: 0.32; cursor: default; }
   .ctl {
     width: 44px;
     height: 100%;
+    flex: none;
   }
   .ctl.close:hover { background: #e5384b; color: #fff; }
   button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
-  @media (max-width: 620px) {
-    .search-trigger { min-width: auto; }
-    .search-trigger span, .search-trigger kbd { display: none; }
+
+  @media (max-width: 720px) {
+    .search-trigger {
+      width: auto;
+      padding: 0 8px;
+      gap: 6px;
+    }
+    .search-label {
+      display: none;
+    }
+  }
+  @media (max-width: 560px) {
+    .search-trigger kbd {
+      display: none;
+    }
   }
 </style>

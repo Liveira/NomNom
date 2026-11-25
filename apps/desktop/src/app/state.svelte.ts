@@ -11,6 +11,8 @@ class AppState {
   settings = $state<Settings | null>(null);
   /** The command palette (Ctrl+K) is open. */
   paletteOpen = $state(false);
+  /** The slide-over navigation drawer is open on narrow windows. */
+  navDrawerOpen = $state(false);
   current = $state('home');
   tasks = $state<Record<string, TaskInfo>>({});
   /** A newer NomNom found by the last update check. */
@@ -74,6 +76,7 @@ class AppState {
   }
 
   go(id: string) {
+    this.navDrawerOpen = false;
     if (id === this.current) return;
     this.trail = [...this.trail.slice(0, this.at + 1), id];
     this.at = this.trail.length - 1;

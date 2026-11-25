@@ -38,6 +38,7 @@ pub fn register_all(registry: &mut ModuleRegistry) {
         Arc::new(builtin::ArchivesModule),
         Arc::new(builtin::RecorderModule),
         Arc::new(builtin::PathsModule),
+        Arc::new(builtin::ChangelogModule),
         Arc::new(builtin::Settings),
     ];
     for m in modules {

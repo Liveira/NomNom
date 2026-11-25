@@ -186,6 +186,13 @@
       <p class="tile-desc">Complete step-by-step guide and shortcuts for every tool.</p>
     </div>
   </button>
+  <button class="tool-tile muted" onclick={() => app.go('changelog')}>
+    <div class="tile-icon"><Icon name="scroll-text" size={18} /></div>
+    <div class="tile-copy">
+      <div class="tile-title">Patch notes</div>
+      <p class="tile-desc">See every feature, layout upgrade and fix added in each version.</p>
+    </div>
+  </button>
 </section>
 
 <style>

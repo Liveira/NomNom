@@ -73,7 +73,10 @@
       <div class="label">NomNom {version}</div>
       <div class="hint">{lastCheckedLine(app.settings?.updates.last_checked ?? 0)}</div>
     </div>
-    <button class="plain" disabled={checking || installing} onclick={check}>{checking ? 'Checking…' : 'Check for updates'}</button>
+    <div class="row-actions">
+      <button class="plain" onclick={() => app.go('changelog')}>Patch notes</button>
+      <button class="plain" disabled={checking || installing} onclick={check}>{checking ? 'Checking…' : 'Check for updates'}</button>
+    </div>
   </div>
 
   <div class="row">
@@ -116,6 +119,7 @@
   .found { margin-top: 8px; padding: 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-s); background: var(--surface-2); display: grid; gap: 8px; }
   .notes { margin: 0; max-height: 160px; overflow: auto; white-space: pre-wrap; font: inherit; font-size: 13px; color: var(--text-2); }
   .actions { display: flex; gap: 14px; align-items: center; }
+  .row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
   .plain, .primary { padding: 6px 14px; border-radius: var(--radius-s); border: 1px solid var(--border-strong); background: var(--surface-2); color: inherit; cursor: pointer; }
   .primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); font-weight: 600; }
   .plain:hover:not(:disabled) { background: var(--surface-3); }

@@ -80,8 +80,9 @@
     overflow: auto;
   }
   .view {
-    padding: 24px 32px 40px;
-    max-width: 1140px;
+    padding: clamp(16px, 2.3vw, 26px) clamp(14px, 2.8vw, 34px) 40px;
+    max-width: 1220px;
+    margin-inline: auto;
     animation: enter var(--dur-2) var(--ease-out);
   }
   .error { color: var(--danger); }
