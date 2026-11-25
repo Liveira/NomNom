@@ -124,7 +124,7 @@
       <p class="hint tabular">{listing.count} {listing.count === 1 ? 'item' : 'items'}, {formatBytes(listing.unpacked)} once unpacked (the file is {formatBytes(listing.packed)}).</p>
       {#if listing.encrypted}<p class="bad" role="alert">This ZIP has a password, which is not supported yet.</p>{/if}
       <ul class="list files">
-        {#each listing.items as it (it.name)}
+        {#each listing.items as it, i (`${i}:${it.name}`)}
           <li><span translate="no">{it.name}</span><span class="hint tabular">{it.is_dir ? '' : formatBytes(it.size)}</span></li>
         {/each}
       </ul>

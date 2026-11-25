@@ -660,6 +660,7 @@ pub fn fr_save(app: AppHandle, state: State<'_, AppState>, mut rule: Rule) -> Cm
     }
     check_rule(&state, &rule)?;
     let mut list = state.settings.get().rules;
+    let saved_id = rule.id.clone();
     match list.iter_mut().find(|r| r.id == rule.id) {
         Some(slot) => {
             // Turning it on (or changing it) starts from now: older files are left alone.
@@ -685,7 +686,7 @@ pub fn fr_save(app: AppHandle, state: State<'_, AppState>, mut rule: Rule) -> Cm
         .lock()
         .unwrap()
         .get_or_insert_with(HashMap::new)
-        .clear();
+        .remove(&saved_id);
     let _ = app.emit("rules://changed", ());
     Ok(saved)
 }
@@ -797,7 +798,7 @@ pub fn fr_log(state: State<'_, AppState>) -> CmdResult<Vec<LogItem>> {
 
 /// Puts a moved or renamed file back where it was. Refused when something is in the way.
 #[tauri::command]
-pub fn fr_undo(app: AppHandle, state: State<'_, AppState>, id: i64) -> CmdResult<()> {
+pub async fn fr_undo(app: AppHandle, state: State<'_, AppState>, id: i64) -> CmdResult<()> {
     let (step, from, to, undone): (String, String, String, i64) = state
         .db
         .with(|c| {
@@ -815,15 +816,22 @@ pub fn fr_undo(app: AppHandle, state: State<'_, AppState>, id: i64) -> CmdResult
         return Err("Only a move or a rename can be put back.".into());
     }
     let (from, to) = (PathBuf::from(from), PathBuf::from(to));
-    if !to.exists() {
-        return Err("The file isn't there any more.".into());
-    }
-    if from.exists() {
-        return Err("Something with the old name is already there.".into());
-    }
     allowed(&state, from.parent().unwrap_or(&from))?;
-    nomnom_core::fs::move_no_replace(&to, &from)
-        .map_err(|e| format!("Couldn't put it back: {e}"))?;
+    let from_move = from.clone();
+    let to_move = to.clone();
+    tokio::task::spawn_blocking(move || -> CmdResult<()> {
+        if !to_move.exists() {
+            return Err("The file isn't there any more.".into());
+        }
+        if from_move.exists() {
+            return Err("Something with the old name is already there.".into());
+        }
+        nomnom_core::fs::move_no_replace(&to_move, &from_move)
+            .map_err(|e| format!("Couldn't put it back: {e}"))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())??;
     let _ = state
         .db
         .with(|c| c.execute("UPDATE rule_log SET undone = 1 WHERE id = ?1", params![id]));

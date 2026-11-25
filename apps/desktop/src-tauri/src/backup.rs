@@ -295,9 +295,12 @@ pub fn bk_cancel(bk: State<'_, BackupState>) {
 }
 
 #[tauri::command]
-pub fn bk_versions(state: State<'_, AppState>, id: String) -> CmdResult<Vec<VersionInfo>> {
+pub async fn bk_versions(state: State<'_, AppState>, id: String) -> CmdResult<Vec<VersionInfo>> {
     let plan = load_plan(&state, &id)?;
-    Ok(nomnom_backup::list_versions(&plan.home()))
+    let home = plan.home();
+    tokio::task::spawn_blocking(move || nomnom_backup::list_versions(&home))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
@@ -320,46 +323,51 @@ pub struct Tree {
 
 /// One level of a version: its folders (with how much is inside) and its files.
 #[tauri::command]
-pub fn bk_tree(
+pub async fn bk_tree(
     state: State<'_, AppState>,
     id: String,
     version: String,
     prefix: String,
 ) -> CmdResult<Tree> {
     let plan = load_plan(&state, &id)?;
-    let m = nomnom_backup::read_manifest(&plan.home(), &version)?;
-    let pre = if prefix.is_empty() {
-        String::new()
-    } else {
-        format!("{}/", prefix.trim_end_matches('/'))
-    };
-    let mut folders: std::collections::BTreeMap<String, (u64, u64)> = Default::default();
-    let mut files = Vec::new();
-    for e in &m.files {
-        let Some(rest) = e.p.strip_prefix(&pre) else {
-            continue;
+    let home = plan.home();
+    tokio::task::spawn_blocking(move || -> CmdResult<Tree> {
+        let m = nomnom_backup::read_manifest(&home, &version)?;
+        let pre = if prefix.is_empty() {
+            String::new()
+        } else {
+            format!("{}/", prefix.trim_end_matches('/'))
         };
-        match rest.split_once('/') {
-            Some((dir, _)) => {
-                let f = folders.entry(dir.to_string()).or_default();
-                f.0 += 1;
-                f.1 += e.s;
+        let mut folders: std::collections::BTreeMap<String, (u64, u64)> = Default::default();
+        let mut files = Vec::new();
+        for e in &m.files {
+            let Some(rest) = e.p.strip_prefix(&pre) else {
+                continue;
+            };
+            match rest.split_once('/') {
+                Some((dir, _)) => {
+                    let f = folders.entry(dir.to_string()).or_default();
+                    f.0 += 1;
+                    f.1 += e.s;
+                }
+                None => files.push(TreeFile {
+                    name: rest.to_string(),
+                    bytes: e.s,
+                    modified: e.m,
+                }),
             }
-            None => files.push(TreeFile {
-                name: rest.to_string(),
-                bytes: e.s,
-                modified: e.m,
-            }),
         }
-    }
-    files.sort_by_key(|f| f.name.to_lowercase());
-    Ok(Tree {
-        folders: folders
-            .into_iter()
-            .map(|(name, (files, bytes))| TreeFolder { name, files, bytes })
-            .collect(),
-        files,
+        files.sort_by_key(|f| f.name.to_lowercase());
+        Ok(Tree {
+            folders: folders
+                .into_iter()
+                .map(|(name, (files, bytes))| TreeFolder { name, files, bytes })
+                .collect(),
+            files,
+        })
     })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

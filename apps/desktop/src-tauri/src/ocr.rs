@@ -320,38 +320,39 @@ fn linux_read(app: &AppHandle) -> Result<String, String> {
         crate::i18n::Lang::Es => "spa+eng",
         crate::i18n::Lang::En => "eng",
     };
-    let mut child = Command::new("tesseract")
-        .args(["stdin", "stdout", "-l", wanted])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    child
-        .stdin
-        .take()
-        .ok_or("tesseract didn't start.")?
-        .write_all(&png)
-        .map_err(|e| e.to_string())?;
-    let out = child.wait_with_output().map_err(|e| e.to_string())?;
-    let text = String::from_utf8_lossy(&out.stdout).into_owned();
-    if !out.status.success() && text.trim().is_empty() {
-        // The language pack may be missing: try English alone.
-        let mut again = Command::new("tesseract")
-            .args(["stdin", "stdout"])
+    let run_tesseract = |lang_arg: Option<&str>| -> Result<(bool, String), String> {
+        let mut cmd = Command::new("tesseract");
+        cmd.args(["stdin", "stdout"]);
+        if let Some(l) = lang_arg {
+            cmd.args(["-l", l]);
+        }
+        let mut child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .map_err(|e| e.to_string())?;
-        again
-            .stdin
-            .take()
-            .ok_or("tesseract didn't start.")?
-            .write_all(&png)
-            .map_err(|e| e.to_string())?;
-        let out = again.wait_with_output().map_err(|e| e.to_string())?;
-        return Ok(String::from_utf8_lossy(&out.stdout).into_owned());
+        if let Some(mut stdin) = child.stdin.take() {
+            // Ignore BrokenPipe so a missing language pack that exits immediately still falls back.
+            if let Err(e) = stdin.write_all(&png) {
+                if e.kind() != std::io::ErrorKind::BrokenPipe {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(e.to_string());
+                }
+            }
+        }
+        let out = child.wait_with_output().map_err(|e| e.to_string())?;
+        Ok((
+            out.status.success(),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+        ))
+    };
+    let (ok, text) = run_tesseract(Some(wanted))?;
+    if !ok && text.trim().is_empty() {
+        // The language pack may be missing: try English alone.
+        let (_, fallback) = run_tesseract(None)?;
+        return Ok(fallback);
     }
     Ok(text)
 }

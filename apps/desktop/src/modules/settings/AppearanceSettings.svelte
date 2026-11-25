@@ -164,13 +164,13 @@
   /* Reflect each theme's actual layout geometry inside its mini preview card */
   .mini[data-layout-preview='dock-top'] .mock { flex-direction: column; }
   .mini[data-layout-preview='dock-top'] .mside {
-    width: auto; height: 14px; display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 999px;
+    width: auto; height: 14px; display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-radius: 4px;
   }
-  .mini[data-layout-preview='dock-top'] .mside i { width: 14px; height: 4px; border-radius: 999px; }
+  .mini[data-layout-preview='dock-top'] .mside i { width: 14px; height: 4px; border-radius: 2px; }
 
-  .mini[data-layout-preview='floating'] .mside { border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
-  .mini[data-layout-preview='floating'] .mcard { border-radius: 10px; }
-  .mini[data-layout-preview='floating'] .mbtn { border-radius: 999px; }
+  .mini[data-layout-preview='floating'] .mside { border-radius: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+  .mini[data-layout-preview='floating'] .mcard { border-radius: 6px; }
+  .mini[data-layout-preview='floating'] .mbtn { border-radius: 4px; }
 
   .mini[data-layout-preview='rail'] .mside { width: 12%; padding: 4px 2px; justify-items: center; }
   .mini[data-layout-preview='rail'] .mside i { width: 7px; height: 7px; border-radius: 3px; }

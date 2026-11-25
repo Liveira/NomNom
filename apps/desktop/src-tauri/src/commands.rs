@@ -381,6 +381,12 @@ pub fn update_settings(
         let max = state.settings.get().downloads.max_concurrent as usize;
         state.tasks.set_limit("downloads", max);
     }
+    if let Ok(ref s) = result {
+        use tauri::Emitter;
+        if patch.theme.is_some() || patch.motion.is_some() {
+            let _ = app.emit("settings://appearance", &s.appearance);
+        }
+    }
     result
 }
 

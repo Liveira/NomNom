@@ -4,12 +4,15 @@ import {
   DEFAULT_PICKS,
   TOOLS,
   TOOL_CATEGORIES,
+  TOOL_SETS,
+  activeToolSet,
   sidebarItems,
   toolCategoryOf,
   toolsByCategory,
   withCategory,
   withTool,
 } from './tools';
+import { CORE_GUIDES, TOOL_GUIDES } from './tool-guides';
 
 const nav = ['home', 'tools', 'downloads', 'activity', 'backup', 'monitor', 'settings'].map((id) => ({ id }));
 const ids = (list: { id: string }[]) => list.map((n) => n.id);
@@ -70,5 +73,27 @@ describe('the tool list', () => {
     expect(added).toEqual(TOOLS.filter((t) => t.category === 'phone').map((t) => t.id));
     const removed = withCategory(added, 'phone', false);
     expect(removed).toEqual([]);
+  });
+  it('defines valid Tool Sets and detects the active preset', () => {
+    const known = new Set(TOOLS.map((t) => t.id));
+    for (const preset of TOOL_SETS) {
+      expect(preset.tools.length).toBeGreaterThan(0);
+      expect(new Set(preset.tools).size).toBe(preset.tools.length);
+      for (const id of preset.tools) expect(known.has(id)).toBe(true);
+      expect(activeToolSet(preset.tools)).toBe(preset.id);
+    }
+    expect(activeToolSet(null)).toBe('all');
+    expect(activeToolSet(['downloads'])).toBeNull();
+  });
+  it('provides a complete step-by-step guide for every tool and core feature', () => {
+    expect(CORE_GUIDES.length).toBeGreaterThanOrEqual(4);
+    for (const g of CORE_GUIDES) {
+      expect(g.summary && g.steps.length >= 2 && g.tips.length >= 1).toBeTruthy();
+    }
+    for (const t of TOOLS) {
+      const g = TOOL_GUIDES[t.id];
+      expect(g, `missing guide for ${t.id}`).toBeDefined();
+      expect(g.summary && g.steps.length >= 2 && g.tips.length >= 1).toBeTruthy();
+    }
   });
 });

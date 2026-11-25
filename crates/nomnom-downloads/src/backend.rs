@@ -73,18 +73,24 @@ impl MediaBackend for YtDlpBackend {
 
         let run = async {
             let (mut out, mut err) = (Vec::new(), String::new());
-            let mut limited_out = (&mut stdout).take(MAX_JSON_BYTES);
-            let mut limited_err = (&mut stderr).take(1 << 20);
-            let (_, _, status) = tokio::join!(
-                limited_out.read_to_end(&mut out),
-                limited_err.read_to_string(&mut err),
-                child.child.wait()
-            );
+            let read_out = async {
+                let _ = (&mut stdout).take(MAX_JSON_BYTES).read_to_end(&mut out).await;
+                let _ = tokio::io::copy(&mut stdout, &mut tokio::io::sink()).await;
+            };
+            let read_err = async {
+                let _ = (&mut stderr).take(1 << 20).read_to_string(&mut err).await;
+                let _ = tokio::io::copy(&mut stderr, &mut tokio::io::sink()).await;
+            };
+            let ((), (), status) = tokio::join!(read_out, read_err, child.child.wait());
             (out, err, status)
         };
-        let (out, err, status) = tokio::time::timeout(ANALYZE_TIMEOUT, run)
-            .await
-            .map_err(|_| DlError::Failed("Looking up this link took too long.".into()))?;
+        let (out, err, status) = match tokio::time::timeout(ANALYZE_TIMEOUT, run).await {
+            Ok(v) => v,
+            Err(_) => {
+                child.kill_tree().await;
+                return Err(DlError::Failed("Looking up this link took too long.".into()));
+            }
+        };
 
         if !status.map(|s| s.success()).unwrap_or(false) {
             return Err(classify_stderr(&err));

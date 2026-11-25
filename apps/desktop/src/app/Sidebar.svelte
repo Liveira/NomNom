@@ -5,11 +5,24 @@
   import ProgressBar from '../lib/ui/ProgressBar.svelte';
   import { onUpdateProgress, updateIpc } from '../lib/ipc';
   import { FOOTER_MODULES, type NavItem } from '../lib/modules';
+  import { themeLayout } from '../lib/themes';
   import { CORE, TOOL_CATEGORIES, toolCategoryOf } from '../lib/tools';
   import { app } from './state.svelte';
 
-  const collapsed = $derived(app.settings?.appearance.sidebar_collapsed ?? false);
+  const layout = $derived(themeLayout(app.palette));
+  const collapsed = $derived(
+    layout !== 'dock-top' && layout !== 'rail' && (app.settings?.appearance.sidebar_collapsed ?? false),
+  );
   const main = $derived(app.sidebarNav.filter((n) => !FOOTER_MODULES.has(n.id)));
+
+  function onNavWheel(e: WheelEvent) {
+    if (layout !== 'dock-top' || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+    const el = e.currentTarget as HTMLElement;
+    if (el.scrollWidth > el.clientWidth) {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    }
+  }
   const footer = $derived(app.sidebarNav.filter((n) => FOOTER_MODULES.has(n.id)));
   const coreNav = $derived(main.filter((n) => CORE.has(n.id)));
   const toolNav = $derived(main.filter((n) => !CORE.has(n.id)));
@@ -60,7 +73,7 @@
     {#if !collapsed}<span class="wordmark">NomNom</span>{/if}
   </button>
 
-  <ul class="nav-list app-nav-list">
+  <ul class="nav-list app-nav-list" onwheel={onNavWheel}>
     {#if showCategoryGroups}
       {#each coreNav as item (item.id)}
         <li>

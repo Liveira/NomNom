@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { open } from '@tauri-apps/plugin-dialog';
   import { openPath } from '@tauri-apps/plugin-opener';
   import { formatBytes } from '../../lib/format';
@@ -302,7 +303,7 @@
 
   $effect(() => {
     void serial;
-    if (tab === 'files' && serial) void loadDir(currentDir);
+    if (tab === 'files' && serial) void loadDir(untrack(() => currentDir));
     else if (tab === 'system' && serial) void loadSystem();
     else if (tab === 'console' && serial) void loadTunnels();
   });

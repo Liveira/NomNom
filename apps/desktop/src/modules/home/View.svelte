@@ -165,8 +165,25 @@
   <button class="tool-tile muted" onclick={() => app.go('tools')}>
     <div class="tile-icon"><Icon name="tools" size={18} /></div>
     <div class="tile-copy">
-      <div class="tile-title">Add or remove tools</div>
-      <p class="tile-desc">Choose which tools show in the sidebar.</p>
+      <div class="tile-title">Tool Sets &amp; catalog</div>
+      <p class="tile-desc">Pick a workflow set or toggle tools by category.</p>
+    </div>
+  </button>
+  <button
+    class="tool-tile muted"
+    onclick={() => {
+      try {
+        localStorage.setItem('nomnom.openGuide', 'guide-launcher');
+      } catch {
+        /* ignore */
+      }
+      app.go('tools');
+    }}
+  >
+    <div class="tile-icon"><Icon name="book" size={18} /></div>
+    <div class="tile-copy">
+      <div class="tile-title">How to use NomNom</div>
+      <p class="tile-desc">Complete step-by-step guide and shortcuts for every tool.</p>
     </div>
   </button>
 </section>
@@ -218,7 +235,7 @@
   .pill-link:hover {
     background: var(--surface-3);
     border-color: var(--border-strong);
-    color: var(--text-1);
+    color: var(--text);
   }
 
   .nap-row {

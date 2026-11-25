@@ -134,12 +134,21 @@
     if (!document.hidden && !tools?.installing) void refreshAll(true);
   });
   let unsubs: (() => void)[] = [];
-  void onMobileInstallProgress((p) => (installProgress = p)).then((u) => unsubs.push(u));
-  void onMobileTimeline(() => {
-    void mobileIpc.timeline(40).then((tl) => (timeline = tl));
-  }).then((u) => unsubs.push(u));
+  let gone = false;
+  const track = (p: Promise<() => void>) =>
+    void p.then((u) => {
+      if (gone) u();
+      else unsubs.push(u);
+    });
+  track(onMobileInstallProgress((p) => (installProgress = p)));
+  track(
+    onMobileTimeline(() => {
+      void mobileIpc.timeline(40).then((tl) => (timeline = tl)).catch(() => {});
+    }),
+  );
 
   onDestroy(() => {
+    gone = true;
     poll();
     if (noticeTimer) clearTimeout(noticeTimer);
     unsubs.forEach((u) => u());

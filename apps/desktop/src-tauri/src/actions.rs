@@ -297,11 +297,13 @@ async fn run_and_collect(
         let read_out = async {
             if let Some(s) = stdout.as_mut() {
                 let _ = s.take(KEEP_BYTES + 1).read_to_end(&mut out).await;
+                let _ = tokio::io::copy(s, &mut tokio::io::sink()).await;
             }
         };
         let read_err = async {
             if let Some(s) = stderr.as_mut() {
                 let _ = s.take(KEEP_BYTES + 1).read_to_end(&mut err).await;
+                let _ = tokio::io::copy(s, &mut tokio::io::sink()).await;
             }
         };
         tokio::join!(read_out, read_err);

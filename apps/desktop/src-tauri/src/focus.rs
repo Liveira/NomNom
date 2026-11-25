@@ -307,20 +307,7 @@ fn chrono_offset_secs() -> i32 {
     }
     #[cfg(not(windows))]
     {
-        // `date +%z` gives +HHMM; fall back to UTC when it isn't available.
-        std::process::Command::new("date")
-            .arg("+%z")
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .and_then(|s| {
-                let s = s.trim();
-                let sign = if s.starts_with('-') { -1 } else { 1 };
-                let h: i32 = s.get(1..3)?.parse().ok()?;
-                let m: i32 = s.get(3..5)?.parse().ok()?;
-                Some(sign * (h * 3600 + m * 60))
-            })
-            .unwrap_or(0)
+        chrono::Local::now().offset().local_minus_utc()
     }
 }
 

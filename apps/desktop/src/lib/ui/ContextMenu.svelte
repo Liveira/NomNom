@@ -71,7 +71,7 @@
     box-shadow: var(--shadow-pop); outline: none; display: grid; max-height: calc(100vh - 8px); overflow-y: auto;
   }
   button { display: flex; justify-content: space-between; gap: 20px; border: 0; background: none; color: inherit; text-align: left; padding: 7px 10px; border-radius: var(--radius-xs); cursor: pointer; font-size: 13px; }
-  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-2); color: var(--text-1); }
+  button.active:not(:disabled), button:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
   button:disabled { color: var(--text-3); cursor: default; }
   .hint { color: var(--text-3); font-size: 12px; }
   .sep { height: 1px; background: var(--border); margin: 4px 2px; }

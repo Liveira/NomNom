@@ -30,14 +30,21 @@
   });
 
   let stop: (() => void) | null = null;
+  let gone = false;
   onMount(async () => {
     await load();
+    if (gone) return;
     await tick();
     search?.focus();
     if (mode === 'popup') await clipIpc.ready();
-    stop = await onClipboardChanged(() => void load()).then((u) => u);
+    const u = await onClipboardChanged(() => void load());
+    if (gone) u();
+    else stop = u;
   });
-  onDestroy(() => stop?.());
+  onDestroy(() => {
+    gone = true;
+    stop?.();
+  });
 
   async function use(e: ClipEntry) {
     try {

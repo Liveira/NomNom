@@ -150,7 +150,10 @@
   .clear { display: grid; place-items: center; width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--surface-3); color: var(--text-2); cursor: pointer; }
 
   .layout { display: grid; grid-template-columns: 204px minmax(0, 1fr); gap: 24px; align-items: start; }
-  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    .snav { position: static; }
+  }
 
   .snav { position: sticky; top: 0; }
   .tabs {

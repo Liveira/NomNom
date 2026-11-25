@@ -77,7 +77,12 @@ async fn run(
     cancel: &CancellationToken,
 ) -> Result<(), ConvertError> {
     let profile = scratch.join("profile");
-    let clean_profile = profile.to_string_lossy().replace('\\', "/");
+    let clean_profile = profile
+        .to_string_lossy()
+        .replace('\\', "/")
+        .replace('%', "%25")
+        .replace(' ', "%20")
+        .replace('#', "%23");
     let profile_url = if clean_profile.starts_with('/') {
         format!("-env:UserInstallation=file://{clean_profile}")
     } else {
@@ -94,7 +99,7 @@ async fn run(
         scratch.as_os_str().to_os_string(),
         src.as_os_str().to_os_string(),
     ];
-    let mut mc = process::spawn(soffice, args, true)
+    let mut mc = process::spawn(soffice, args, false)
         .map_err(|e| ConvertError::Tool(format!("couldn't start LibreOffice: {e}")))?;
     let outcome = {
         let work = tokio::time::timeout(Duration::from_secs(300), mc.child.wait());
@@ -119,9 +124,9 @@ async fn run(
             ))
         }
     }
-    let stem = src.file_stem().unwrap_or_default().to_os_string();
-    let mut produced = scratch.join(&stem);
-    produced.set_extension("pdf");
+    let mut pdf_name = src.file_stem().unwrap_or_default().to_os_string();
+    pdf_name.push(".pdf");
+    let produced = scratch.join(pdf_name);
     if !produced.is_file() {
         return Err(ConvertError::Tool(
             "LibreOffice didn't produce a PDF.".into(),

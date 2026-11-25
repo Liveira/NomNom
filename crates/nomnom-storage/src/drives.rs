@@ -256,22 +256,23 @@ mod imp {
     ];
 
     fn unescape_mount_field(s: &str) -> String {
-        let mut out = String::with_capacity(s.len());
         let bytes = s.as_bytes();
+        let mut out = Vec::with_capacity(bytes.len());
         let mut i = 0;
         while i < bytes.len() {
             if bytes[i] == b'\\' && i + 3 < bytes.len() {
-                let oct = &s[i + 1..i + 4];
-                if let Ok(val) = u8::from_str_radix(oct, 8) {
-                    out.push(val as char);
-                    i += 4;
-                    continue;
+                if let Ok(oct) = std::str::from_utf8(&bytes[i + 1..i + 4]) {
+                    if let Ok(val) = u8::from_str_radix(oct, 8) {
+                        out.push(val);
+                        i += 4;
+                        continue;
+                    }
                 }
             }
-            out.push(bytes[i] as char);
+            out.push(bytes[i]);
             i += 1;
         }
-        out
+        String::from_utf8_lossy(&out).into_owned()
     }
 
     fn base_block_device(dev_path: &str) -> Option<String> {

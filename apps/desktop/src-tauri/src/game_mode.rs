@@ -210,10 +210,13 @@ fn game_in_front(app: &AppHandle) -> Option<String> {
     (live.category == "game" && !live.is_afk).then_some(live.name)
 }
 
+static TRACKED_GAME: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
 pub fn spawn(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         // A crash in the middle of a game must not leave the computer on another power plan.
-        restore(&app);
+        let app_r = app.clone();
+        let _ = tokio::task::spawn_blocking(move || restore(&app_r)).await;
         let mut watch = Watch::default();
         loop {
             tokio::time::sleep(Duration::from_secs(4)).await;
@@ -223,14 +226,27 @@ pub fn spawn(app: AppHandle) {
                     watch.reset();
                     ON.store(false, Ordering::Relaxed);
                     QUIET.store(false, Ordering::Relaxed);
-                    restore(&app);
+                    *TRACKED_GAME.lock().unwrap() = None;
+                    let app_r = app.clone();
+                    let _ = tokio::task::spawn_blocking(move || restore(&app_r)).await;
                 }
                 continue;
             }
             let now = chrono::Utc::now().timestamp();
-            match watch.step(game_in_front(&app).is_some(), now) {
-                Some(Change::Entered) => enter(&app),
-                Some(Change::Left) => leave(&app),
+            let front = game_in_front(&app);
+            if let Some(ref g) = front {
+                *TRACKED_GAME.lock().unwrap() = Some(g.clone());
+            }
+            match watch.step(front.is_some(), now) {
+                Some(Change::Entered) => {
+                    let app_e = app.clone();
+                    let _ = tokio::task::spawn_blocking(move || enter(&app_e)).await;
+                }
+                Some(Change::Left) => {
+                    *TRACKED_GAME.lock().unwrap() = None;
+                    let app_l = app.clone();
+                    let _ = tokio::task::spawn_blocking(move || leave(&app_l)).await;
+                }
                 None => {}
             }
         }
@@ -239,14 +255,15 @@ pub fn spawn(app: AppHandle) {
 
 #[tauri::command]
 pub fn gm_status(app: AppHandle, state: State<'_, AppState>) -> Status {
-    let _ = &app;
+    let _ = (&app, &state);
+    let on = ON.load(Ordering::Relaxed);
     Status {
-        on: ON.load(Ordering::Relaxed),
-        game: state
-            .activity
-            .live()
-            .map(|l| l.name)
-            .filter(|_| ON.load(Ordering::Relaxed)),
+        on,
+        game: if on {
+            TRACKED_GAME.lock().unwrap().clone()
+        } else {
+            None
+        },
     }
 }
 

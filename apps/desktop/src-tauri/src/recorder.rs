@@ -58,26 +58,35 @@ mod imp {
     }
 
     pub fn status() -> Status {
-        let guard = ACTIVE.lock().unwrap();
-        match guard.as_ref() {
-            Some(a) => {
-                let s = a.started.elapsed().as_secs();
-                Status {
-                    recording: true,
-                    seconds: s,
-                    clock: rules::clock(s),
-                    file: Some(a.out.to_string_lossy().into_owned()),
-                }
+        let mut guard = ACTIVE.lock().unwrap();
+        if let Some(a) = guard.as_mut() {
+            if matches!(a.child.try_wait(), Ok(Some(_)) | Err(_)) {
+                *guard = None;
+                return Status::default();
             }
-            None => Status::default(),
+            let s = a.started.elapsed().as_secs();
+            return Status {
+                recording: true,
+                seconds: s,
+                clock: rules::clock(s),
+                file: Some(a.out.to_string_lossy().into_owned()),
+            };
         }
+        Status::default()
     }
 
     /// Starts recording `area` (whole-desktop pixels). `gif` makes a GIF when it stops.
     pub fn start(app: &AppHandle, area: Area, gif: bool) -> CmdResult<()> {
         let state = app.state::<AppState>();
-        if ACTIVE.lock().unwrap().is_some() {
-            return Err("A recording is already running.".into());
+        {
+            let mut guard = ACTIVE.lock().unwrap();
+            if let Some(a) = guard.as_mut() {
+                if matches!(a.child.try_wait(), Ok(Some(_)) | Err(_)) {
+                    *guard = None;
+                } else {
+                    return Err("A recording is already running.".into());
+                }
+            }
         }
         let area = rules::fit(area).ok_or("That area is too small to record.")?;
         let ffmpeg = state

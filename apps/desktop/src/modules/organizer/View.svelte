@@ -89,7 +89,7 @@
     undoing = id;
     error = '';
     try {
-      undone = await orgIpc.undo(id, false);
+      undone = await orgIpc.undo(id, true);
       if (report?.batch_id === id) report = { ...report, moved: 0 };
     } catch (e) {
       error = String(e);

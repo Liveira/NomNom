@@ -148,6 +148,36 @@ pub async fn st_op_run(
     typed: Option<String>,
     include_readonly: bool,
 ) -> Result<Report, String> {
+    // Validate plan and session BEFORE consuming the plan or setting `op_running`, so a mistyped
+    // confirmation or expired session never destroys the preview or deadlocks future operations.
+    let (session_id, expired, needs_check) = {
+        let plans = state.storage.plans.lock().unwrap();
+        let stored = plans
+            .get(&plan_id)
+            .ok_or("That preview has expired. Start again.")?;
+        let expired = stored.made.elapsed() > PLAN_TTL;
+        let check = if stored.plan.kind == Kind::Delete {
+            if !confirmed {
+                Err("Permanent deletes need your confirmation.".to_string())
+            } else if stored.plan.needs_typed
+                && typed.as_deref().map(str::trim)
+                    != Some(stored.plan.items.len().to_string().as_str())
+            {
+                Err(format!("Type {} to confirm.", stored.plan.items.len()))
+            } else {
+                Ok(())
+            }
+        } else {
+            Ok(())
+        };
+        (stored.session, expired, check)
+    };
+    if expired {
+        state.storage.plans.lock().unwrap().remove(&plan_id);
+        return Err("That preview is too old. Start again so it matches what is on disk.".into());
+    }
+    needs_check?;
+    let session = state.storage.get(session_id)?;
     let stored = state
         .storage
         .plans
@@ -155,20 +185,7 @@ pub async fn st_op_run(
         .unwrap()
         .remove(&plan_id)
         .ok_or("That preview has expired. Start again.")?;
-    if stored.made.elapsed() > PLAN_TTL {
-        return Err("That preview is too old. Start again so it matches what is on disk.".into());
-    }
     let plan = stored.plan;
-    if plan.kind == Kind::Delete {
-        if !confirmed {
-            return Err("Permanent deletes need your confirmation.".into());
-        }
-        if plan.needs_typed
-            && typed.as_deref().map(str::trim) != Some(plan.items.len().to_string().as_str())
-        {
-            return Err(format!("Type {} to confirm.", plan.items.len()));
-        }
-    }
     if plan.items.is_empty() {
         return Err("There is nothing to do.".into());
     }
@@ -176,7 +193,6 @@ pub async fn st_op_run(
         return Err("Another file operation is still running.".into());
     }
     state.storage.op_cancel.store(false, Ordering::SeqCst);
-    let session = state.storage.get(stored.session)?;
     let worker = app.clone();
     let report = tauri::async_runtime::spawn_blocking(move || {
         let st = tauri::Manager::state::<AppState>(&worker);

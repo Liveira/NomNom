@@ -49,6 +49,8 @@
     groups = [];
     choices = new Map();
     try {
+      if (timer) clearInterval(timer);
+      timer = null;
       await stTools.dupesStart(id, scope === 'here' ? storage.current : 0, min);
       startedFor = id;
       running = true;
@@ -62,13 +64,22 @@
   async function poll() {
     const r = await stTools.dupesProgress().catch(() => null);
     if (!r) return;
+    if (startedFor != null && storage.sessionId !== startedFor) {
+      if (timer) clearInterval(timer);
+      timer = null;
+      running = false;
+      return;
+    }
     progress = r[1];
     if (r[1].stage === 'done' || r[1].stage === 'cancelled') {
       if (timer) clearInterval(timer);
       timer = null;
       running = false;
-      groups = await stTools.dupesGroups(0, 500);
-      choices = new Map(groups.map((g, i) => [i, initialChoice(g)]));
+      const found = await stTools.dupesGroups(0, 500).catch(() => []);
+      if (startedFor == null || storage.sessionId === startedFor) {
+        groups = found;
+        choices = new Map(groups.map((g, i) => [i, initialChoice(g)]));
+      }
     }
   }
 
@@ -81,7 +92,10 @@
   });
 
   $effect(() => {
-    if (startedFor != null && storage.sessionId !== startedFor && !running) {
+    if (startedFor != null && storage.sessionId !== startedFor) {
+      if (timer) clearInterval(timer);
+      timer = null;
+      running = false;
       groups = [];
       choices = new Map();
       progress = null;

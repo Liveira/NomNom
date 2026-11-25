@@ -113,6 +113,21 @@
       }
       out.push({ key: 'sidebar', title: 'Show or hide the sidebar', hint: 'Layout', icon: 'panel', run: () => { onclose(); void app.toggleSidebar(); } });
     }
+    out.push({
+      key: 'guide',
+      title: 'Guide: How to use NomNom',
+      hint: 'Complete guide & shortcuts',
+      icon: 'book',
+      keywords: 'help manual tutorial guia como usar',
+      run: () => {
+        try {
+          localStorage.setItem('nomnom.openGuide', 'guide-launcher');
+        } catch {
+          /* ignore */
+        }
+        go('tools');
+      },
+    });
     if (floating || app.settings?.clipboard.enabled) {
       out.push({ key: 'clip', title: 'Open the clipboard history', hint: 'Action', icon: 'clipboard', run: () => { close(); void clipIpc.open(); } });
     }
@@ -185,9 +200,14 @@
       remind = null;
       return;
     }
-    void reminderIpc.preview(q).then((p) => {
-      if (mine === remindToken) remind = p;
-    });
+    void reminderIpc
+      .preview(q)
+      .then((p) => {
+        if (mine === remindToken) remind = p;
+      })
+      .catch(() => {
+        if (mine === remindToken) remind = null;
+      });
   });
   const noteText = $derived(noteFrom(query));
 

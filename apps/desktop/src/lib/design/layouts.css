@@ -6,54 +6,58 @@
 */
 
 /* ======================================================================================
-   0. Graphite precision tweak (stays in `studio` layout with crisper geometry)
+   0. Graphite precision tweak (stays in `studio` layout with crisp corners)
    ====================================================================================== */
 html[data-theme='graphite'] {
-  --radius-xs: 4px;
-  --radius-s: 6px;
-  --radius-m: 8px;
-  --radius-l: 10px;
+  --radius-xs: 2px;
+  --radius-s: 3px;
+  --radius-m: 5px;
+  --radius-l: 6px;
 }
 
 /* ======================================================================================
-   1. FLOATING ISLAND & PILL (Sakura, Candy, Lavender, Matcha)
-      Detached floating rounded sidebar, Fredoka display headings, generous radii & pills.
+   1. FLOATING ISLAND (Sakura, Candy, Lavender, Matcha)
+      Detached floating sidebar island, Fredoka display headings, clean subtle corners.
    ====================================================================================== */
 html[data-layout='floating'] {
-  --radius-xs: 10px;
-  --radius-s: 14px;
-  --radius-m: 20px;
-  --radius-l: 24px;
-  --titlebar-h: 42px;
+  --radius-xs: 4px;
+  --radius-s: 6px;
+  --radius-m: 9px;
+  --radius-l: 12px;
+  --titlebar-h: 40px;
   --font-display: 'Fredoka', 'Nunito', 'Segoe UI', system-ui, sans-serif;
-  --shadow-card: 0 8px 24px -10px var(--glow-peach), 0 2px 6px rgba(40, 20, 40, 0.06);
+  --shadow-card: 0 6px 20px -10px var(--glow-peach), 0 2px 6px rgba(40, 20, 40, 0.06);
   --shadow-soft: 0 4px 14px -6px rgba(40, 20, 40, 0.07);
 }
 
 html[data-layout='floating'] .app-titlebar {
-  background: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 84%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 
 html[data-layout='floating'] .app-titlebar .search-trigger {
-  border-radius: var(--radius-pill);
-  padding: 0 10px 0 14px;
+  border-radius: var(--radius-s);
+  padding: 0 10px 0 12px;
   background: var(--surface-2);
 }
 
 html[data-layout='floating'] .app-sidebar {
-  margin: 12px 0 12px 12px;
-  border-radius: 24px;
+  margin: 10px 0 10px 10px;
+  border-radius: var(--radius-l);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-card);
-  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
   backdrop-filter: blur(14px);
 }
 
 html[data-layout='floating'] .app-sidebar .app-nav-item {
-  border-radius: var(--radius-pill);
-  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  padding: 7px 11px;
+}
+
+html[data-layout='floating'] .app-sidebar.collapsed .app-nav-item {
+  padding: 7px 0;
 }
 
 html[data-layout='floating'] .app-sidebar .app-nav-item.active {
@@ -70,20 +74,16 @@ html[data-layout='floating'] .app-view {
   padding: 24px 32px 44px;
 }
 
-html[data-layout='floating'] .app-view button.primary {
-  border-radius: var(--radius-pill);
-}
-
 /* ======================================================================================
    2. TOP BAR & FROSTED GLASS (Aurora, Deep Ocean, Frost)
       Sidebar becomes a horizontal top navigation bar; centered widescreen glass canvas.
    ====================================================================================== */
 html[data-layout='dock-top'] {
-  --radius-xs: 8px;
-  --radius-s: 11px;
-  --radius-m: 16px;
-  --radius-l: 20px;
-  --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--border-strong);
+  --radius-xs: 3px;
+  --radius-s: 5px;
+  --radius-m: 8px;
+  --radius-l: 10px;
+  --shadow-card: 0 10px 28px -12px rgba(0, 0, 0, 0.3), inset 0 1px 0 var(--border-strong);
 }
 
 html[data-layout='dock-top'] .app-shell {
@@ -91,13 +91,13 @@ html[data-layout='dock-top'] .app-shell {
 }
 
 html[data-layout='dock-top'] .app-titlebar {
-  background: color-mix(in srgb, var(--bg) 76%, transparent);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
   backdrop-filter: blur(16px);
 }
 
 html[data-layout='dock-top'] .app-sidebar {
   width: auto !important;
-  height: 54px;
+  height: 52px;
   flex: none;
   flex-direction: row;
   align-items: center;
@@ -105,7 +105,7 @@ html[data-layout='dock-top'] .app-sidebar {
   padding: 0 18px;
   border-right: 0;
   border-bottom: 1px solid var(--border-strong);
-  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
   backdrop-filter: blur(18px);
 }
 
@@ -124,11 +124,17 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-list {
   overflow-y: hidden;
   flex: 1;
   min-width: 0;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-list::-webkit-scrollbar {
-  display: none;
+  height: 3px;
+}
+
+html[data-layout='dock-top'] .app-sidebar .app-nav-list::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 2px;
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-list li {
@@ -158,8 +164,8 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-group-label {
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-item {
   width: auto;
-  padding: 6px 12px;
-  border-radius: var(--radius-pill);
+  padding: 6px 11px;
+  border-radius: var(--radius-s);
   justify-content: center;
 }
 
@@ -170,8 +176,8 @@ html[data-layout='dock-top'] .app-sidebar .app-nav-item.active {
 }
 
 html[data-layout='dock-top'] .app-sidebar .app-nav-item.active::before {
-  left: 24%;
-  right: 24%;
+  left: 20%;
+  right: 20%;
   top: auto;
   bottom: 2px;
   width: auto;
@@ -193,18 +199,18 @@ html[data-layout='dock-top'] .app-view {
       Compact creative-studio vertical icon rail (84px) + wide Bento stage.
    ====================================================================================== */
 html[data-layout='rail'] {
-  --radius-xs: 8px;
-  --radius-s: 11px;
-  --radius-m: 15px;
-  --radius-l: 19px;
-  --shadow-card: 0 12px 28px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--border-strong);
+  --radius-xs: 3px;
+  --radius-s: 5px;
+  --radius-m: 7px;
+  --radius-l: 10px;
+  --shadow-card: 0 10px 26px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--border-strong);
 }
 
 html[data-layout='rail'] .app-sidebar {
   width: 84px !important;
   padding: 12px 6px 10px;
   align-items: center;
-  background: color-mix(in srgb, var(--surface-1) 86%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   backdrop-filter: blur(14px);
 }
 
@@ -228,7 +234,7 @@ html[data-layout='rail'] .app-sidebar .app-nav-item {
   align-items: center;
   gap: 3px;
   padding: 7px 3px;
-  border-radius: 13px;
+  border-radius: var(--radius-m);
   text-align: center;
 }
 
@@ -261,14 +267,14 @@ html[data-layout='rail'] .app-view {
 
 /* ======================================================================================
    4. RIGHT HUD & SHARP BRUTALIST (Cyberpunk, Synthwave)
-      Navigation flips to the RIGHT side with neon accent edge, crisp 2-4px corners,
+      Navigation flips to the RIGHT side with neon accent edge, crisp 1-3px corners,
       uppercase HUD headings and offset neon shadows.
    ====================================================================================== */
 html[data-layout='cyber-hud'] {
-  --radius-xs: 2px;
+  --radius-xs: 1px;
   --radius-s: 2px;
-  --radius-m: 3px;
-  --radius-l: 4px;
+  --radius-m: 2px;
+  --radius-l: 3px;
   --radius-pill: 2px;
   --shadow-card: 3px 3px 0 var(--border-glow);
   --shadow-soft: 2px 2px 0 var(--border-strong);

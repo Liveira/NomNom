@@ -107,30 +107,41 @@
   }
 
   $effect(() => {
-    if (modal === 'pair') {
-      void scanWifi();
-      void startQr();
-      void onMobileWifiPair((ev) => {
-        if (ev.status === 'error') {
-          pairErr = ev.message;
-          qrStatus = '';
-        } else if (ev.status === 'connected') {
-          pairMsg = ev.message;
-          qrStatus = ev.message;
-          onWifiConnected(ev.message);
-          void scanWifi();
-        } else {
-          qrStatus = ev.message;
-        }
-      }).then((u) => {
-        unsubWifiPair?.();
-        unsubWifiPair = u;
-      });
-    } else {
+    if (modal !== 'pair') {
       unsubWifiPair?.();
       unsubWifiPair = null;
       void stopQr();
+      return;
     }
+    let stale = false;
+    void scanWifi();
+    void startQr();
+    void onMobileWifiPair((ev) => {
+      if (stale) return;
+      if (ev.status === 'error') {
+        pairErr = ev.message;
+        qrStatus = '';
+      } else if (ev.status === 'connected') {
+        pairMsg = ev.message;
+        qrStatus = ev.message;
+        onWifiConnected(ev.message);
+        void scanWifi();
+      } else {
+        qrStatus = ev.message;
+      }
+    }).then((u) => {
+      if (stale) {
+        u();
+        return;
+      }
+      unsubWifiPair?.();
+      unsubWifiPair = u;
+    });
+    return () => {
+      stale = true;
+      unsubWifiPair?.();
+      unsubWifiPair = null;
+    };
   });
 
   onDestroy(() => {

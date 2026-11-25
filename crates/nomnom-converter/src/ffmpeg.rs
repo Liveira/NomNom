@@ -85,17 +85,30 @@ pub async fn probe(ffprobe: &Path, file: &Path) -> Result<Probe, ConvertError> {
     let mut mc = process::spawn(ffprobe, args, true)
         .map_err(|e| ConvertError::Tool(format!("couldn't start ffprobe: {e}")))?;
     let mut out = mc.child.stdout.take();
+    let mut err = mc.child.stderr.take();
     let read = async {
-        let mut text = String::new();
-        if let Some(o) = out.as_mut() {
-            let _ = o.read_to_string(&mut text).await;
-        }
+        let read_out = async {
+            let mut text = String::new();
+            if let Some(o) = out.as_mut() {
+                let _ = o.read_to_string(&mut text).await;
+            }
+            text
+        };
+        let drain_err = async {
+            if let Some(e) = err.as_mut() {
+                let _ = tokio::io::copy(e, &mut tokio::io::sink()).await;
+            }
+        };
+        let (text, ()) = tokio::join!(read_out, drain_err);
         let _ = mc.child.wait().await;
         text
     };
     match tokio::time::timeout(Duration::from_secs(60), read).await {
         Ok(text) => parse_probe(&text),
-        Err(_) => Err(ConvertError::Tool("ffprobe took too long.".into())),
+        Err(_) => {
+            mc.kill_tree().await;
+            Err(ConvertError::Tool("ffprobe took too long.".into()))
+        }
     }
 }
 

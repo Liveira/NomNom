@@ -43,6 +43,30 @@ pub struct MobileState {
     dismissed_keys: Mutex<HashSet<String>>,
 }
 
+fn stop_child(mut c: Child) {
+    let _ = c.kill();
+    let _ = c.wait();
+}
+
+/// Gracefully asks `scrcpy --record` to finalize its MKV container before killing.
+fn stop_recording_child(#[cfg_attr(not(unix), allow(unused_mut))] mut c: Child) {
+    #[cfg(unix)]
+    {
+        // SAFETY: sending SIGINT to our own child PID lets scrcpy flush the MKV trailer cleanly.
+        unsafe {
+            libc::kill(c.id() as libc::pid_t, libc::SIGINT);
+        }
+        let deadline = Instant::now() + Duration::from_millis(1200);
+        while Instant::now() < deadline {
+            if matches!(c.try_wait(), Ok(Some(_))) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(40));
+        }
+    }
+    stop_child(c);
+}
+
 impl MobileState {
     pub fn shutdown(&self) {
         if let Ok(mut g) = self.qr_cancel.lock() {
@@ -52,14 +76,14 @@ impl MobileState {
         }
         for slot in [&self.audio_proc, &self.mic_proc, &self.webcam_proc] {
             if let Ok(mut g) = slot.lock() {
-                if let Some((_, mut c)) = g.take() {
-                    let _ = c.kill();
+                if let Some((_, c)) = g.take() {
+                    stop_child(c);
                 }
             }
         }
         if let Ok(mut g) = self.rec_proc.lock() {
-            if let Some((_, _, mut c)) = g.take() {
-                let _ = c.kill();
+            if let Some((_, _, c)) = g.take() {
+                stop_recording_child(c);
             }
         }
     }
@@ -961,7 +985,7 @@ fn parse_notifications(
             cur_can_reply,
         );
     }
-    out.sort_by(|a, b| b.post_time_ms.cmp(&a.post_time_ms));
+    out.sort_by_key(|a| std::cmp::Reverse(a.post_time_ms));
     out.truncate(30);
     out
 }
@@ -1026,7 +1050,7 @@ fn parse_content_rows(text: &str) -> Vec<HashMap<String, String>> {
 
 fn parse_stream_volume(audio_dump: &str, stream_header: &str) -> Option<(u8, u8)> {
     let idx = audio_dump.find(stream_header)?;
-    let slice = &audio_dump[idx..audio_dump.len().min(idx + 500)];
+    let slice = &audio_dump[idx..];
     let mut max_v = 15u8;
     let mut cur_v = 7u8;
     for line in slice.lines().skip(1).take(12) {
@@ -1049,7 +1073,7 @@ fn parse_stream_volume(audio_dump: &str, stream_header: &str) -> Option<(u8, u8)
                 if let Ok(n) = digits.parse::<u8>() {
                     cur_v = n;
                 }
-            } else if let Some(part) = l.split(':').last() {
+            } else if let Some(part) = l.split(':').next_back() {
                 let digits: String = part
                     .trim()
                     .chars()
@@ -1911,11 +1935,17 @@ pub async fn mob_webcam(
     let adb = locate_adb(&state)?;
     if is_child_alive(&state.mobile.webcam_proc, &serial) {
         if let Ok(mut g) = state.mobile.webcam_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
-                let _ = c.kill();
+            if let Some((_, c)) = g.take() {
+                stop_child(c);
             }
         }
         return Ok(false);
+    }
+    // Always terminate any prior webcam process (even on a different serial) before starting a new one.
+    if let Ok(mut g) = state.mobile.webcam_proc.lock() {
+        if let Some((_, c)) = g.take() {
+            stop_child(c);
+        }
     }
 
     let face = match facing.as_deref() {
@@ -1963,14 +1993,19 @@ pub async fn mob_audio_toggle(
 ) -> CmdResult<bool> {
     if !enabled {
         if let Ok(mut g) = state.mobile.audio_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
-                let _ = c.kill();
+            if let Some((_, c)) = g.take() {
+                stop_child(c);
             }
         }
         return Ok(false);
     }
     if is_child_alive(&state.mobile.audio_proc, &serial) {
         return Ok(true);
+    }
+    if let Ok(mut g) = state.mobile.audio_proc.lock() {
+        if let Some((_, c)) = g.take() {
+            stop_child(c);
+        }
     }
     let scrcpy = locate_scrcpy(&state)?;
     let adb = locate_adb(&state)?;
@@ -2400,7 +2435,7 @@ pub async fn mob_notification_action(
                     rusqlite::params![package, now()],
                 )
             });
-            return Ok(format!("Muted notifications from {}", friendly_app_name(&package)));
+            Ok(format!("Muted notifications from {}", friendly_app_name(&package)))
         }
         "unmute" => {
             let _ = state.db.with(|c| {
@@ -2409,7 +2444,7 @@ pub async fn mob_notification_action(
                     rusqlite::params![package],
                 )
             });
-            return Ok(format!("Unmuted {}", friendly_app_name(&package)));
+            Ok(format!("Unmuted {}", friendly_app_name(&package)))
         }
         "dismiss" => {
             if let Ok(mut g) = state.mobile.dismissed_keys.lock() {
@@ -2428,7 +2463,7 @@ pub async fn mob_notification_action(
                 })
                 .await;
             }
-            return Ok("Dismissed".into());
+            Ok("Dismissed".into())
         }
         "clear_all" => {
             if let Ok(mut g) = state.mobile.dismissed_keys.lock() {
@@ -2454,7 +2489,7 @@ pub async fn mob_notification_action(
                     }
                 }
             }
-            return Ok("Cleared notifications".into());
+            Ok("Cleared notifications".into())
         }
         "open" => {
             let adb = locate_adb(&state)?;
@@ -2470,7 +2505,7 @@ pub async fn mob_notification_action(
             })
             .await
             .map_err(|e| e.to_string())??;
-            return Ok(format!("Opened {}", friendly_app_name(&package)));
+            Ok(format!("Opened {}", friendly_app_name(&package)))
         }
         "reply" => {
             let text = reply_text.unwrap_or_default();
@@ -2503,7 +2538,7 @@ pub async fn mob_notification_action(
                 &format!("Replied in {}", friendly_app_name(&package)),
                 "Opened conversation on phone",
             );
-            return Ok(format!("Sent reply in {}", friendly_app_name(&package)));
+            Ok(format!("Sent reply in {}", friendly_app_name(&package)))
         }
         _ => Err("Unknown notification action.".into()),
     }
@@ -2754,7 +2789,7 @@ pub async fn mob_photos(
                 mtime,
             });
         }
-        photos.sort_by(|a, b| b.mtime.cmp(&a.mtime));
+        photos.sort_by_key(|a| std::cmp::Reverse(a.mtime));
         photos.truncate(max_items);
         Ok(photos)
     })
@@ -2932,7 +2967,7 @@ pub async fn mob_apps(
                 })
             })
             .collect();
-        apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        apps.sort_by_key(|a| a.name.to_lowercase());
         Ok(apps)
     })
     .await
@@ -3233,14 +3268,19 @@ pub async fn mob_mic_toggle(
 ) -> CmdResult<bool> {
     if !enabled {
         if let Ok(mut g) = state.mobile.mic_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
-                let _ = c.kill();
+            if let Some((_, c)) = g.take() {
+                stop_child(c);
             }
         }
         return Ok(false);
     }
     if is_child_alive(&state.mobile.mic_proc, &serial) {
         return Ok(true);
+    }
+    if let Ok(mut g) = state.mobile.mic_proc.lock() {
+        if let Some((_, c)) = g.take() {
+            stop_child(c);
+        }
     }
     let scrcpy = locate_scrcpy(&state)?;
     let adb = locate_adb(&state)?;
@@ -3282,9 +3322,8 @@ pub async fn mob_record_toggle(
 ) -> CmdResult<Option<String>> {
     if !enabled {
         let saved = if let Ok(mut g) = state.mobile.rec_proc.lock() {
-            if let Some((_, path, mut c)) = g.take() {
-                let _ = c.kill();
-                let _ = c.wait();
+            if let Some((_, path, c)) = g.take() {
+                stop_recording_child(c);
                 Some(path)
             } else {
                 None
@@ -3310,6 +3349,12 @@ pub async fn mob_record_toggle(
             return Ok(Some(p_str));
         }
         return Ok(None);
+    }
+    // Stop any previous active recording cleanly before starting a new one.
+    if let Ok(mut g) = state.mobile.rec_proc.lock() {
+        if let Some((_, _, c)) = g.take() {
+            stop_recording_child(c);
+        }
     }
 
     let scrcpy = locate_scrcpy(&state)?;
@@ -4384,17 +4429,16 @@ pub async fn mob_webcam_pro(
 ) -> CmdResult<bool> {
     if stop.unwrap_or(false) {
         if let Ok(mut g) = state.mobile.webcam_proc.lock() {
-            if let Some((_, mut c)) = g.take() {
-                let _ = c.kill();
+            if let Some((_, c)) = g.take() {
+                stop_child(c);
             }
         }
         return Ok(false);
     }
     // Restart cleanly if already active so new settings take effect immediately.
     if let Ok(mut g) = state.mobile.webcam_proc.lock() {
-        if let Some((_, mut c)) = g.take() {
-            let _ = c.kill();
-            let _ = c.wait();
+        if let Some((_, c)) = g.take() {
+            stop_child(c);
         }
     }
 
@@ -4621,7 +4665,7 @@ pub async fn mob_contacts(
                 });
             }
         }
-        list.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        list.sort_by_key(|a| a.name.to_lowercase());
         Ok(list)
     })
     .await

@@ -22,10 +22,15 @@
   }
   void load();
   let stop: (() => void) | null = null;
-  void onRemindersChanged(() => void load()).then((u) => (stop = u));
+  let gone = false;
+  void onRemindersChanged(() => void load()).then((u) => {
+    if (gone) u();
+    else stop = u;
+  });
   // The "in 12 min" words stay true.
   const tick = setInterval(() => (now = Math.floor(Date.now() / 1000)), 20_000);
   onDestroy(() => {
+    gone = true;
     stop?.();
     clearInterval(tick);
   });
@@ -38,9 +43,14 @@
       preview = null;
       return;
     }
-    void reminderIpc.preview(t).then((p) => {
-      if (mine === token) preview = p;
-    });
+    void reminderIpc
+      .preview(t)
+      .then((p) => {
+        if (mine === token) preview = p;
+      })
+      .catch(() => {
+        if (mine === token) preview = null;
+      });
   });
 
   async function add() {

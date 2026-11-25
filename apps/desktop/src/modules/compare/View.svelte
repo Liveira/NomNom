@@ -71,8 +71,9 @@
     busy = true;
     error = '';
     try {
-      result = await compareIpc.apply(left, right, plan.map((r) => ({ rel: r.rel, action: chosen[r.rel] })));
+      const applied = await compareIpc.apply(left, right, plan.map((r) => ({ rel: r.rel, action: chosen[r.rel] })));
       await compare();
+      result = applied;
     } catch (e) {
       error = String(e);
     } finally {

@@ -264,7 +264,9 @@ fn receive(ctx: &Ctx, mut request: Request, query: &str) {
         return;
     }
     let target = rules::free_path(&ctx.dest, &name);
-    let temp = target.with_extension("nomnom-part");
+    let temp = ctx
+        .dest
+        .join(format!(".nomnom-{}.nomnom-part", uuid::Uuid::new_v4().simple()));
     let result = (|| -> std::io::Result<u64> {
         let mut file = std::fs::File::create(&temp)?;
         let mut reader = request.as_reader().take(rules::MAX_MB * 1024 * 1024);
@@ -398,9 +400,11 @@ pub fn ph_status(state: State<'_, AppState>) -> Status {
 
 #[tauri::command]
 pub fn ph_start(app: AppHandle, state: State<'_, AppState>) -> CmdResult<Status> {
-    if state.phone.running.lock().unwrap().is_none() {
-        let running = start_server(&app, &state)?;
-        *state.phone.running.lock().unwrap() = Some(running);
+    {
+        let mut guard = state.phone.running.lock().unwrap();
+        if guard.is_none() {
+            *guard = Some(start_server(&app, &state)?);
+        }
     }
     Ok(status(&state))
 }

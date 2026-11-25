@@ -6,12 +6,13 @@
   Text on every surface is checked for WCAG AA contrast by contrast.test.ts.
 */
 :root {
-  --radius-xs: 6px;
-  --radius-s: 8px;
-  --radius-m: 12px;
-  --radius-l: 16px;
+  --radius-xs: 3px;
+  --radius-s: 5px;
+  --radius-m: 7px;
+  --radius-l: 10px;
   --radius-pill: 999px;
   --titlebar-h: 38px;
+  --accent-soft: var(--glow-peach);
 
   --font-ui: 'Nunito', 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;
   --font-display: 'Nunito', 'Segoe UI Variable Display', 'Segoe UI', 'Noto Sans', system-ui, sans-serif;

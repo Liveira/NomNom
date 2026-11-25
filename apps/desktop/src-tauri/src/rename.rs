@@ -95,9 +95,11 @@ pub async fn rn_preview(
     options: Options,
 ) -> CmdResult<Vec<Item>> {
     let files = files_from(&state, &paths)?;
-    Ok(rename::preview(&files, &with_today(options), &|p| {
-        p.exists()
-    }))
+    tokio::task::spawn_blocking(move || {
+        rename::preview(&files, &with_today(options), &|p| p.exists())
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -107,23 +109,28 @@ pub async fn rn_apply(
     options: Options,
 ) -> CmdResult<RnResult> {
     let files = files_from(&state, &paths)?;
-    let items = rename::preview(&files, &with_today(options), &|p| p.exists());
-    let skipped = items.iter().filter(|i| i.status != Status::Ok).count();
-    let out = rename::apply(&items);
-    if !out.done.is_empty() {
-        if let Ok(json) = serde_json::to_string(&out.done) {
-            let _ = std::fs::write(undo_file(&state), json);
+    let undo_path = undo_file(&state);
+    tokio::task::spawn_blocking(move || {
+        let items = rename::preview(&files, &with_today(options), &|p| p.exists());
+        let skipped = items.iter().filter(|i| i.status != Status::Ok).count();
+        let out = rename::apply(&items);
+        if !out.done.is_empty() {
+            if let Ok(json) = serde_json::to_string(&out.done) {
+                let _ = std::fs::write(&undo_path, json);
+            }
         }
-    }
-    Ok(RnResult {
-        renamed: out.done.len(),
-        skipped,
-        failed: out
-            .failed
-            .into_iter()
-            .map(|(p, e)| (p.to_string_lossy().into_owned(), e))
-            .collect(),
+        RnResult {
+            renamed: out.done.len(),
+            skipped,
+            failed: out
+                .failed
+                .into_iter()
+                .map(|(p, e)| (p.to_string_lossy().into_owned(), e))
+                .collect(),
+        }
     })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 fn last_batch(state: &AppState) -> Vec<Moved> {
@@ -141,23 +148,25 @@ pub fn rn_can_undo(state: State<'_, AppState>) -> usize {
 
 #[tauri::command]
 pub async fn rn_undo(state: State<'_, AppState>) -> CmdResult<RnResult> {
-    // Only what is still where the rename left it.
-    let batch: Vec<Moved> = last_batch(&state)
-        .into_iter()
-        .filter(|m| m.to.is_file())
-        .collect();
-    if batch.is_empty() {
-        return Err("There is nothing to undo.".into());
-    }
-    let out = rename::undo(&batch);
-    let _ = std::fs::remove_file(undo_file(&state));
-    Ok(RnResult {
-        renamed: out.done.len(),
-        skipped: 0,
-        failed: out
-            .failed
-            .into_iter()
-            .map(|(p, e)| (p.to_string_lossy().into_owned(), e))
-            .collect(),
+    let undo_path = undo_file(&state);
+    let raw_batch = last_batch(&state);
+    tokio::task::spawn_blocking(move || -> CmdResult<RnResult> {
+        let batch: Vec<Moved> = raw_batch.into_iter().filter(|m| m.to.is_file()).collect();
+        if batch.is_empty() {
+            return Err("There is nothing to undo.".into());
+        }
+        let out = rename::undo(&batch);
+        let _ = std::fs::remove_file(&undo_path);
+        Ok(RnResult {
+            renamed: out.done.len(),
+            skipped: 0,
+            failed: out
+                .failed
+                .into_iter()
+                .map(|(p, e)| (p.to_string_lossy().into_owned(), e))
+                .collect(),
+        })
     })
+    .await
+    .map_err(|e| e.to_string())?
 }

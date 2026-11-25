@@ -292,6 +292,95 @@ export const CORE = new Set(['home', 'tools', 'settings']);
 /** What a new install starts with. The rest are one click away on the Tools page. */
 export const DEFAULT_PICKS = ['downloads', 'activity', 'mobile', 'organizer', 'filetools'];
 
+export type ToolSetId =
+  | 'basics'
+  | 'creator'
+  | 'developer'
+  | 'gamer'
+  | 'productivity'
+  | 'cleanup'
+  | 'phone'
+  | 'all';
+
+export interface ToolSet {
+  id: ToolSetId;
+  title: string;
+  desc: string;
+  icon: string;
+  tools: string[];
+}
+
+/** Curated sidebar presets tailored for different workflows. */
+export const TOOL_SETS: ToolSet[] = [
+  {
+    id: 'basics',
+    title: 'Essentials',
+    desc: 'Downloads, Playtime, Mobile Manager, Organizer and File Tools.',
+    icon: 'home',
+    tools: [...DEFAULT_PICKS],
+  },
+  {
+    id: 'creator',
+    title: 'Creator & Media',
+    desc: 'Downloader, Converter, Screenshots, Recorder, Webcam & Backups.',
+    icon: 'film',
+    tools: ['downloads', 'filetools', 'shots', 'recorder', 'mobile', 'organizer', 'backup', 'clipboard'],
+  },
+  {
+    id: 'developer',
+    title: 'Developer & Power',
+    desc: 'Text toolbox, PATH editor, Monitor, Startup, Snippets & Actions.',
+    icon: 'terminal',
+    tools: ['toolbox', 'paths', 'monitor', 'startup', 'clipboard', 'snippets', 'actions', 'compare', 'archives', 'mobile'],
+  },
+  {
+    id: 'gamer',
+    title: 'Gamer & Focus',
+    desc: 'Playtime, Game mode, System Monitor, Capture, Timers & Phone.',
+    icon: 'playtime',
+    tools: ['activity', 'gamemode', 'monitor', 'shots', 'recorder', 'downloads', 'clocks', 'mobile'],
+  },
+  {
+    id: 'productivity',
+    title: 'Work & Study',
+    desc: 'Clipboard, Translator, Notes, Snippets, Reminders, Timers & Files.',
+    icon: 'pencil',
+    tools: ['clipboard', 'text', 'notes', 'snippets', 'reminders', 'clocks', 'actions', 'inbox', 'organizer', 'filetools'],
+  },
+  {
+    id: 'cleanup',
+    title: 'Cleanup & Storage',
+    desc: 'Disk Analyzer, Organizer, Folder rules, Compare, ZIP & Backups.',
+    icon: 'storage',
+    tools: ['storage', 'organizer', 'rules', 'compare', 'archives', 'backup', 'startup', 'filetools'],
+  },
+  {
+    id: 'phone',
+    title: 'Phone & Wireless',
+    desc: 'Mobile Manager, Phone transfer, QR codes, Clipboard & Capture.',
+    icon: 'smartphone',
+    tools: ['mobile', 'phone', 'qr', 'clipboard', 'downloads', 'shots', 'filetools'],
+  },
+  {
+    id: 'all',
+    title: 'All tools',
+    desc: 'Show all 28 tools grouped by category in the sidebar.',
+    icon: 'grid',
+    tools: TOOLS.map((t) => t.id),
+  },
+];
+
+/** Returns the preset id matching the currently picked sidebar tools, or null if customized. */
+export function activeToolSet(picked: string[] | null): ToolSetId | null {
+  const current = new Set(picked ?? TOOLS.map((t) => t.id));
+  for (const preset of TOOL_SETS) {
+    if (preset.tools.length === current.size && preset.tools.every((id) => current.has(id))) {
+      return preset.id;
+    }
+  }
+  return null;
+}
+
 /**
  * The pages that go in the sidebar. `picked` is the person's choice; `null` means they never chose,
  * so everything shows (how NomNom behaved before there was a choice).

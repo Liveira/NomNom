@@ -6,7 +6,6 @@ use crate::ops::{
 };
 use crate::protect::{valid_new_name, Protected};
 use crate::scan::long_os_path;
-use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::fs::File;
@@ -55,6 +54,16 @@ pub fn rename_preview(
     } else {
         None
     };
+    let literal_re = if !rule.regex && !rule.find.is_empty() {
+        Some(
+            regex::RegexBuilder::new(&format!("(?i){}", regex::escape(&rule.find)))
+                .size_limit(1 << 20)
+                .build()
+                .map_err(|e| format!("That search text isn't valid: {e}"))?,
+        )
+    } else {
+        None
+    };
     let step = rule.step.max(1);
     Ok(names
         .iter()
@@ -73,10 +82,11 @@ pub fn rename_preview(
             } else if let Some(re) = &re {
                 re.replace_all(stem, token(&rule.replace).as_str())
                     .to_string()
-            } else {
-                let find = Regex::new(&format!("(?i){}", regex::escape(&rule.find))).unwrap();
+            } else if let Some(find) = &literal_re {
                 find.replace_all(stem, regex::NoExpand(&token(&rule.replace)))
                     .to_string()
+            } else {
+                stem.to_string()
             };
             stem = format!("{}{}{}", token(&rule.prefix), stem, token(&rule.suffix));
             let mut full = format!("{stem}{ext}");

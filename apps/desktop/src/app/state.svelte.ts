@@ -1,3 +1,4 @@
+import { listen } from '@tauri-apps/api/event';
 import { ipc, onUpdateAvailable, updateIpc, type UpdateAvailable, type Settings, type SettingsPatch, type TaskInfo, type Theme, type Motion } from '../lib/ipc';
 import { buildNav, type NavItem } from '../lib/modules';
 import { i18n } from '../lib/i18n/index.svelte';
@@ -38,7 +39,15 @@ class AppState {
     this.settings = settings;
     this.tasks = Object.fromEntries(tasks.map((t) => [t.id, t]));
     this.applyTheme(settings.appearance.theme);
+    this.applyMotion(settings.appearance.motion);
     this.watch();
+    void listen<Settings['appearance']>('settings://appearance', (e) => {
+      if (this.settings) {
+        this.settings = { ...this.settings, appearance: e.payload };
+      }
+      this.applyTheme(e.payload.theme);
+      this.applyMotion(e.payload.motion);
+    }).catch(() => {});
     try {
       this.newVersion = await updateIpc.known();
       await onUpdateAvailable((u) => (this.newVersion = u));
@@ -98,12 +107,14 @@ class AppState {
       const y = from?.y ?? window.innerHeight / 2;
       const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
       const t = document.startViewTransition(() => this.applyTheme(theme));
-      void t.ready.then(() =>
-        document.documentElement.animate(
-          { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
-          { duration: 650, easing: 'cubic-bezier(0.2, 0.85, 0.2, 1)', pseudoElement: '::view-transition-new(root)' },
-        ),
-      );
+      void t.ready
+        .then(() =>
+          document.documentElement.animate(
+            { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`] },
+            { duration: 650, easing: 'cubic-bezier(0.2, 0.85, 0.2, 1)', pseudoElement: '::view-transition-new(root)' },
+          ),
+        )
+        .catch(() => {});
     } else {
       this.applyTheme(theme);
     }

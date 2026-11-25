@@ -11,6 +11,7 @@
   let snap = $state<MonSnapshot | null>(null);
   let next = $state<Reminder | null>(null);
   let note = $state<Note | null>(null);
+  let now = $state(Math.floor(Date.now() / 1000));
 
   const has = (id: string) => app.sidebarNav.some((n) => n.id === id);
 
@@ -18,6 +19,7 @@
     snap = await monitorIpc.snapshot().catch(() => snap);
   }
   async function loadSmall() {
+    now = Math.floor(Date.now() / 1000);
     if (has('reminders')) next = (await reminderIpc.list().catch(() => [])).find((r) => !r.done) ?? null;
     if (has('notes')) note = (await noteIpc.list('').catch(() => []))[0] ?? null;
   }
@@ -35,7 +37,6 @@
 
   const disk = $derived(snap ? systemDisk(snap.disks) : null);
   const ram = $derived(snap && snap.mem_total > 0 ? snap.mem_used / snap.mem_total : 0);
-  const now = $derived(Math.floor(Date.now() / 1000));
 </script>
 
 <section class="glance" aria-label="At a glance">

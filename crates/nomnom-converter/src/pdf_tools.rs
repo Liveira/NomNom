@@ -124,7 +124,7 @@ pub fn merge(inputs: &[PathBuf], dir: &Path, stem: &str) -> Result<PathBuf, Stri
         return Err(err("Pick at least two PDFs to join."));
     }
     let mut max_id = 1;
-    let mut pages: BTreeMap<ObjectId, Object> = BTreeMap::new();
+    let mut pages: Vec<(ObjectId, Object)> = Vec::new();
     let mut objects: BTreeMap<ObjectId, Object> = BTreeMap::new();
     for path in inputs {
         let mut doc = load(path)?;
@@ -133,7 +133,7 @@ pub fn merge(inputs: &[PathBuf], dir: &Path, stem: &str) -> Result<PathBuf, Stri
         max_id = doc.max_id + 1;
         for (_, id) in doc.get_pages() {
             if let Ok(obj) = doc.get_object(id) {
-                pages.insert(id, obj.to_owned());
+                pages.push((id, obj.to_owned()));
             }
         }
         objects.extend(doc.objects);
@@ -171,7 +171,7 @@ pub fn merge(inputs: &[PathBuf], dir: &Path, stem: &str) -> Result<PathBuf, Stri
         ));
     };
     let count = pages.len() as u32;
-    let kids: Vec<Object> = pages.keys().map(|k| Object::Reference(*k)).collect();
+    let kids: Vec<Object> = pages.iter().map(|(k, _)| Object::Reference(*k)).collect();
     for (id, obj) in pages {
         if let Ok(d) = obj.as_dict() {
             let mut d: Dictionary = d.clone();

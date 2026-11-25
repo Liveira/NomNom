@@ -27,7 +27,7 @@ const THEME_LAYOUTS: Record<string, ThemeLayout> = {
 
 export const LAYOUT_LABELS: Record<ThemeLayout, string> = {
   studio: 'Classic Studio',
-  floating: 'Floating · Pill',
+  floating: 'Floating Island',
   'dock-top': 'Top Bar · Glass',
   rail: 'Icon Rail · Bento',
   'cyber-hud': 'Right HUD · Sharp',
